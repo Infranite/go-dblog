@@ -133,27 +133,55 @@ func (decoder *BinFileDecoder) DecodeEvent(rd io.Reader) (*BinEvent, error) {
 		event.Header.EventType = UnknownEvent
 	}
 
+	var eventBody BinEventBody
 	// decode event body
 	switch event.Header.EventType {
 	case FormatDescriptionEvent:
-		desc, err := decodeFmtDescEvent(rd, header)
+		// FORMAT_DESCRIPTION_EVENT
+		eventBody, err := decodeFmtDescEvent(rd, header)
 		if err != nil {
 			return nil, err
 		}
-		decoder.Description = desc
-		event.Body = desc
+		decoder.Description = eventBody
+
 	case QueryEvent:
-		queryEvent, err := decodeQueryEvent(rd, header, decoder.Description)
+		// QUERY_EVENT
+		eventBody, err = decodeQueryEvent(rd, header, decoder.Description)
 		if err != nil {
 			return nil, err
 		}
-		event.Body = queryEvent
+
+	case XIDEvent:
+		// XID_EVENT
+		eventBody, err = decodeXIDEvent(rd)
+		if err != nil {
+			return nil, err
+		}
+
+	case IntvarEvent:
+		// INTVAR_EVENT
+		eventBody, err = decodeIntvarEvent(rd)
+		if err != nil {
+			return nil, err
+		}
+
+	case RotateEvent:
+		// ROTATE_EVENT
+		eventBody, err = decodeRotateEvent(rd, decoder.Description)
+		if err != nil {
+			return nil, err
+		}
+
 	case UnknownEvent:
-		return nil, fmt.Errorf("UnknownEvent")
+		return nil, fmt.Errorf("got unknown event")
+
 	default:
 		// TODO more decoders for more events
 		return nil, fmt.Errorf("event type %s not support yet", EventType2Str[event.Header.EventType])
 	}
+
+	// set event body
+	event.Body = eventBody
 
 	return event, nil
 }

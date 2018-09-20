@@ -21,6 +21,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"io/ioutil"
 )
 
 type BinEventBody interface {
@@ -53,15 +54,9 @@ func decodeEventHeader(rd io.Reader, desc *BinFmtDescEvent) (*BinEventHeader, er
 	}
 
 	// read header
-	header := make([]byte, headerSize)
-	n, err := rd.Read(header)
-
-	if n == 0 && err != nil {
+	header, err := ReadNBytes(rd, int64(headerSize))
+	if err != nil {
 		return nil, err
-	}
-
-	if n != 0 && n < headerSize {
-		return nil, io.EOF
 	}
 
 	var pos int
@@ -109,15 +104,10 @@ type BinFmtDescEvent struct {
 func (event *BinFmtDescEvent) isEventBody() {}
 
 func decodeFmtDescEvent(rd io.Reader, header *BinEventHeader) (*BinFmtDescEvent, error) {
-	data := make([]byte, 2+50+4+1)
-	n, err := rd.Read(data)
 
-	if n == 0 && err != nil {
+	data, err := ReadNBytes(rd, 2+50+4+1)
+	if err != nil {
 		return nil, err
-	}
-
-	if n != 0 && n < 57 {
-		return nil, io.EOF
 	}
 
 	var startPos int
@@ -145,12 +135,7 @@ func decodeFmtDescEvent(rd io.Reader, header *BinEventHeader) (*BinFmtDescEvent,
 
 	// event type header lengths
 	bodySize := header.EventSize - int64(desc.EventHeaderLength) - 57
-	body := make([]byte, bodySize)
-	n, err = rd.Read(body)
-	if int64(n) != bodySize {
-		return desc, fmt.Errorf("invilia FORMAT_DESCRIPTION_EVENT body size %d", n)
-	}
-
+	body, err := ReadNBytes(rd, bodySize)
 	if err != nil {
 		return desc, err
 	}
@@ -176,15 +161,9 @@ func (event *BinQueryEvent) isEventBody() {}
 func decodeQueryEvent(rd io.Reader, header *BinEventHeader, desc *BinFmtDescEvent) (*BinQueryEvent, error) {
 	// got event body size && read body
 	eventSize := header.EventSize - int64(desc.EventHeaderLength)
-	body := make([]byte, eventSize)
-	n, err := rd.Read(body)
-
-	if n == 0 && err != nil {
+	body, err := ReadNBytes(rd, eventSize)
+	if err != nil {
 		return nil, err
-	}
-
-	if n != 0 && int64(n) < eventSize {
-		return nil, io.EOF
 	}
 
 	var pos int
@@ -318,4 +297,77 @@ func (event *BinQueryEvent) Statue() error {
 	}
 
 	return nil
+}
+
+// https://dev.mysql.com/doc/internals/en/xid-event.html
+// Transaction ID for 2PC, written whenever a COMMIT is expected.
+type BinXIDEvent struct {
+	XID uint64
+}
+
+func (event *BinXIDEvent) isEventBody() {}
+
+func decodeXIDEvent(rd io.Reader) (*BinXIDEvent, error) {
+	body, err := ReadNBytes(rd, 8)
+	if err != nil {
+		return nil, err
+	}
+
+	binary.LittleEndian.Uint64(body)
+	return &BinXIDEvent{
+		XID: binary.LittleEndian.Uint64(body),
+	}, nil
+}
+
+// https://dev.mysql.com/doc/internals/en/xid-event.html
+// Transaction ID for 2PC, written whenever a COMMIT is expected.
+type BinIntvarEvent struct {
+	Type  uint8
+	Value uint64
+}
+
+func (event *BinIntvarEvent) isEventBody() {}
+
+func decodeIntvarEvent(rd io.Reader) (*BinIntvarEvent, error) {
+	body, err := ReadNBytes(rd, 9)
+	if err != nil {
+		return nil, err
+	}
+
+	event := &BinIntvarEvent{}
+	event.Type = body[0]
+	event.Value = binary.LittleEndian.Uint64(body[1:])
+
+	return event, nil
+}
+
+// TODO: BinIntvarEvent.Type format
+
+// https://dev.mysql.com/doc/internals/en/rotate-event.html
+// The rotate event is added to the binlog as last event to tell the reader what binlog to request next.
+type BinRotateEvent struct {
+	Position uint64
+	FileName string
+}
+
+func (event *BinRotateEvent) isEventBody() {}
+
+func decodeRotateEvent(rd io.Reader, desc *BinFmtDescEvent) (*BinRotateEvent, error) {
+	event := &BinRotateEvent{}
+	if desc.BinlogVersion > 1 {
+		header, err := ReadNBytes(rd, 8)
+		if err != nil {
+			return nil, err
+		}
+		event.Position = binary.LittleEndian.Uint64(header)
+	}
+
+	// cause file name length cant be so long, we could turn uint64 to int64
+	name, err := ioutil.ReadAll(rd)
+	if err != nil {
+		return nil, err
+	}
+	event.FileName = string(name)
+	return event, nil
+
 }
