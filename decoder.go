@@ -91,7 +91,30 @@ func (decoder *BinFileDecoder) init() error {
 	return nil
 }
 
-// DecodeEvent from binary log
+// WalkEvent will walk all events for binary log which in io.Reader
+// This function will return isFinish bool and err error.
+func (decoder *BinFileDecoder) WalkEvent(f func(event *BinEvent) (isContinue bool, err error), rd io.Reader) error {
+	for {
+		// if rd is nil, BinFileDecoder.DecodeEvent() will set rd to BinFileDecoder.BinFile
+		event, err := decoder.DecodeEvent(rd)
+		if err == io.EOF {
+			return nil
+		}
+
+		if err != nil {
+			return err
+		}
+
+		// TODO: break function by BinFileDecoder.Options condition
+
+		isContinue, err := f(event)
+		if !isContinue || err != nil {
+			return err
+		}
+	}
+}
+
+// DecodeEvent will decode a single event from binary log
 func (decoder *BinFileDecoder) DecodeEvent(rd io.Reader) (*BinEvent, error) {
 	if rd == nil {
 		rd = decoder.BinFile
@@ -110,6 +133,7 @@ func (decoder *BinFileDecoder) DecodeEvent(rd io.Reader) (*BinEvent, error) {
 		event.Header.EventType = UnknownEvent
 	}
 
+	// decode event body
 	switch event.Header.EventType {
 	case FormatDescriptionEvent:
 		desc, err := decodeFmtDescEvent(rd, header)
@@ -127,6 +151,7 @@ func (decoder *BinFileDecoder) DecodeEvent(rd io.Reader) (*BinEvent, error) {
 	case UnknownEvent:
 		return nil, fmt.Errorf("UnknownEvent")
 	default:
+		// TODO more decoders for more events
 		return nil, fmt.Errorf("event type %s not support yet", EventType2Str[event.Header.EventType])
 	}
 
