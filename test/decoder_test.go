@@ -32,7 +32,7 @@ func TestDecoder(t *testing.T) {
 	}
 
 	count := 0
-	maxCount := 0
+	maxCount := 12
 	err = decoder.WalkEvent(func(event *binlog.BinEvent) (isContinue bool, err error) {
 		fmt.Printf("Got %s: \n\t", binlog.EventType2Str[event.Header.EventType])
 		fmt.Println(event.Header)

@@ -1,52 +1,109 @@
 # go-mysql-binlog
-MySQL/MariaDB binary log analyzer in Golang.
+MySQL binary log analyzer in Golang.
 
 [中文说明](https://github.com/liipx/go-mysql-binlog/blob/master/doc/doc_zh.md)
 
 ## Example
 ```go
 func main() {
-	decoder, err := binlog.NewBinFileDecoder("/your/log/path/mysql-bin.000001")
+	decoder, err := binlog.NewBinFileDecoder("./testdata/mysql-bin.000004")
 	if err != nil {
-		t.Error(err)
+		panic(err)
 		return
 	}
-
+    
+	num := 0
+	maxEventCount := 0
 	err = decoder.WalkEvent(func(event *binlog.BinEvent) (isContinue bool, err error) {
-		pretty.Println(event)
-		return true, nil
+		fmt.Printf("Got %s: \n\t|   | binlog.EventType2Str[event.Header.EventType])
+		fmt.Println(event.Header)
+		
+		// show details if you need
+		// if event.Body != nil {
+		// 	pretty.Println(event.Body)
+		// }
+		//
+		
+		fmt.Println(strings.Repeat("=|   | 100))
+		count ++
+		return maxEventCount > num || maxEventCount == 0, nil
 	}, nil)
-
+    
 	if err != nil {
-		t.Error(err)
+		panic(err)
 	}
 
 }
 ```
 ### Output:
 ```text
-&binlog.BinEvent{
-    Header: &binlog.BinEventHeader{Timestamp:1536368222, EventType:0xf, ServerID:11111, EventSize:103, LogPos:107, Flag:0x0},
-    Body:   &binlog.BinFmtDescEvent{
-        BinlogVersion:         4,
-        MySQLVersion:          "5.5.31-log",
-        CreateTime:            0,
-        EventHeaderLength:     19,
-        EventTypeHeaderLength: {0x38, 0xd, 0x0, 0x8, 0x0, 0x12, 0x0, 0x4, 0x4, 0x4, 0x4, 0x12, 0x0, 0x0, 0x54, 0x0, 0x4, 0x1a, 0x8, 0x0, 0x0, 0x0, 0x8, 0x8, 0x8, 0x2, 0x0},
-    },
-}
-&binlog.BinEvent{
-    Header: &binlog.BinEventHeader{Timestamp:1536368222, EventType:0x2, ServerID:11111, EventSize:70, LogPos:177, Flag:0x8},
-    Body:   &binlog.BinQueryEvent{
-        SlaveProxyID:     69912308,
-        ExecutionTime:    0,
-        ErrorCode:        0x0,
-        statusVarsLength: 26,
-        StatusVars:       {0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x6, 0x3, 0x73, 0x74, 0x64, 0x4, 0x21, 0x0, 0x21, 0x0, 0x2d, 0x0},
-        Schema:           "test",
-        Query:            "BEGIN",
-    },
-}
+Got FORMAT_DESCRIPTION_EVENT: 
+	Time:2018-09-22 18:24:30 +0800 CST, ServerID:1537611870, EventSize:119, LogPos:123, Flag:0x1
+====================================================================================================
+Got PREVIOUS_GTIDS_EVENT: 
+	Time:2018-09-22 18:24:30 +0800 CST, ServerID:1537611870, EventSize:31, LogPos:154, Flag:0x80
+====================================================================================================
+Got ANONYMOUS_GTID_EVENT: 
+	Time:2018-09-22 18:24:30 +0800 CST, ServerID:1537611870, EventSize:65, LogPos:219, Flag:0x0
+====================================================================================================
+Got QUERY_EVENT: 
+	Time:2018-09-22 18:24:30 +0800 CST, ServerID:1537611870, EventSize:79, LogPos:298, Flag:0x8
+====================================================================================================
+Got TABLE_MAP_EVENT: 
+	Time:2018-09-22 18:24:30 +0800 CST, ServerID:1537611870, EventSize:64, LogPos:362, Flag:0x0
+====================================================================================================
+Got WRITE_ROWS_EVENTv2: 
+	Time:2018-09-22 18:24:30 +0800 CST, ServerID:1537611870, EventSize:197, LogPos:559, Flag:0x0
+====================================================================================================
+Got XID_EVENT: 
+	Time:2018-09-22 18:24:30 +0800 CST, ServerID:1537611870, EventSize:31, LogPos:590, Flag:0x0
+====================================================================================================
+
 ```
 
-## To Be Continued...
+## Progress
+|EventType|Supported|
+|---|---|
+|UNKNOWN_EVENT|✔|
+|START_EVENT_V3||
+|QUERY_EVENT|✔|
+|STOP_EVENT||
+|ROTATE_EVENT|✔|
+|INTVAR_EVENT|✔|
+|LOAD_EVENT||
+|SLAVE_EVENT||
+|CREATE_FILE_EVENT||
+|APPEND_BLOCK_EVENT||
+|EXEC_LOAD_EVENT||
+|DELETE_FILE_EVENT||
+|NEW_LOAD_EVENT||
+|RAND_EVENT||
+|USER_VAR_EVENT||
+|FORMAT_DESCRIPTION_EVENT|✔|
+|XID_EVENT|✔|
+|BEGIN_LOAD_QUERY_EVENT||
+|EXECUTE_LOAD_QUERY_EVENT||
+|TABLE_MAP_EVENT||
+|WRITE_ROWS_EVENTv0||
+|UPDATE_ROWS_EVENTv0||
+|DELETE_ROWS_EVENTv0||
+|WRITE_ROWS_EVENTv1||
+|UPDATE_ROWS_EVENTv1||
+|DELETE_ROWS_EVENTv1||
+|INCIDENT_EVENT||
+|HEARTBEAT_EVENT||
+|IGNORABLE_EVENT||
+|ROWS_QUERY_EVENT||
+|WRITE_ROWS_EVENTv2||
+|UPDATE_ROWS_EVENTv2||
+|DELETE_ROWS_EVENTv2||
+|GTID_EVENT|✔|
+|ANONYMOUS_GTID_EVENT|✔|
+|PREVIOUS_GTIDS_EVENT|✔|
+
+## TODO
+1. Support all mysql binlog event.
+1. Get binlog event through network connections.
+1. Multi threads binlog dumper.
+1. Flash back base on row format binary log.
+1. more.
