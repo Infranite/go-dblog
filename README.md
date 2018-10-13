@@ -15,7 +15,7 @@ func main() {
 	num := 0
 	maxEventCount := 0
 	err = decoder.WalkEvent(func(event *binlog.BinEvent) (isContinue bool, err error) {
-		fmt.Printf("Got %s: \n\t|   | binlog.EventType2Str[event.Header.EventType])
+		fmt.Printf("Got %s: \n\t", binlog.EventType2Str[event.Header.EventType])
 		fmt.Println(event.Header)
 		
 		// show details if you need
@@ -24,7 +24,7 @@ func main() {
 		// }
 		//
 		
-		fmt.Println(strings.Repeat("=|   | 100))
+		fmt.Println(strings.Repeat("=", 100))
 		count ++
 		return maxEventCount > num || maxEventCount == 0, nil
 	}, nil)

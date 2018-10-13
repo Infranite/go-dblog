@@ -20,7 +20,7 @@ func main() {
 	// WalkEvent() 会按顺序接收到解析出的 binlog event
 	// 你可以通过控制 return 来随时决定是否退出 binlog 遍历
 	err = decoder.WalkEvent(func(event *binlog.BinEvent) (isContinue bool, err error) {
-		fmt.Printf("Got %s: \n\t|   | binlog.EventType2Str[event.Header.EventType])
+		fmt.Printf("Got %s: \n\t", binlog.EventType2Str[event.Header.EventType])
 		fmt.Println(event.Header)
 		
 		// 如果你需要查看binlog event的详情，可以把下面这段代码注释去掉
