@@ -56,6 +56,7 @@ const (
 	PreviousGTIDEvent      = 0x23
 )
 
+// EventType2Str mapping the name of binary log event type
 var EventType2Str = map[uint8]string{
 	UnknownEvent:           "UNKNOWN_EVENT",
 	StartEventV3:           "START_EVENT_V3",
@@ -113,6 +114,7 @@ const (
 	QMicroseconds          = 0x0d
 )
 
+// QStatusKey2Str is the name of status_vars
 var QStatusKey2Str = map[uint8]string{
 	QFlags2Code:            "Q_FLAGS2_CODE",
 	QSQLModeCode:           "Q_SQL_MODE_CODE",

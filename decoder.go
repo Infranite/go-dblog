@@ -172,6 +172,10 @@ func (decoder *BinFileDecoder) DecodeEvent(rd io.Reader) (*BinEvent, error) {
 			return nil, err
 		}
 
+	case PreviousGTIDEvent:
+		// PREVIOUS_GTIDS_EVENT
+		eventBody, err = decodePreGTIDsEvent(rd, header)
+
 	case UnknownEvent:
 		return nil, fmt.Errorf("got unknown event")
 

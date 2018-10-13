@@ -18,7 +18,7 @@ package binlog
 
 import "io"
 
-// read n bytes from io.Reader
+// ReadNBytes read n bytes from io.Reader
 func ReadNBytes(rd io.Reader, size int64) ([]byte, error) {
 	data := make([]byte, size)
 	n, err := rd.Read(data)
