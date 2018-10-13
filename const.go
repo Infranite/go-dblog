@@ -96,6 +96,13 @@ var EventType2Str = map[uint8]string{
 	PreviousGTIDEvent:      "PREVIOUS_GTIDS_EVENT",
 }
 
+// BINGLOG_CHECKSUM_ALG
+const (
+	BinlogChecksumAlgOff   byte = 0
+	BinlogChecksumAlgCRC32 byte = 1
+	BinlogChecksumAlgUndef byte = 255
+)
+
 // QUERY_EVENT status_vars
 const (
 	QFlags2Code            = 0x00

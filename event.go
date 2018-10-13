@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
+	"time"
 )
 
 // BinEventBody descripted event body
@@ -35,8 +37,23 @@ type BinEvent struct {
 	Body   BinEventBody
 }
 
+// BinEventBodyData save the event data when the event type not supported yet.
+type BinEventBodyData []byte
+
+func (body BinEventBodyData) isEventBody() {}
+
+func decodeUnSupportEvent(rd io.Reader, header *BinEventHeader, desc *BinFmtDescEvent) (BinEventBodyData, error) {
+	size := header.EventSize - desc.EventHeaderLength
+	body, err := ReadNBytes(rd, size)
+	if err != nil {
+		return nil, err
+	}
+
+	return body, err
+}
+
 // mysql binlog version > 1 (version > mysql 4.0.0), size = 19
-var defaultEventHeaderSize = 19
+var defaultEventHeaderSize int64 = 19
 
 // BinEventHeader bianry log header definition
 // https://dev.mysql.com/doc/internals/en/binlog-event-header.html
@@ -49,11 +66,21 @@ type BinEventHeader struct {
 	Flag      uint16
 }
 
+func (header *BinEventHeader) String() string {
+	return fmt.Sprintf("Time:%s, ServerID:%d, EventSize:%d, LogPos:%d, Flag:0x%x",
+		time.Unix(header.Timestamp, 0),
+		header.Timestamp,
+		header.EventSize,
+		header.LogPos,
+		header.Flag,
+	)
+}
+
 func decodeEventHeader(rd io.Reader, desc *BinFmtDescEvent) (*BinEventHeader, error) {
 	// set header size
 	headerSize := defaultEventHeaderSize
 	if desc != nil && desc.EventHeaderLength != defaultEventHeaderSize {
-		headerSize = int(desc.EventHeaderLength)
+		headerSize = desc.EventHeaderLength
 	}
 
 	// read header
@@ -95,17 +122,23 @@ func decodeEventHeader(rd io.Reader, desc *BinFmtDescEvent) (*BinEventHeader, er
 	return eventHeader, nil
 }
 
+type BaseEvent struct {
+	ChecksumType byte
+	ChecksumVal  []byte
+}
+
+func (event *BaseEvent) isEventBody() {}
+
 // BinFmtDescEvent is the definition of FORMAT_DESCRIPTION_EVENT
 // https://dev.mysql.com/doc/internals/en/format-description-event.html
 type BinFmtDescEvent struct {
+	BaseEvent
 	BinlogVersion         int
 	MySQLVersion          string
 	CreateTime            int64
-	EventHeaderLength     int
+	EventHeaderLength     int64
 	EventTypeHeaderLength []byte
 }
-
-func (event *BinFmtDescEvent) isEventBody() {}
 
 func decodeFmtDescEvent(rd io.Reader, header *BinEventHeader) (*BinFmtDescEvent, error) {
 
@@ -135,16 +168,24 @@ func decodeFmtDescEvent(rd io.Reader, header *BinEventHeader) (*BinFmtDescEvent,
 	// event header length
 	startPos = endPos
 	endPos++
-	desc.EventHeaderLength = int(data[startPos])
+	desc.EventHeaderLength = int64(data[startPos])
 
 	// event type header lengths
-	bodySize := header.EventSize - int64(desc.EventHeaderLength) - 57
+	bodySize := header.EventSize - desc.EventHeaderLength - 57
 	body, err := ReadNBytes(rd, bodySize)
 	if err != nil {
 		return desc, err
 	}
 
-	desc.EventTypeHeaderLength = body
+	if hasChecksum(desc.MySQLVersion) {
+		index := len(body) - 5
+		desc.ChecksumType = body[index]
+		desc.ChecksumVal = body[index+1:]
+		desc.EventTypeHeaderLength = body[:index]
+	} else {
+		desc.ChecksumType = BinlogChecksumAlgUndef
+		desc.EventTypeHeaderLength = body
+	}
 
 	return desc, nil
 }
@@ -152,6 +193,7 @@ func decodeFmtDescEvent(rd io.Reader, header *BinEventHeader) (*BinFmtDescEvent,
 // BinQueryEvent is the definition of QUERY_EVENT
 // https://dev.mysql.com/doc/internals/en/query-event.html
 type BinQueryEvent struct {
+	BaseEvent
 	SlaveProxyID     int64
 	ExecutionTime    int64
 	ErrorCode        uint16
@@ -161,11 +203,9 @@ type BinQueryEvent struct {
 	Query            string
 }
 
-func (event *BinQueryEvent) isEventBody() {}
-
 func decodeQueryEvent(rd io.Reader, header *BinEventHeader, desc *BinFmtDescEvent) (*BinQueryEvent, error) {
 	// got event body size && read body
-	eventSize := header.EventSize - int64(desc.EventHeaderLength)
+	eventSize := header.EventSize - desc.EventHeaderLength
 	body, err := ReadNBytes(rd, eventSize)
 	if err != nil {
 		return nil, err
@@ -208,7 +248,11 @@ func decodeQueryEvent(rd io.Reader, header *BinEventHeader, desc *BinFmtDescEven
 	pos++
 
 	// query
-	event.Query = string(body[pos:])
+	if desc.ChecksumType != BinlogChecksumAlgUndef {
+		event.Query = string(body[pos : len(body)-4])
+	} else {
+		event.Query = string(body[pos:])
+	}
 
 	return event, nil
 }
@@ -309,35 +353,40 @@ func (event *BinQueryEvent) Statue() error {
 // https://dev.mysql.com/doc/internals/en/xid-event.html
 // Transaction ID for 2PC, written whenever a COMMIT is expected.
 type BinXIDEvent struct {
+	BaseEvent
 	XID uint64
 }
 
-func (event *BinXIDEvent) isEventBody() {}
-
-func decodeXIDEvent(rd io.Reader) (*BinXIDEvent, error) {
-	body, err := ReadNBytes(rd, 8)
+func decodeXIDEvent(rd io.Reader, header *BinEventHeader, desc *BinFmtDescEvent) (*BinXIDEvent, error) {
+	body, err := ReadNBytes(rd, header.EventSize-desc.EventHeaderLength)
 	if err != nil {
 		return nil, err
 	}
 
-	binary.LittleEndian.Uint64(body)
-	return &BinXIDEvent{
+	event := &BinXIDEvent{
 		XID: binary.LittleEndian.Uint64(body),
-	}, nil
+	}
+
+	if desc.ChecksumType != BinlogChecksumAlgUndef {
+		index := len(body) - 5
+		event.ChecksumType = body[index]
+		event.ChecksumVal = body[index+1:]
+	}
+
+	return event, nil
 }
 
 // BinIntvarEvent is the definition of INTVAR_EVENT
 // https://dev.mysql.com/doc/internals/en/xid-event.html
 // Transaction ID for 2PC, written whenever a COMMIT is expected.
 type BinIntvarEvent struct {
+	BaseEvent
 	Type  uint8
 	Value uint64
 }
 
-func (event *BinIntvarEvent) isEventBody() {}
-
-func decodeIntvarEvent(rd io.Reader) (*BinIntvarEvent, error) {
-	body, err := ReadNBytes(rd, 9)
+func decodeIntvarEvent(rd io.Reader, header *BinEventHeader, desc *BinFmtDescEvent) (*BinIntvarEvent, error) {
+	body, err := ReadNBytes(rd, header.EventSize-desc.EventHeaderLength)
 	if err != nil {
 		return nil, err
 	}
@@ -345,6 +394,12 @@ func decodeIntvarEvent(rd io.Reader) (*BinIntvarEvent, error) {
 	event := &BinIntvarEvent{}
 	event.Type = body[0]
 	event.Value = binary.LittleEndian.Uint64(body[1:])
+
+	if desc.ChecksumType != BinlogChecksumAlgUndef {
+		index := len(body) - 5
+		event.ChecksumType = body[index]
+		event.ChecksumVal = body[index+1:]
+	}
 
 	return event, nil
 }
@@ -355,11 +410,10 @@ func decodeIntvarEvent(rd io.Reader) (*BinIntvarEvent, error) {
 // https://dev.mysql.com/doc/internals/en/rotate-event.html
 // The rotate event is added to the binlog as last event to tell the reader what binlog to request next.
 type BinRotateEvent struct {
+	BaseEvent
 	Position uint64
 	FileName string
 }
-
-func (event *BinRotateEvent) isEventBody() {}
 
 func decodeRotateEvent(rd io.Reader, desc *BinFmtDescEvent) (*BinRotateEvent, error) {
 	event := &BinRotateEvent{}
@@ -376,29 +430,10 @@ func decodeRotateEvent(rd io.Reader, desc *BinFmtDescEvent) (*BinRotateEvent, er
 	if err != nil {
 		return nil, err
 	}
-	event.FileName = string(name)
+	event.FileName = strings.TrimSpace(string(name))
 	return event, nil
-
 }
 
 // BinPreGTIDsEvent is the definition of PREVIOUS_GTIDS_EVENT
-// TODO: BinPreGTIDsEvent
-type BinPreGTIDsEvent struct {
-	Data []byte
-}
-
-func (event *BinPreGTIDsEvent) isEventBody() {}
-
-func decodePreGTIDsEvent(rd io.Reader, header *BinEventHeader) (*BinPreGTIDsEvent, error) {
-	size := header.EventSize - 19
-	body, err := ReadNBytes(rd, size)
-	if err != nil {
-		return nil, err
-	}
-
-	event := &BinPreGTIDsEvent{
-		Data: body,
-	}
-
-	return event, nil
-}
+// TODO: PREVIOUS_GTIDS_EVENT
+type BinPreGTIDsEvent struct{ BaseEvent }

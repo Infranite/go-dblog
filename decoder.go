@@ -138,50 +138,33 @@ func (decoder *BinFileDecoder) DecodeEvent(rd io.Reader) (*BinEvent, error) {
 	switch event.Header.EventType {
 	case FormatDescriptionEvent:
 		// FORMAT_DESCRIPTION_EVENT
-		eventBody, err := decodeFmtDescEvent(rd, header)
-		if err != nil {
-			return nil, err
-		}
-		decoder.Description = eventBody
-
+		decoder.Description, err = decodeFmtDescEvent(rd, header)
+		eventBody = decoder.Description
 	case QueryEvent:
 		// QUERY_EVENT
 		eventBody, err = decodeQueryEvent(rd, header, decoder.Description)
-		if err != nil {
-			return nil, err
-		}
-
 	case XIDEvent:
 		// XID_EVENT
-		eventBody, err = decodeXIDEvent(rd)
-		if err != nil {
-			return nil, err
-		}
-
+		eventBody, err = decodeXIDEvent(rd, header, decoder.Description)
 	case IntvarEvent:
 		// INTVAR_EVENT
-		eventBody, err = decodeIntvarEvent(rd)
-		if err != nil {
-			return nil, err
-		}
-
+		eventBody, err = decodeIntvarEvent(rd, header, decoder.Description)
 	case RotateEvent:
 		// ROTATE_EVENT
 		eventBody, err = decodeRotateEvent(rd, decoder.Description)
-		if err != nil {
-			return nil, err
-		}
-
-	case PreviousGTIDEvent:
-		// PREVIOUS_GTIDS_EVENT
-		eventBody, err = decodePreGTIDsEvent(rd, header)
-
+	case PreviousGTIDEvent, AnonymousGTIDEvent:
+		// decode ignore event.
+		// TODO: decode AnonymousGTIDEvent
+		eventBody, err = decodeUnSupportEvent(rd, header, decoder.Description)
 	case UnknownEvent:
 		return nil, fmt.Errorf("got unknown event")
-
 	default:
 		// TODO more decoders for more events
-		return nil, fmt.Errorf("event type %s not support yet", EventType2Str[event.Header.EventType])
+		eventBody, err = decodeUnSupportEvent(rd, header, decoder.Description)
+	}
+
+	if err != nil {
+		return nil, err
 	}
 
 	// set event body

@@ -17,9 +17,10 @@ limitations under the License.
 package test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
-	"github.com/kr/pretty"
 	"github.com/liipx/go-mysql-binlog"
 )
 
@@ -30,9 +31,18 @@ func TestDecoder(t *testing.T) {
 		return
 	}
 
+	count := 0
+	maxCount := 0
 	err = decoder.WalkEvent(func(event *binlog.BinEvent) (isContinue bool, err error) {
-		pretty.Println(event)
-		return true, nil
+		fmt.Printf("Got %s: \n\t", binlog.EventType2Str[event.Header.EventType])
+		fmt.Println(event.Header)
+		// if event.Body != nil {
+		// 	pretty.Println(event.Body)
+		// }
+		//
+		fmt.Println(strings.Repeat("=", 100))
+		count ++
+		return maxCount > count || maxCount == 0, nil
 	}, nil)
 
 	if err != nil {
