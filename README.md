@@ -1,7 +1,7 @@
 # go-mysql-binlog
 MySQL/MariaDB binary log analyzer in Golang.
 
-[中文说明](https://github.com/liipx/go-mysql-binlog/doc/doc_zh.md)
+[中文说明](https://github.com/liipx/go-mysql-binlog/blob/master/doc/doc_zh.md)
 
 ## Example
 ```go
