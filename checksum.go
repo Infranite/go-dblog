@@ -32,36 +32,31 @@ import (
 // Set to NONE to disable, or the name of the algorithm to be used for generating checksums;
 // currently, only CRC32 checksums are supported. As of MySQL 5.6.6, CRC32 is the default.
 // This option was added in MySQL 5.6.2.
-var mysqlChecksumVersion = (5*256+6)*256 + 2
+var mysqlChecksumVersion = 562
 
-// this algorithm is base on 'github.com/go-mysql'
-func hasChecksum(version string) bool {
-	v := [3]int{0, 0, 0}
-	checksum := func(v [3]int) int {
-		return (v[0]*256+v[1])*256 + v[2]
-	}
-
-	defer func() {
-		if err := recover(); err != nil {
-			return
-		}
-	}()
-
-	vs := strings.Split(version, ".")
-	v[0], _ = strconv.Atoi(vs[0])
-	v[1], _ = strconv.Atoi(vs[1])
-	if len(vs) < 3 {
-		return checksum(v) >= mysqlChecksumVersion
+func mysqlVersion(versionStr string) int {
+	var version int
+	split := strings.Split(versionStr, ".")
+	f, _ := strconv.Atoi(split[0])
+	s, _ := strconv.Atoi(split[1])
+	version = f*100 + s*10
+	if len(split) < 3 {
+		return version
 	}
 
 	index := 0
-	for i, c := range vs[2] {
+	for i, c := range split[2] {
 		if !unicode.IsNumber(c) {
 			index = i
 			break
 		}
 	}
 
-	v[2], _ = strconv.Atoi(vs[2][0:index])
-	return checksum(v) >= mysqlChecksumVersion
+	t, _ := strconv.Atoi(split[2][:index])
+	version += t
+	return version
+}
+
+func hasChecksum(versionStr string) bool {
+	return mysqlVersion(versionStr) >= mysqlChecksumVersion
 }
