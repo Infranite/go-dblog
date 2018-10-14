@@ -18,35 +18,52 @@ package test
 
 import (
 	"fmt"
-	"strings"
+	_ "net/http/pprof"
+	"runtime"
 	"testing"
+	"time"
 
 	"github.com/liipx/go-mysql-binlog"
 )
 
 func TestDecoder(t *testing.T) {
+	memStats := &runtime.MemStats{}
+	runtime.ReadMemStats(memStats)
 	decoder, err := binlog.NewBinFileDecoder("./testdata/mysql-bin.000004")
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
+	f, _ := decoder.BinFile.Stat()
+	fmt.Println("Binlog file size:", f.Size()>>10>>10, "MB")
+	starTime := time.Now()
+
 	count := 0
-	maxCount := 12
+	maxCount := 0
+	maxAlloc := memStats.Alloc
 	err = decoder.WalkEvent(func(event *binlog.BinEvent) (isContinue bool, err error) {
-		fmt.Printf("Got %s: \n\t", binlog.EventType2Str[event.Header.EventType])
-		fmt.Println(event.Header)
-		// if event.Body != nil {
-		// 	pretty.Println(event.Body)
-		// }
-		//
-		fmt.Println(strings.Repeat("=", 100))
+		runtime.ReadMemStats(memStats)
+		if memStats.Alloc > maxAlloc {
+			maxAlloc = memStats.Alloc
+		}
 		count ++
 		return maxCount > count || maxCount == 0, nil
 	}, nil)
+
+	duration := time.Since(starTime)
+	fmt.Println("Time total:", duration.String())
+
+	speed := float64(f.Size()>>10>>10) / duration.Seconds()
+	fmt.Printf("Speed: %.2f MB/s\n", speed)
 
 	if err != nil {
 		t.Error(err)
 	}
 
+	runtime.ReadMemStats(memStats)
+	fmt.Println("Max alloc:", maxAlloc>>10>>10, "MB")
+	fmt.Println("GC times:", memStats.NumGC)
+	pauseTotal := time.Duration(int64(memStats.PauseTotalNs))
+	fmt.Println("Pause total:", pauseTotal.String())
 }

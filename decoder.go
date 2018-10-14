@@ -22,6 +22,9 @@ import (
 	"io"
 	"os"
 	"time"
+
+	"github.com/kr/pretty"
+	"github.com/pkg/errors"
 )
 
 // binFileHeader : A binlog file starts with a Binlog File Header [ fe 'bin' ]
@@ -91,6 +94,98 @@ func (decoder *BinFileDecoder) init() error {
 	return nil
 }
 
+// DecodeEvent will decode a single event from binary log
+func (decoder *BinFileDecoder) DecodeEvent(rd io.Reader) (*BinEvent, error) {
+	if rd == nil {
+		rd = decoder.BinFile
+	}
+
+	event := &BinEvent{}
+
+	eventHeaderLength := defaultEventHeaderSize
+	if decoder.Description != nil {
+		eventHeaderLength = decoder.Description.EventHeaderLength
+	}
+
+	// read binlog event header
+	headerData, err := ReadNBytes(rd, eventHeaderLength)
+	if err != nil {
+		return nil, err
+	}
+
+	// decode binlog event header
+	event.Header, err = decodeEventHeader(headerData, eventHeaderLength)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, ok := EventType2Str[event.Header.EventType]; !ok {
+		return nil, fmt.Errorf("got unknown event type {%x}", event.Header.EventType)
+	}
+
+	// read binlog event body
+	var data []byte
+	data, err = ReadNBytes(rd, event.Header.EventSize-eventHeaderLength)
+	if err != nil {
+		return nil, err
+	}
+
+	if l := len(data); int64(l)+eventHeaderLength != event.Header.EventSize {
+		return event, errors.Errorf("event size need %d got %d", l, event.Header.EventSize)
+	}
+
+	// checksum
+	if decoder.Description != nil && decoder.Description.hasCheckSum {
+		index := len(data) - binlogChecksumLength - 1
+		event.ChecksumType = data[index]
+		event.ChecksumVal = data[index+1:]
+		data = data[:index+1]
+
+		if !ChecksumValidate(event.ChecksumType, event.ChecksumVal, append(headerData, data...)) || len(event.ChecksumVal) != 4 {
+			return event, errors.Errorf("binlog checksum validation failed")
+		}
+	}
+
+	// decode binlog event body
+	var eventBody BinEventBody
+	switch event.Header.EventType {
+	case FormatDescriptionEvent:
+		// FORMAT_DESCRIPTION_EVENT
+		decoder.Description, err = decodeFmtDescEvent(data)
+		eventBody = decoder.Description
+	case QueryEvent:
+		// QUERY_EVENT
+		eventBody, err = decodeQueryEvent(data, decoder.Description.BinlogVersion)
+	case XIDEvent:
+		// XID_EVENT
+		eventBody, err = decodeXIDEvent(data)
+	case IntvarEvent:
+		// INTVAR_EVENT
+		eventBody, err = decodeIntvarEvent(data)
+	case RotateEvent:
+		// ROTATE_EVENT
+		eventBody, err = decodeRotateEvent(data, decoder.Description.BinlogVersion)
+	case PreviousGTIDEvent, AnonymousGTIDEvent:
+		// decode ignore event.
+		// TODO: decode AnonymousGTIDEvent
+		eventBody, err = decodeUnSupportEvent(data)
+	case UnknownEvent:
+		return nil, fmt.Errorf("got unknown event")
+	default:
+		// TODO more decoders for more events
+		eventBody, err = decodeUnSupportEvent(data)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// set event body
+	event.Body = eventBody
+
+	return event, nil
+}
+
 // WalkEvent will walk all events for binary log which in io.Reader
 // This function will return isFinish bool and err error.
 func (decoder *BinFileDecoder) WalkEvent(f func(event *BinEvent) (isContinue bool, err error), rd io.Reader) error {
@@ -102,6 +197,7 @@ func (decoder *BinFileDecoder) WalkEvent(f func(event *BinEvent) (isContinue boo
 		}
 
 		if err != nil {
+			pretty.Println(event)
 			return err
 		}
 
@@ -112,63 +208,4 @@ func (decoder *BinFileDecoder) WalkEvent(f func(event *BinEvent) (isContinue boo
 			return err
 		}
 	}
-}
-
-// DecodeEvent will decode a single event from binary log
-func (decoder *BinFileDecoder) DecodeEvent(rd io.Reader) (*BinEvent, error) {
-	if rd == nil {
-		rd = decoder.BinFile
-	}
-
-	header, err := decodeEventHeader(rd, decoder.Description)
-	if err != nil {
-		return nil, err
-	}
-
-	event := &BinEvent{
-		Header: header,
-	}
-
-	if _, ok := EventType2Str[event.Header.EventType]; !ok {
-		event.Header.EventType = UnknownEvent
-	}
-
-	var eventBody BinEventBody
-	// decode event body
-	switch event.Header.EventType {
-	case FormatDescriptionEvent:
-		// FORMAT_DESCRIPTION_EVENT
-		decoder.Description, err = decodeFmtDescEvent(rd, header)
-		eventBody = decoder.Description
-	case QueryEvent:
-		// QUERY_EVENT
-		eventBody, err = decodeQueryEvent(rd, header, decoder.Description)
-	case XIDEvent:
-		// XID_EVENT
-		eventBody, err = decodeXIDEvent(rd, header, decoder.Description)
-	case IntvarEvent:
-		// INTVAR_EVENT
-		eventBody, err = decodeIntvarEvent(rd, header, decoder.Description)
-	case RotateEvent:
-		// ROTATE_EVENT
-		eventBody, err = decodeRotateEvent(rd, decoder.Description)
-	case PreviousGTIDEvent, AnonymousGTIDEvent:
-		// decode ignore event.
-		// TODO: decode AnonymousGTIDEvent
-		eventBody, err = decodeUnSupportEvent(rd, header, decoder.Description)
-	case UnknownEvent:
-		return nil, fmt.Errorf("got unknown event")
-	default:
-		// TODO more decoders for more events
-		eventBody, err = decodeUnSupportEvent(rd, header, decoder.Description)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	// set event body
-	event.Body = eventBody
-
-	return event, nil
 }
