@@ -23,7 +23,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/kr/pretty"
 	"github.com/pkg/errors"
 )
 
@@ -32,11 +31,36 @@ import (
 var binFileHeader = []byte{254, 98, 105, 110}
 
 // BinReaderOption will describe the details to tell decoders when it should start and when stop.
+// with time [start, end)
 type BinReaderOption struct {
-	StartPos  int
-	UntilPos  int
+	StartPos  int64
+	EndPos    int64
 	StartTime time.Time
-	UntilTime time.Time
+	EndTime   time.Time
+}
+
+// Start return bool of if start decoding
+func (o *BinReaderOption) Start(header *BinEventHeader) bool {
+	if o == nil {
+		return true
+	} else if o.StartPos != 0 && o.StartPos <= header.LogPos-header.EventSize {
+		return true
+	} else if o.StartTime.Unix() <= time.Unix(header.Timestamp, 0).Unix() {
+		return true
+	}
+	return false
+}
+
+// Stop return bool of if stop decoding
+func (o *BinReaderOption) Stop(header *BinEventHeader) bool {
+	if o == nil {
+		return false
+	} else if o.EndPos != 0 && o.EndPos < header.LogPos {
+		return true
+	} else if !o.EndTime.IsZero() && o.EndTime.Unix() <= time.Unix(header.Timestamp, 0).Unix() {
+		return true
+	}
+	return false
 }
 
 // BinFileDecoder will mapping a binary log file, decode binary log event
@@ -123,9 +147,16 @@ func (decoder *BinFileDecoder) DecodeEvent(rd io.Reader) (*BinEvent, error) {
 		return nil, fmt.Errorf("got unknown event type {%x}", event.Header.EventType)
 	}
 
+	// skip data if not start
+	readDataLength := event.Header.EventSize - eventHeaderLength
+	if event.Header.EventType != FormatDescriptionEvent && !decoder.Option.Start(event.Header) {
+		_, err = rd.Read(make([]byte, readDataLength))
+		return nil, err
+	}
+
 	// read binlog event body
 	var data []byte
-	data, err = ReadNBytes(rd, event.Header.EventSize-eventHeaderLength)
+	data, err = ReadNBytes(rd, readDataLength)
 	if err != nil {
 		return nil, err
 	}
@@ -192,16 +223,22 @@ func (decoder *BinFileDecoder) WalkEvent(f func(event *BinEvent) (isContinue boo
 	for {
 		// if rd is nil, BinFileDecoder.DecodeEvent() will set rd to BinFileDecoder.BinFile
 		event, err := decoder.DecodeEvent(rd)
-		if err == io.EOF {
-			return nil
-		}
-
 		if err != nil {
-			pretty.Println(event)
+			if err == io.EOF {
+				return nil
+			}
 			return err
 		}
 
-		// TODO: break function by BinFileDecoder.Options condition
+		// will receive a nil event if decoding not start yet
+		if event == nil {
+			continue
+		}
+
+		// if stop decoding
+		if decoder.Option.Stop(event.Header) {
+			return nil
+		}
 
 		isContinue, err := f(event)
 		if !isContinue || err != nil {

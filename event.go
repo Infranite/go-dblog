@@ -68,7 +68,7 @@ type BinEventHeader struct {
 }
 
 func (header *BinEventHeader) String() string {
-	return fmt.Sprintf("Type:%s, Time:%s, ServerID:%d, EventSize:%d, LogPos:%d, Flag:0x%x",
+	return fmt.Sprintf("Type:%s, Time:%s, ServerID:%d, EventSize:%d, EventEndPos:%d, Flag:0x%x",
 		EventType2Str[header.EventType],
 		time.Unix(header.Timestamp, 0),
 		header.Timestamp,

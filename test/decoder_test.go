@@ -29,7 +29,12 @@ import (
 func TestDecoder(t *testing.T) {
 	memStats := &runtime.MemStats{}
 	runtime.ReadMemStats(memStats)
-	decoder, err := binlog.NewBinFileDecoder("./testdata/mysql-bin.000004")
+	decoder, err := binlog.NewBinFileDecoder("./testdata/mysql-bin.000004", &binlog.BinReaderOption{
+		// StartPos:  66365909,
+		StartTime: time.Unix(1537611900, 0),
+		EndTime:   time.Unix(1537611901, 0),
+	})
+
 	if err != nil {
 		t.Error(err)
 		return
@@ -47,6 +52,8 @@ func TestDecoder(t *testing.T) {
 		if memStats.Alloc > maxAlloc {
 			maxAlloc = memStats.Alloc
 		}
+
+		fmt.Println(event.Header)
 		count ++
 		return maxCount > count || maxCount == 0, nil
 	}, nil)
