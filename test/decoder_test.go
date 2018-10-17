@@ -18,7 +18,6 @@ package test
 
 import (
 	"fmt"
-	_ "net/http/pprof"
 	"runtime"
 	"testing"
 	"time"
@@ -29,11 +28,7 @@ import (
 func TestDecoder(t *testing.T) {
 	memStats := &runtime.MemStats{}
 	runtime.ReadMemStats(memStats)
-	decoder, err := binlog.NewBinFileDecoder("./testdata/mysql-bin.000004", &binlog.BinReaderOption{
-		// StartPos:  66365909,
-		StartTime: time.Unix(1537611900, 0),
-		EndTime:   time.Unix(1537611901, 0),
-	})
+	decoder, err := binlog.NewBinFileDecoder("./testdata/mysql-bin.000004", )
 
 	if err != nil {
 		t.Error(err)

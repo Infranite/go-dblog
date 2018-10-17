@@ -16,6 +16,46 @@ limitations under the License.
 
 package binlog
 
+// https://dev.mysql.com/doc/internals/en/com-query-response.html#packet-Protocol::MYSQL_TYPE_STRING
+const (
+	MySQLTypeDecimal   = 0x00
+	MySQLTypeTiny      = 0x01
+	MySQLTypeShort     = 0x02
+	MySQLTypeLong      = 0x03
+	MySQLTypeFloat     = 0x04
+	MySQLTypeDouble    = 0x05
+	MySQLTypeNull      = 0x06
+	MySQLTypeTimestamp = 0x07
+	MySQLTypeLonglong  = 0x08
+	MySQLTypeInt24     = 0x09
+	MySQLTypeDate      = 0x0a
+	MySQLTypeTime      = 0x0b
+	MySQLTypeDatetime  = 0x0c
+	MySQLTypeYear      = 0x0d
+	MySQLTypeNewDate   = 0x0e
+	MySQLTypeVarchar   = 0x0f
+	MySQLTypeBit       = 0x10
+
+	// mysql 5.6
+	MySQLTypeTimestamp2 = 0x11
+	MySQLTypeDatetime2  = 0x12
+	MySQLTypeTime2      = 0x13
+)
+
+const (
+	MySQLTypeJson       = 0xf5
+	MySQLTypeNewDecimal = 0xf6
+	MySQLTypeEnum       = 0xf7
+	MySQLTypeSet        = 0xf8
+	MySQLTypeTinyBlob   = 0xf9
+	MySQLTypeMediumBlob = 0xfa
+	MySQLTypeLongBlob   = 0xfb
+	MySQLTypeBlob       = 0xfc
+	MySQLTypeVarString  = 0xfd
+	MySQLTypeString     = 0xfe
+	MySQLTypeGeometry   = 0xff
+)
+
 // https://dev.mysql.com/doc/internals/en/binlog-event-type.html
 const (
 	UnknownEvent           = 0x00
