@@ -111,11 +111,10 @@ func decodeEventHeader(data []byte, size int64) (*BinEventHeader, error) {
 		// log_pos
 		eventHeader.LogPos = int64(binary.LittleEndian.Uint32(data[pos:]))
 		pos += 4
-
 		// flags
 		eventHeader.Flag = binary.LittleEndian.Uint16(data[pos:])
-		pos += 2
 	}
+
 	return eventHeader, nil
 }
 
