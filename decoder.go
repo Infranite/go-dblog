@@ -198,8 +198,8 @@ func (decoder *BinFileDecoder) DecodeEvent(rd io.Reader) (*BinEvent, error) {
 		eventBody, err = decodeRotateEvent(data, decoder.Description.BinlogVersion)
 	case TableMapEvent:
 		// TABLE_MAP_EVENT
-		tableIdSize := decoder.Description.EventTypeHeaderLength[TableMapEvent-1]
-		eventBody, err = decodeTableMapEvente(data, int(tableIdSize))
+		tableIDSize := decoder.Description.EventTypeHeaderLength[TableMapEvent-1]
+		eventBody, err = decodeTableMapEvente(data, int(tableIDSize))
 	case PreviousGTIDEvent, AnonymousGTIDEvent:
 		// decode ignore event.
 		// TODO: decode AnonymousGTIDEvent

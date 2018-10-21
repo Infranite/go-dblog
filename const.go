@@ -40,10 +40,9 @@ const (
 	MySQLTypeTimestamp2 = 0x11
 	MySQLTypeDatetime2  = 0x12
 	MySQLTypeTime2      = 0x13
-)
 
-const (
-	MySQLTypeJson       = 0xf5
+	// start with 0xf5
+	MySQLTypeJSON       = 0xf5
 	MySQLTypeNewDecimal = 0xf6
 	MySQLTypeEnum       = 0xf7
 	MySQLTypeSet        = 0xf8

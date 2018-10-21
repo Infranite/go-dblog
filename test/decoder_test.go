@@ -28,7 +28,7 @@ import (
 func TestDecoder(t *testing.T) {
 	memStats := &runtime.MemStats{}
 	runtime.ReadMemStats(memStats)
-	decoder, err := binlog.NewBinFileDecoder("./testdata/mysql-bin.000004", )
+	decoder, err := binlog.NewBinFileDecoder("./testdata/mysql-bin.000004")
 
 	if err != nil {
 		t.Error(err)
@@ -49,7 +49,7 @@ func TestDecoder(t *testing.T) {
 		}
 
 		fmt.Println(event.Header)
-		count ++
+		count++
 		return maxCount > count || maxCount == 0, nil
 	}, nil)
 

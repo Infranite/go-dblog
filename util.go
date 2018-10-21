@@ -35,26 +35,18 @@ func ReadNBytes(rd io.Reader, size int64) ([]byte, error) {
 	return data, nil
 }
 
-
-// follow method all from 'github.com/siddontang/go-mysql/replication/util.go'
-// little endian
+// FixedLengthInt will turn byte to uint64
+// this function is from 'github.com/siddontang/go-mysql/replication/util.go'
 func FixedLengthInt(buf []byte) uint64 {
-	var num uint64 = 0
+	var num uint64
 	for i, b := range buf {
 		num |= uint64(b) << (uint(i) * 8)
 	}
 	return num
 }
 
-// big endian
-func BFixedLengthInt(buf []byte) uint64 {
-	var num uint64 = 0
-	for i, b := range buf {
-		num |= uint64(b) << (uint(len(buf)-i-1) * 8)
-	}
-	return num
-}
-
+// LengthEncodedInt will decode byte to uint64
+// this function is from 'github.com/siddontang/go-mysql/replication/util.go'
 func LengthEncodedInt(b []byte) (num uint64, isNull bool, n int) {
 	switch b[0] {
 
@@ -91,24 +83,7 @@ func LengthEncodedInt(b []byte) (num uint64, isNull bool, n int) {
 	return
 }
 
-func PutLengthEncodedInt(n uint64) []byte {
-	switch {
-	case n <= 250:
-		return []byte{byte(n)}
-
-	case n <= 0xffff:
-		return []byte{0xfc, byte(n), byte(n >> 8)}
-
-	case n <= 0xffffff:
-		return []byte{0xfd, byte(n), byte(n >> 8), byte(n >> 16)}
-
-	case n <= 0xffffffffffffffff:
-		return []byte{0xfe, byte(n), byte(n >> 8), byte(n >> 16), byte(n >> 24),
-			byte(n >> 32), byte(n >> 40), byte(n >> 48), byte(n >> 56)}
-	}
-	return nil
-}
-
+// LengthEnodedString will decode bytes
 func LengthEnodedString(b []byte) ([]byte, bool, int, error) {
 	// Get length
 	num, isNull, n := LengthEncodedInt(b)
@@ -123,20 +98,4 @@ func LengthEnodedString(b []byte) ([]byte, bool, int, error) {
 		return b[n-int(num) : n], false, n, nil
 	}
 	return nil, false, n, io.EOF
-}
-
-func SkipLengthEnodedString(b []byte) (int, error) {
-	// Get length
-	num, _, n := LengthEncodedInt(b)
-	if num < 1 {
-		return n, nil
-	}
-
-	n += int(num)
-
-	// Check data length
-	if len(b) >= n {
-		return n, nil
-	}
-	return n, io.EOF
 }

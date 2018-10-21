@@ -40,6 +40,7 @@ type BinEvent struct {
 	ChecksumVal  []byte
 }
 
+// BaseEventBody is base off all events
 type BaseEventBody struct{}
 
 func (event *BaseEventBody) isEventBody() {}
@@ -59,7 +60,7 @@ func decodeUnSupportEvent(data []byte) (*BinEventUnParsed, error) {
 // mysql binlog version > 1 (version > mysql 4.0.0), size = 19
 var defaultEventHeaderSize int64 = 19
 
-// BinEventHeader bianry log header definition
+// BinEventHeader binary log header definition
 // https://dev.mysql.com/doc/internals/en/binlog-event-header.html
 type BinEventHeader struct {
 	Timestamp int64
@@ -371,7 +372,7 @@ type BinPreGTIDsEvent struct{ BaseEventBody }
 // https://dev.mysql.com/doc/internals/en/table-map-event.html
 type BinTableMapEvent struct {
 	BaseEventBody
-	TableId       uint64
+	TableID       uint64
 	Flags         uint16
 	Schema        string
 	Table         string
@@ -389,7 +390,7 @@ func decodeTableMapEvente(data []byte, size int) (*BinTableMapEvent, error) {
 	}
 
 	// set table id size
-	event.TableId = FixedLengthInt(data[:pos])
+	event.TableID = FixedLengthInt(data[:pos])
 
 	// set flags
 	event.Flags = binary.LittleEndian.Uint16(data[pos:])
@@ -459,7 +460,7 @@ func (e *BinTableMapEvent) decodeMeta(data []byte) error {
 		case MySQLTypeVarString, MySQLTypeVarchar, MySQLTypeBit:
 			e.ColumnMetaDef[i] = binary.LittleEndian.Uint16(data[pos:])
 			pos += 2
-		case MySQLTypeBlob, MySQLTypeDouble, MySQLTypeFloat, MySQLTypeGeometry, MySQLTypeJson:
+		case MySQLTypeBlob, MySQLTypeDouble, MySQLTypeFloat, MySQLTypeGeometry, MySQLTypeJSON:
 			e.ColumnMetaDef[i] = uint16(data[pos])
 			pos++
 		case MySQLTypeTime2, MySQLTypeDatetime2, MySQLTypeTimestamp2:

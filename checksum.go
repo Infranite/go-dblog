@@ -66,11 +66,11 @@ func hasChecksum(versionStr string) bool {
 	return mysqlVersion(versionStr) >= mysqlChecksumVersion
 }
 
+// ChecksumValidate will validate binary log event checksum
 // This information is from 'github.com/siddontang/go-mysql/replication/parser.go'
 // mysql use zlib's CRC32 implementation, which uses polynomial 0xedb88320UL.
 // reference: https://github.com/madler/zlib/blob/master/crc32.c
 // https://github.com/madler/zlib/blob/master/doc/rfc1952.txt#L419
-
 func ChecksumValidate(checksumType byte, expectedChecksum []byte, data []byte) bool {
 	switch checksumType {
 	case BinlogChecksumAlgCRC32:
