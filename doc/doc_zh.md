@@ -1,8 +1,9 @@
 # go-mysql-binlog
 
-基于Go语言，无外部依赖的MySQL二进制日志文件解析SDK。
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/liipx/go-mysql-binlog/blob/master/LICENSE) 
+[![Go Report Card](https://goreportcard.com/badge/github.com/liipx/go-mysql-binlog)](https://goreportcard.com/report/github.com/liipx/go-mysql-binlog)
 
-本项目是个人对MySQL binlog深度学习的产物，长期维护。
+基于Go语言实现的MySQL二进制日志文件解析SDK（pre-binlog-server）。
 
 [English](https://github.com/liipx/go-mysql-binlog/blob/master/README.md)
 

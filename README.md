@@ -1,4 +1,8 @@
 # go-mysql-binlog
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/liipx/go-mysql-binlog/blob/master/LICENSE) 
+[![Go Report Card](https://goreportcard.com/badge/github.com/liipx/go-mysql-binlog)](https://goreportcard.com/report/github.com/liipx/go-mysql-binlog)
+
+
 MySQL binary log analyzer in Golang.
 
 [中文说明](https://github.com/liipx/go-mysql-binlog/blob/master/doc/doc_zh.md)
