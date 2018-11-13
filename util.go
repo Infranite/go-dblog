@@ -24,15 +24,17 @@ import (
 func ReadNBytes(rd io.Reader, size int64) ([]byte, error) {
 	data := make([]byte, size)
 	n, err := rd.Read(data)
+	total := n
+	for int64(total) < size && err == nil {
+		n, err = rd.Read(data[total:])
+		total += n
+	}
+
 	if n == 0 && err != nil {
 		return nil, err
 	}
 
-	if n != 0 && int64(n) < size {
-		return data, io.EOF
-	}
-
-	return data, nil
+	return data, err
 }
 
 // FixedLengthInt will turn byte to uint64

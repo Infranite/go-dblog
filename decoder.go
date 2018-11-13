@@ -17,6 +17,7 @@ limitations under the License.
 package binlog
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -75,6 +76,9 @@ type BinFileDecoder struct {
 	// file object
 	BinFile *os.File
 
+	// buffer
+	buf *bufio.Reader
+
 	// cause different version mapping different payload
 	// every binary log event analysis depend on descriptions
 	Description *BinFmtDescEvent
@@ -103,6 +107,7 @@ func (decoder *BinFileDecoder) init() error {
 			return err
 		}
 		decoder.BinFile = binFile
+		decoder.buf = bufio.NewReader(decoder.BinFile)
 	}
 
 	// binary log header validate
@@ -119,12 +124,9 @@ func (decoder *BinFileDecoder) init() error {
 }
 
 // DecodeEvent will decode a single event from binary log
-func (decoder *BinFileDecoder) DecodeEvent(rd io.Reader) (*BinEvent, error) {
-	if rd == nil {
-		rd = decoder.BinFile
-	}
-
+func (decoder *BinFileDecoder) DecodeEvent() (*BinEvent, error) {
 	event := &BinEvent{}
+	rd := decoder.buf
 
 	eventHeaderLength := defaultEventHeaderSize
 	if decoder.Description != nil {
@@ -223,10 +225,10 @@ func (decoder *BinFileDecoder) DecodeEvent(rd io.Reader) (*BinEvent, error) {
 
 // WalkEvent will walk all events for binary log which in io.Reader
 // This function will return isFinish bool and err error.
-func (decoder *BinFileDecoder) WalkEvent(f func(event *BinEvent) (isContinue bool, err error), rd io.Reader) error {
+func (decoder *BinFileDecoder) WalkEvent(f func(event *BinEvent) (isContinue bool, err error)) error {
 	for {
 		// if rd is nil, BinFileDecoder.DecodeEvent() will set rd to BinFileDecoder.BinFile
-		event, err := decoder.DecodeEvent(rd)
+		event, err := decoder.DecodeEvent()
 		if err != nil {
 			if err == io.EOF {
 				return nil

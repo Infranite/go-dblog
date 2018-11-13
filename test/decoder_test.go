@@ -41,17 +41,11 @@ func TestDecoder(t *testing.T) {
 
 	count := 0
 	maxCount := 0
-	maxAlloc := memStats.Alloc
 	err = decoder.WalkEvent(func(event *binlog.BinEvent) (isContinue bool, err error) {
-		runtime.ReadMemStats(memStats)
-		if memStats.Alloc > maxAlloc {
-			maxAlloc = memStats.Alloc
-		}
-
 		fmt.Println(event.Header)
 		count++
 		return maxCount > count || maxCount == 0, nil
-	}, nil)
+	})
 
 	duration := time.Since(starTime)
 	fmt.Println("Time total:", duration.String())
@@ -64,7 +58,6 @@ func TestDecoder(t *testing.T) {
 	}
 
 	runtime.ReadMemStats(memStats)
-	fmt.Println("Max alloc:", maxAlloc>>10>>10, "MB")
 	fmt.Println("GC times:", memStats.NumGC)
 	pauseTotal := time.Duration(int64(memStats.PauseTotalNs))
 	fmt.Println("Pause total:", pauseTotal.String())
