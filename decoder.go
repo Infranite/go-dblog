@@ -19,12 +19,11 @@ package binlog
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // binFileHeader : A binlog file starts with a Binlog File Header [ fe 'bin' ]
@@ -64,6 +63,14 @@ func (o *BinReaderOption) Stop(header *BinEventHeader) bool {
 	return false
 }
 
+// BinaryLogInfo is the base decoder of all types
+type BinaryLogInfo struct {
+	// cause different version mapping different payload
+	// every binary log event analysis depend on descriptions
+	description *BinFmtDescEvent
+	tableInfo   map[uint64]*BinTableMapEvent
+}
+
 // BinFileDecoder will mapping a binary log file, decode binary log event
 type BinFileDecoder struct {
 	Path string          // binary log path
@@ -79,9 +86,7 @@ type BinFileDecoder struct {
 	// buffer
 	buf *bufio.Reader
 
-	// cause different version mapping different payload
-	// every binary log event analysis depend on descriptions
-	Description *BinFmtDescEvent
+	*BinaryLogInfo
 }
 
 // NewBinFileDecoder return a BinFileDecoder with binary log file path
@@ -120,6 +125,7 @@ func (decoder *BinFileDecoder) init() error {
 		return fmt.Errorf("invalid binary log header {%x}", header)
 	}
 
+	decoder.BinaryLogInfo = &BinaryLogInfo{tableInfo: make(map[uint64]*BinTableMapEvent)}
 	return nil
 }
 
@@ -129,8 +135,8 @@ func (decoder *BinFileDecoder) DecodeEvent() (*BinEvent, error) {
 	rd := decoder.buf
 
 	eventHeaderLength := defaultEventHeaderSize
-	if decoder.Description != nil {
-		eventHeaderLength = decoder.Description.EventHeaderLength
+	if decoder.description != nil {
+		eventHeaderLength = decoder.description.EventHeaderLength
 	}
 
 	// read binlog event header
@@ -149,13 +155,7 @@ func (decoder *BinFileDecoder) DecodeEvent() (*BinEvent, error) {
 		return nil, fmt.Errorf("got unknown event type {%x}", event.Header.EventType)
 	}
 
-	// skip data if not start
 	readDataLength := event.Header.EventSize - eventHeaderLength
-	if event.Header.EventType != FormatDescriptionEvent && !decoder.Option.Start(event.Header) {
-		_, err = rd.Read(make([]byte, readDataLength))
-		return nil, err
-	}
-
 	// read binlog event body
 	var data []byte
 	data, err = ReadNBytes(rd, readDataLength)
@@ -163,20 +163,14 @@ func (decoder *BinFileDecoder) DecodeEvent() (*BinEvent, error) {
 		return nil, err
 	}
 
-	if l := len(data); int64(l)+eventHeaderLength != event.Header.EventSize {
-		return event, errors.Errorf("event size need %d got %d", l, event.Header.EventSize)
+	// skip data if not start
+	if event.Header.EventType != FormatDescriptionEvent && !decoder.Option.Start(event.Header) {
+		return nil, err
 	}
 
-	// checksum
-	if decoder.Description != nil && decoder.Description.hasCheckSum {
-		index := len(data) - binlogChecksumLength - 1
-		event.ChecksumType = data[index]
-		event.ChecksumVal = data[index+1:]
-		data = data[:index+1]
-
-		if !ChecksumValidate(event.ChecksumType, event.ChecksumVal, append(headerData, data...)) || len(event.ChecksumVal) != 4 {
-			return event, errors.Errorf("binlog checksum validation failed")
-		}
+	data, err = event.Validation(decoder.BinaryLogInfo, headerData, data)
+	if err != nil {
+		return event, err
 	}
 
 	// decode binlog event body
@@ -184,33 +178,47 @@ func (decoder *BinFileDecoder) DecodeEvent() (*BinEvent, error) {
 	switch event.Header.EventType {
 	case FormatDescriptionEvent:
 		// FORMAT_DESCRIPTION_EVENT
-		decoder.Description, err = decodeFmtDescEvent(data)
-		eventBody = decoder.Description
+		decoder.description, err = decodeFmtDescEvent(data)
+		eventBody = decoder.description
+
 	case QueryEvent:
 		// QUERY_EVENT
-		eventBody, err = decodeQueryEvent(data, decoder.Description.BinlogVersion)
+		eventBody, err = decodeQueryEvent(data, decoder.description.BinlogVersion)
+
 	case XIDEvent:
 		// XID_EVENT
 		eventBody, err = decodeXIDEvent(data)
+
 	case IntvarEvent:
 		// INTVAR_EVENT
 		eventBody, err = decodeIntvarEvent(data)
+
 	case RotateEvent:
 		// ROTATE_EVENT
-		eventBody, err = decodeRotateEvent(data, decoder.Description.BinlogVersion)
+		eventBody, err = decodeRotateEvent(data, decoder.description.BinlogVersion)
+
 	case TableMapEvent:
 		// TABLE_MAP_EVENT
-		tableIDSize := decoder.Description.EventTypeHeaderLength[TableMapEvent-1]
-		eventBody, err = decodeTableMapEvente(data, int(tableIDSize))
+		eventBody, err = decodeTableMapEvent(data, decoder.description)
+		decoder.tableInfo[eventBody.(*BinTableMapEvent).TableID] = eventBody.(*BinTableMapEvent)
+
+	case WriteRowsEventV0, UpdateRowsEventV0, DeleteRowsEventV0,
+		WriteRowsEventV1, UpdateRowsEventV1, DeleteRowsEventV1,
+		WriteRowsEventV2, UpdateRowsEventV2, DeleteRowsEventV2:
+		// ROWS_EVENT
+		eventBody, err = decodeRowsEvent(data, decoder.description, event.Header.EventType)
+
 	case PreviousGTIDEvent, AnonymousGTIDEvent:
 		// decode ignore event.
 		// TODO: decode AnonymousGTIDEvent
 		eventBody, err = decodeUnSupportEvent(data)
+
 	case UnknownEvent:
 		return nil, fmt.Errorf("got unknown event")
+
 	default:
 		// TODO more decoders for more events
-		eventBody, err = decodeUnSupportEvent(data)
+		err = errors.New("not support event: " + event.Header.Type())
 	}
 
 	if err != nil {

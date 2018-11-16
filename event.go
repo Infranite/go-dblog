@@ -20,14 +20,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"io"
 	"strings"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
-// BinEventBody descripted event body
+// BinEventBody describe event body
 type BinEventBody interface {
 	isEventBody()
 }
@@ -38,6 +35,34 @@ type BinEvent struct {
 	Body         BinEventBody
 	ChecksumType byte
 	ChecksumVal  []byte
+}
+
+// Validation event validity check
+func (event *BinEvent) Validation(bin *BinaryLogInfo, header, body []byte) ([]byte, error) {
+	if bin == nil {
+		return body, fmt.Errorf("empty BinaryLogInfo")
+	}
+
+	if event.Header == nil {
+		return body, fmt.Errorf("empty event header")
+	}
+
+	if l := int64(len(body) + len(header)); l != event.Header.EventSize {
+		return body, fmt.Errorf("event size got %d need %d", l, event.Header.EventSize)
+	}
+
+	if bin.description != nil && bin.description.hasCheckSum {
+		index := len(body) - binlogChecksumLength - 1
+		event.ChecksumType = body[index]
+		event.ChecksumVal = body[index+1:]
+		body = body[:index+1]
+
+		if !ChecksumValidate(event.ChecksumType, event.ChecksumVal, append(header, body...)) || len(event.ChecksumVal) != 4 {
+			return body, fmt.Errorf("binlog checksum validation failed")
+		}
+	}
+
+	return body, nil
 }
 
 // BaseEventBody is base off all events
@@ -71,9 +96,15 @@ type BinEventHeader struct {
 	Flag      uint16
 }
 
+// Type function will translate event type into string
+func (header *BinEventHeader) Type() string {
+	return EventType2Str[header.EventType]
+}
+
+// String interface implement
 func (header *BinEventHeader) String() string {
 	return fmt.Sprintf("Type:%s, Time:%s, ServerID:%d, EventSize:%d, EventEndPos:%d, Flag:0x%x",
-		EventType2Str[header.EventType],
+		header.Type(),
 		time.Unix(header.Timestamp, 0),
 		header.Timestamp,
 		header.EventSize,
@@ -122,43 +153,39 @@ func decodeEventHeader(data []byte, size int64) (*BinEventHeader, error) {
 // https://dev.mysql.com/doc/internals/en/format-description-event.html
 type BinFmtDescEvent struct {
 	BaseEventBody
-	BinlogVersion         int
-	MySQLVersion          string
-	CreateTime            int64
-	EventHeaderLength     int64
-	EventTypeHeaderLength []byte
+	BinlogVersion     int
+	MySQLVersion      string
+	CreateTime        int64
+	EventHeaderLength int64
+	EventTypeHeader   []byte
 
 	// cache the result of hasCheckSum()
 	hasCheckSum bool
 }
 
 func decodeFmtDescEvent(data []byte) (*BinFmtDescEvent, error) {
-	var startPos int
-	var endPos int
+	var pos int
 	desc := &BinFmtDescEvent{}
 
 	// binlog-version
-	endPos += 2
-	desc.BinlogVersion = int(binary.LittleEndian.Uint16(data[startPos:endPos]))
+	desc.BinlogVersion = int(binary.LittleEndian.Uint16(data))
+	pos += 2
 
 	// mysql-server version
-	startPos = endPos
-	endPos += 50
-	desc.MySQLVersion = string(bytes.Trim(data[startPos:endPos], string(0x00)))
+	desc.MySQLVersion = string(bytes.Trim(data[pos:pos+50], string(0x00)))
 	desc.hasCheckSum = hasChecksum(desc.MySQLVersion)
+	pos += 50
 
 	// create timestamp
-	startPos = endPos
-	endPos += 4
-	desc.CreateTime = int64(binary.LittleEndian.Uint32(data[startPos:endPos]))
+	desc.CreateTime = int64(binary.LittleEndian.Uint32(data[pos:]))
+	pos += 4
 
 	// event header length
-	startPos = endPos
-	endPos++
-	desc.EventHeaderLength = int64(data[startPos])
+	desc.EventHeaderLength = int64(data[pos])
+	pos++
 
 	// event type header lengths
-	desc.EventTypeHeaderLength = data[endPos:]
+	desc.EventTypeHeader = data[pos:]
 
 	return desc, nil
 }
@@ -366,111 +393,3 @@ func decodeRotateEvent(data []byte, binlogVersion int) (*BinRotateEvent, error) 
 // BinPreGTIDsEvent is the definition of PREVIOUS_GTIDS_EVENT
 // TODO: PREVIOUS_GTIDS_EVENT
 type BinPreGTIDsEvent struct{ BaseEventBody }
-
-// BinTableMapEvent is the definition of TABLE_MAP_EVENT
-// https://dev.mysql.com/doc/internals/en/table-map-event.html
-type BinTableMapEvent struct {
-	BaseEventBody
-	TableID       uint64
-	Flags         uint16
-	Schema        string
-	Table         string
-	ColumnCount   uint64
-	ColumnTypeDef []byte
-	ColumnMetaDef []uint16
-	NullBitmap    []byte
-}
-
-func decodeTableMapEvente(data []byte, size int) (*BinTableMapEvent, error) {
-	event := &BinTableMapEvent{}
-	pos := 6
-	if size == 6 {
-		pos = 4
-	}
-
-	// set table id size
-	event.TableID = FixedLengthInt(data[:pos])
-
-	// set flags
-	event.Flags = binary.LittleEndian.Uint16(data[pos:])
-	pos += 2
-
-	// set schema && skip 0x00
-	schemaLength := int(data[pos])
-	pos++
-	event.Schema = string(data[pos : pos+schemaLength])
-	pos += schemaLength + 1
-
-	// set table && skip 0x00
-	tableLength := int(data[pos])
-	pos++
-	event.Table = string(data[pos : pos+tableLength])
-	pos += tableLength + 1
-
-	// set column count
-	var n int
-	event.ColumnCount, _, n = LengthEncodedInt(data[pos:])
-	pos += n
-
-	// column_type_def (string.var_len)
-	// array of column definitions, one byte per field type
-	event.ColumnTypeDef = data[pos : pos+int(event.ColumnCount)]
-	pos += int(event.ColumnCount)
-
-	// decode column meta
-	var err error
-	var metaData []byte
-	if metaData, _, n, err = LengthEnodedString(data[pos:]); err != nil {
-		return nil, err
-	}
-
-	if err := event.decodeMeta(metaData); err != nil {
-		return nil, err
-	}
-
-	pos += n
-
-	// null_bitmap (string.var_len) [len=(column_count + 8) / 7]
-	if len(data[pos:]) == (int(event.ColumnCount)+7)/8 {
-		event.NullBitmap = data[pos:]
-		return event, nil
-	}
-
-	return event, io.EOF
-}
-
-func (e *BinTableMapEvent) decodeMeta(data []byte) error {
-	pos := 0
-	e.ColumnMetaDef = make([]uint16, e.ColumnCount)
-	for i, t := range e.ColumnTypeDef {
-		switch t {
-		case MySQLTypeString:
-			// real type
-			e.ColumnMetaDef[i] = uint16(data[pos]) << 8
-			// pack or field length
-			e.ColumnMetaDef[i] += uint16(data[pos+1])
-			pos += 2
-		case MySQLTypeNewDecimal:
-			// precision
-			e.ColumnMetaDef[i] = uint16(data[pos]) << 8
-			// decimals
-			e.ColumnMetaDef[i] += uint16(data[pos+1])
-			pos += 2
-		case MySQLTypeVarString, MySQLTypeVarchar, MySQLTypeBit:
-			e.ColumnMetaDef[i] = binary.LittleEndian.Uint16(data[pos:])
-			pos += 2
-		case MySQLTypeBlob, MySQLTypeDouble, MySQLTypeFloat, MySQLTypeGeometry, MySQLTypeJSON:
-			e.ColumnMetaDef[i] = uint16(data[pos])
-			pos++
-		case MySQLTypeTime2, MySQLTypeDatetime2, MySQLTypeTimestamp2:
-			e.ColumnMetaDef[i] = uint16(data[pos])
-			pos++
-		case MySQLTypeNewDate, MySQLTypeEnum, MySQLTypeSet,
-			MySQLTypeTinyBlob, MySQLTypeMediumBlob, MySQLTypeLongBlob:
-			return errors.Errorf("unsupport type in binlog %d", t)
-		default:
-			e.ColumnMetaDef[i] = 0
-		}
-	}
-	return nil
-}

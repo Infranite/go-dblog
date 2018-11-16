@@ -51,27 +51,23 @@ func FixedLengthInt(buf []byte) uint64 {
 // this function is from 'github.com/siddontang/go-mysql/replication/util.go'
 func LengthEncodedInt(b []byte) (num uint64, isNull bool, n int) {
 	switch b[0] {
-
-	// 251: NULL
 	case 0xfb:
+		// 251: NULL
 		n = 1
 		isNull = true
 		return
-
-		// 252: value of following 2
 	case 0xfc:
+		// 252: value of following 2
 		num = uint64(b[1]) | uint64(b[2])<<8
 		n = 3
 		return
-
-		// 253: value of following 3
 	case 0xfd:
+		// 253: value of following 3
 		num = uint64(b[1]) | uint64(b[2])<<8 | uint64(b[3])<<16
 		n = 4
 		return
-
-		// 254: value of following 8
 	case 0xfe:
+		// 254: value of following 8
 		num = uint64(b[1]) | uint64(b[2])<<8 | uint64(b[3])<<16 |
 			uint64(b[4])<<24 | uint64(b[5])<<32 | uint64(b[6])<<40 |
 			uint64(b[7])<<48 | uint64(b[8])<<56
