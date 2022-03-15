@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package binlog
+package common
 
 import (
 	"bytes"
@@ -25,6 +25,7 @@ import (
 	"unicode"
 )
 
+// BinlogChecksumLength
 // https://dev.mysql.com/doc/refman/5.6/en/replication-options-binary-log.html#option_mysqld_binlog-checksum
 // Beginning with MySQL 5.6.2, MySQL supports reading and writing of binary log checksums.
 // ------------------------------------
@@ -35,11 +36,11 @@ import (
 // Set to NONE to disable, or the name of the algorithm to be used for generating checksums;
 // currently, only CRC32 checksums are supported. As of MySQL 5.6.6, CRC32 is the default.
 // This option was added in MySQL 5.6.2.
-const binlogChecksumLength = 4
+const BinlogChecksumLength = 4
 
 var mysqlChecksumVersion = 5<<10<<10 + 6<<10 + 2
 
-func mysqlVersion(versionStr string) int {
+func MysqlVersion(versionStr string) int {
 	var version int
 	split := strings.Split(versionStr, ".")
 	f, _ := strconv.Atoi(split[0])
@@ -62,8 +63,8 @@ func mysqlVersion(versionStr string) int {
 	return version
 }
 
-func hasChecksum(versionStr string) bool {
-	return mysqlVersion(versionStr) >= mysqlChecksumVersion
+func HasChecksum(versionStr string) bool {
+	return MysqlVersion(versionStr) >= mysqlChecksumVersion
 }
 
 // ChecksumValidate will validate binary log event checksum
@@ -84,7 +85,7 @@ func ChecksumValidate(checksumType byte, expectedChecksum []byte, data []byte) b
 
 func crc32Validate(expectedChecksum []byte, data []byte) bool {
 	checksum := crc32.ChecksumIEEE(data)
-	computed := make([]byte, binlogChecksumLength)
+	computed := make([]byte, BinlogChecksumLength)
 	binary.LittleEndian.PutUint32(computed, checksum)
 	if !bytes.Equal(expectedChecksum, computed) {
 		return false

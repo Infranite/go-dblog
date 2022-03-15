@@ -22,26 +22,27 @@ import (
 	"testing"
 	"time"
 
-	"github.com/liipx/go-mysql-binlog"
+	"github.com/liipx/go-mysql-binlog/binlog/decode/decoder"
+	"github.com/liipx/go-mysql-binlog/binlog/decode/events"
 )
 
 func TestDecoder(t *testing.T) {
 	memStats := &runtime.MemStats{}
 	runtime.ReadMemStats(memStats)
-	decoder, err := binlog.NewBinFileDecoder("./testdata/mysql-bin.000004")
+	fileDecoder, err := decoder.NewBinFileDecoder("./testdata/mysql-bin.000004")
 
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	f, _ := decoder.BinFile.Stat()
+	f, _ := fileDecoder.BinFile.Stat()
 	fmt.Println("Binlog file size:", f.Size()>>10>>10, "MB")
 	starTime := time.Now()
 
 	count := 0
 	maxCount := 0
-	err = decoder.WalkEvent(func(event *binlog.BinEvent) (isContinue bool, err error) {
+	err = fileDecoder.WalkEvent(func(event *events.Event) (isContinue bool, err error) {
 		fmt.Println(event.Header)
 		count++
 		return maxCount > count || maxCount == 0, nil

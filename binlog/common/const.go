@@ -14,7 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package binlog
+package common
+
+// DefaultEventHeaderSize mysql binlog version > 1 (version > mysql 4.0.0), size = 19
+const DefaultEventHeaderSize int64 = 19
 
 // https://dev.mysql.com/doc/internals/en/com-query-response.html#packet-Protocol::MYSQL_TYPE_STRING
 const (

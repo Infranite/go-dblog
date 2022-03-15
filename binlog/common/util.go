@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package binlog
+package common
 
 import (
 	"io"
@@ -96,4 +96,8 @@ func LengthEnodedString(b []byte) ([]byte, bool, int, error) {
 		return b[n-int(num) : n], false, n, nil
 	}
 	return nil, false, n, io.EOF
+}
+
+func BitmapByteSize(columnCount int) int {
+	return int(columnCount+7) / 8
 }
