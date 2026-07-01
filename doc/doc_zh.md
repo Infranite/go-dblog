@@ -1,14 +1,14 @@
 # go-mysql-binlog
 
-[![CI](https://github.com/LPX-E5BD8/go-mysql-binlog/actions/workflows/dev-test.yml/badge.svg?branch=develop)](https://github.com/LPX-E5BD8/go-mysql-binlog/actions/workflows/dev-test.yml)
-[![Go Version](https://img.shields.io/github/go-mod/go-version/LPX-E5BD8/go-mysql-binlog)](https://github.com/LPX-E5BD8/go-mysql-binlog/blob/develop/go.mod)
+[![CI](https://github.com/Infranite/go-mysql-binlog/actions/workflows/dev-test.yml/badge.svg?branch=develop)](https://github.com/Infranite/go-mysql-binlog/actions/workflows/dev-test.yml)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/Infranite/go-mysql-binlog)](https://github.com/Infranite/go-mysql-binlog/blob/develop/go.mod)
 [![Go Reference](https://pkg.go.dev/badge/github.com/liipx/go-mysql-binlog.svg)](https://pkg.go.dev/github.com/liipx/go-mysql-binlog)
-[![Go Report Card](https://goreportcard.com/badge/github.com/LPX-E5BD8/go-mysql-binlog)](https://goreportcard.com/report/github.com/LPX-E5BD8/go-mysql-binlog)
-[![License](https://img.shields.io/github/license/LPX-E5BD8/go-mysql-binlog)](https://github.com/LPX-E5BD8/go-mysql-binlog/blob/develop/LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Infranite/go-mysql-binlog)](https://goreportcard.com/report/github.com/Infranite/go-mysql-binlog)
+[![License](https://img.shields.io/github/license/Infranite/go-mysql-binlog)](https://github.com/Infranite/go-mysql-binlog/blob/develop/LICENSE)
 
 基于 Go 语言实现的 MySQL 族二进制日志文件解析 SDK（pre-binlog-server）。
 
-[English](https://github.com/LPX-E5BD8/go-mysql-binlog/blob/develop/README.md)
+[English](https://github.com/Infranite/go-mysql-binlog/blob/develop/README.md)
 
 ## 使用案例
 ```go
