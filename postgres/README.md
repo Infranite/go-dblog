@@ -12,6 +12,8 @@ logical decoding text parsing.
 
 ## Installation
 
+After the first `postgres/v0.1.0` tag is published:
+
 ```bash
 go get github.com/Infranite/go-dblog/postgres
 ```

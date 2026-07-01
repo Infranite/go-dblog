@@ -8,6 +8,7 @@ gates for `go-dblog`. It is not a commitment to dates.
 | Status | Meaning |
 |---|---|
 | Done | Implemented, documented, and covered by CI. |
+| Ready | Implemented and covered by CI; waiting for tag and GitHub Release. |
 | In progress | Actively being built on the main development branch. |
 | Planned | Accepted scope, not yet started. |
 | Candidate | Useful direction, still needs design or user validation. |
@@ -17,7 +18,7 @@ gates for `go-dblog`. It is not a commitment to dates.
 
 | Release | Status | Theme | Deliverables | Exit gates |
 |---|---|---|---|---|
-| `v0.1.0` | In progress | Offline parser developer preview | Root common API, MySQL binlog file parser, PostgreSQL logical decoding text parser, MongoDB JSON line parser, Redis RESP AOF parser, plugin hooks, filtering, basic flashback helpers. | Protected PR `ci` check passes: lint, vet, vulnerability scan, unit tests, and real fixture-backed MySQL, MongoDB, PostgreSQL, and Redis integration tests. README documents offline scope and module tags. |
+| `v0.1.0` | Ready | Offline parser developer preview | Root common API, MySQL binlog file parser, PostgreSQL logical decoding text parser, MongoDB JSON line parser, Redis RESP AOF parser, plugin hooks, filtering, basic flashback helpers. | Protected PR `ci` and `merge-policy` checks pass: lint, vet, vulnerability scan, unit tests, and real fixture-backed MySQL, MongoDB, PostgreSQL, and Redis integration tests. README documents offline scope and module tags. |
 | `v0.2.0` | Planned | Compatibility hardening | Compatibility fixtures and negative cases for each backend; documented supported inputs and known gaps per backend. | Backend README files include supported versions/formats, unsupported cases, fixture source, and parser behavior for unknown events. |
 | `v0.3.0` | Planned | Live readers | MySQL replication reader, PostgreSQL logical replication reader, MongoDB change stream reader, Redis replication stream reader. | Live readers implement `dblog.Decoder`, support context cancellation, and have integration tests isolated from unit tests. |
 | `v0.4.0` | Planned | Recovery workflows | Checkpoint model, resumable decoding hooks, expanded flashback operations, and unsafe-operation guardrails. | Recovery APIs are backend-neutral; lossy or state-dependent reverse operations are documented and opt-in. |
@@ -118,7 +119,7 @@ Done when:
   `mongo/vX.Y.Z`, `postgres/vX.Y.Z`, and `redis/vX.Y.Z`.
 - Backend modules track the root module version for `v0.x` releases.
 - Breaking API changes are allowed before `v1.0.0`, but must be documented in
-  `CHANGELOG.md`.
+  GitHub Release notes.
 
 ## Maintenance Rules
 
@@ -127,7 +128,7 @@ Done when:
 - Add new work to an existing workstream before creating a new release line.
 - Keep release scope user-visible; internal refactors belong in issues or PRs,
   not the roadmap.
-- Update `CHANGELOG.md` when a roadmap item changes shipped behavior.
+- Update GitHub Release notes when a roadmap item changes shipped behavior.
 
 ## Non-Goals Before `v1.0.0`
 

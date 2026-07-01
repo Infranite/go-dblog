@@ -42,11 +42,11 @@ compatibility layers.
 
 ## Current Scope
 
-`v0.1.0` is an offline parser release. It is ready for users who already have
-database log files, exported records, or captured streams. Live replication
-readers are planned, but not part of the first public version.
+The next public tag target is `v0.1.0`: an offline parser release for users who
+already have database log files, exported records, or captured streams. Live
+replication readers are planned, but not part of this release line.
 
-| Backend | Supported input in `v0.1.0` | Not included yet |
+| Backend | Supported input for `v0.1.0` | Not included yet |
 |---|---|---|
 | MySQL | Local MySQL-family binlog files | Online replication connection reader |
 | PostgreSQL | Logical decoding text records | Logical replication protocol reader |
@@ -60,6 +60,7 @@ by orchestration code and leaves backend-specific parsing details inside each
 backend module.
 
 ```bash
+# These installs are intended for the first published v0.1.0 tags.
 go get github.com/Infranite/go-dblog
 go get github.com/Infranite/go-dblog/mysql
 go get github.com/Infranite/go-dblog/postgres
@@ -181,13 +182,6 @@ func main() {
 
 ## Backend Packages
 
-```bash
-go get github.com/Infranite/go-dblog/mysql
-go get github.com/Infranite/go-dblog/postgres
-go get github.com/Infranite/go-dblog/mongo
-go get github.com/Infranite/go-dblog/redis
-```
-
 Backend modules expose the same package shape:
 
 | Package | Purpose |
@@ -213,7 +207,7 @@ The full roadmap lives in [ROADMAP.md](./ROADMAP.md). Current release line:
 
 | Release | Status | Theme |
 |---|---|---|
-| `v0.1.0` | In progress | Offline parser developer preview |
+| `v0.1.0` | Ready for tag | Offline parser developer preview |
 | `v0.2.0` | Planned | Compatibility hardening |
 | `v0.3.0` | Planned | Live readers |
 | `v0.4.0` | Planned | Recovery workflows |
@@ -221,6 +215,12 @@ The full roadmap lives in [ROADMAP.md](./ROADMAP.md). Current release line:
 | `v1.0.0` | Candidate | Stable public API |
 
 ## Development
+
+Requirements:
+
+- Go 1.23 or later.
+- `golangci-lint` for local lint checks.
+- Docker only when debugging fixture generation locally.
 
 Run local unit tests:
 
@@ -235,22 +235,28 @@ make lint
 ```
 
 Full fixture-backed MySQL, MongoDB, PostgreSQL, and Redis integration tests run
-in pull request CI. Pull requests merge through the protected `ci` check.
-MySQL fixture generation can still be debugged locally when Docker is available:
+in pull request CI. Pull requests merge through the protected `ci` and
+`merge-policy` checks.
+
+When touching parser behavior, update tests in the affected backend module and
+document user-visible behavior in the relevant README. Keep backend-specific
+behavior inside that backend unless the common API genuinely needs it.
+
+Fixture generation can be debugged locally when Docker is available:
 
 ```bash
-make integration-mysql
+./mysql/test/testdata/generate_mysql_binlog.sh mysql:8.4
+./mongo/testdata/generate_mongo_oplog.sh mongo:7.0
+./postgres/testdata/generate_postgres_logical.sh postgres:16
+./redis/testdata/generate_redis_aof.sh redis:7.2
 ```
 
-## Release
+## Versioning
 
-The first public version target is `v0.1.0`. Backend modules depend on the root
-module at the same version and must be tagged after the root module. See
-[RELEASE.md](./RELEASE.md).
-
-## Contributing
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md).
+Releases are managed with GitHub Releases and Git tags. The root module uses
+`vX.Y.Z`; backend modules use module-prefixed tags such as `mysql/vX.Y.Z`,
+`mongo/vX.Y.Z`, `postgres/vX.Y.Z`, and `redis/vX.Y.Z`. Release notes live in
+GitHub Releases; commit history remains the detailed change log.
 
 ## License
 
