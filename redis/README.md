@@ -11,6 +11,8 @@ parsing.
 
 ## Installation
 
+After the first `redis/v0.1.0` tag is published:
+
 ```bash
 go get github.com/Infranite/go-dblog/redis
 ```

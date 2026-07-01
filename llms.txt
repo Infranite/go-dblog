@@ -16,12 +16,12 @@ adapting them to a shared event API.
 
 ## Key Files
 
-- `README.md`: feature overview, examples, backend package layout, roadmap.
+- `README.md`: feature overview, examples, backend package layout, contribution
+  notes, roadmap, and versioning.
 - `ROADMAP.md`: release line, capability matrix, workstreams, and versioning
   rules.
 - `doc/doc_zh.md`: Chinese documentation.
-- `CONTRIBUTING.md`: local checks and contribution expectations.
-- `CHANGELOG.md`: user-visible changes.
+- GitHub Releases: public release notes.
 - `SECURITY.md`: vulnerability reporting policy.
 
 ## Checks

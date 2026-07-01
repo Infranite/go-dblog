@@ -12,6 +12,8 @@ parsing.
 
 ## Installation
 
+After the first `mysql/v0.1.0` tag is published:
+
 ```bash
 go get github.com/Infranite/go-dblog/mysql
 ```
@@ -246,11 +248,6 @@ locally:
 ./mysql/test/testdata/generate_mysql_binlog.sh mysql:8.0
 cd mysql && GOWORK=off go test ./...
 ```
-
-## Contributing
-
-Issues and pull requests are welcome. Keep changes focused, add tests for parser
-behavior, and run `cd mysql && GOWORK=off go test ./...` before submitting.
 
 ## License
 
