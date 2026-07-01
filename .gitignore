@@ -4,3 +4,7 @@
 *.log
 coverage.out
 *.test
+mongo/testdata/oplog.jsonl
+mysql/test/testdata/mysql-bin.*
+postgres/testdata/test_decoding.log
+redis/testdata/appendonly.aof

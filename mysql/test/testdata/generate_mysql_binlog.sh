@@ -32,6 +32,13 @@ if [[ "$ready" != 1 ]]; then
 	exit 1
 fi
 
+binlog_file="$(docker exec "$name" mysql -N -uroot -e "SHOW MASTER STATUS" | awk '{print $1}')"
+if [[ -z "$binlog_file" ]]; then
+	docker logs "$name"
+	echo "failed to discover active MySQL binlog" >&2
+	exit 1
+fi
+
 docker exec "$name" mysql -uroot <<'SQL'
 CREATE DATABASE dblog_ci;
 USE dblog_ci;
@@ -50,5 +57,5 @@ FLUSH LOGS;
 SQL
 
 mkdir -p "$(dirname "$out")"
-docker cp "$name:/var/lib/mysql/mysql-bin.000001" "$out"
+docker cp "$name:/var/lib/mysql/$binlog_file" "$out"
 ls -lh "$out"

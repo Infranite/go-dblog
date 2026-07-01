@@ -6,6 +6,9 @@ on:
     branches: [master]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -15,6 +18,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.23"
+          cache: false
 
       - name: Install tools
         run: |
@@ -56,6 +60,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.23"
+          cache: false
 
       - name: Generate MySQL binlog fixture
         run: ./mysql/test/testdata/generate_mysql_binlog.sh "${{ matrix.mysql-image }}"
@@ -66,3 +71,51 @@ jobs:
       - name: Benchmark MySQL fixture decoder
         if: matrix.mysql-image == 'mysql:8.4'
         run: cd mysql && GOWORK=off go test -run '^$' -bench=BenchmarkDecoder -benchmem -benchtime=100x ./test -v
+
+  mongo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: false
+
+      - name: Generate MongoDB oplog fixture
+        run: ./mongo/testdata/generate_mongo_oplog.sh mongo:7.0
+
+      - name: Test MongoDB module
+        run: cd mongo && GOWORK=off go test -race -count=1 ./...
+
+  postgres:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: false
+
+      - name: Generate PostgreSQL logical decoding fixture
+        run: ./postgres/testdata/generate_postgres_logical.sh postgres:16
+
+      - name: Test PostgreSQL module
+        run: cd postgres && GOWORK=off go test -race -count=1 ./...
+
+  redis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+          cache: false
+
+      - name: Generate Redis AOF fixture
+        run: ./redis/testdata/generate_redis_aof.sh redis:7.2
+
+      - name: Test Redis module
+        run: cd redis && GOWORK=off go test -race -count=1 ./...
