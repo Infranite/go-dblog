@@ -10,6 +10,10 @@ import (
 func TestBaseEventBody(t *testing.T) {
 	t.Parallel()
 
+	if got := new(BaseEventBody).GetEventType(); got != nil {
+		t.Fatalf("GetEventType = %v, want nil", got)
+	}
+
 	body, err := new(BaseEventBody).Decode(WithData([]byte{1, 2}))
 	if err != nil {
 		t.Fatal(err)
@@ -106,7 +110,9 @@ func TestEventRegistryAndContext(t *testing.T) {
 	t.Parallel()
 
 	registry := NewEventRegistry()
-	registry.Register(&testEventBody{eventType: 201})
+	if err := registry.Register(&testEventBody{eventType: 201}); err != nil {
+		t.Fatal(err)
+	}
 	registry.RegisterName(202, "CUSTOM")
 	if !registry.KnowsEventType(201) || !registry.KnowsEventType(202) || registry.EventTypeName(202) != "CUSTOM" {
 		t.Fatalf("registry lookup failed")

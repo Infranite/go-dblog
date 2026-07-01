@@ -35,7 +35,7 @@ type Event struct {
 // ValidateData event format
 func (e *Event) ValidateData(body []byte, hasChecksum bool) ([]byte, error) {
 	if e.Header == nil {
-		return body, fmt.Errorf("empty evnet header")
+		return body, fmt.Errorf("empty event header")
 	}
 
 	if l := int64(len(body) + len(e.Header.Data)); l != e.Header.EventSize {
@@ -43,14 +43,22 @@ func (e *Event) ValidateData(body []byte, hasChecksum bool) ([]byte, error) {
 	}
 
 	if hasChecksum {
-		index := len(body) - common.BinlogChecksumLength - 1
-		e.ChecksumType = body[index]
-		e.ChecksumVal = body[index+1:]
-		body = body[:index+1]
+		if len(body) < common.BinlogChecksumLength {
+			return body, fmt.Errorf("event body shorter than binlog checksum")
+		}
 
-		if !common.ChecksumValidate(e.ChecksumType, e.ChecksumVal, append(e.Header.Data, body...)) || len(e.ChecksumVal) != 4 {
+		checksumStart := len(body) - common.BinlogChecksumLength
+		payload := body[:checksumStart]
+		e.ChecksumType = common.BinlogChecksumAlgCRC32
+		e.ChecksumVal = body[checksumStart:]
+
+		checksumData := make([]byte, 0, len(e.Header.Data)+len(payload))
+		checksumData = append(checksumData, e.Header.Data...)
+		checksumData = append(checksumData, payload...)
+		if !common.ChecksumValidate(e.ChecksumType, e.ChecksumVal, checksumData) {
 			return body, fmt.Errorf("binlog checksum validation failed")
 		}
+		body = payload
 	}
 
 	return body, nil

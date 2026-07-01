@@ -30,7 +30,9 @@ func TestPluginRegistersMariaDBEvents(t *testing.T) {
 	if plugin.Name() != "mariadb" || !plugin.Match(&types.FmtDescEvent{MySQLVersion: "10.11.0-MariaDB"}) || plugin.Match(&types.FmtDescEvent{MySQLVersion: "8.0.36"}) {
 		t.Fatalf("plugin match/name failed")
 	}
-	plugin.Register(registry)
+	if err := plugin.Register(registry); err != nil {
+		t.Fatal(err)
+	}
 
 	decoder := registry.GetEventBodyDecoder(AnnotateRowsEvent)
 	body, err := decoder.Decode(types.WithData([]byte("insert into t values (1)")))

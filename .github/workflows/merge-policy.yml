@@ -1,0 +1,59 @@
+name: Merge Policy
+
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  merge-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event.pull_request.base.ref == 'master'
+    steps:
+      - name: Enforce merge policy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OWNER_LOGIN: LPX-E5BD8
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          if [ "$PR_AUTHOR" = "$OWNER_LOGIN" ]; then
+            echo "Owner PR: admin approval is not required."
+            exit 0
+          fi
+
+          reviews="$(gh api "repos/$REPOSITORY/pulls/$PR_NUMBER/reviews")"
+          approvers="$(jq -r --arg head "$PR_HEAD_SHA" '
+            [.[] | {user: .user.login, state, submitted_at, commit_id}]
+            | sort_by(.user, .submitted_at)
+            | group_by(.user)[]
+            | last
+            | select(.state == "APPROVED" and .commit_id == $head)
+            | .user
+          ' <<<"$reviews")"
+
+          for user in $approvers; do
+            permission="$(gh api "repos/$REPOSITORY/collaborators/$user/permission" --jq .permission 2>/dev/null || true)"
+            if [ "$permission" = "admin" ]; then
+              echo "PR is approved by repository admin $user."
+              exit 0
+            fi
+          done
+
+          echo "PRs from $PR_AUTHOR require approval from a repository admin on the latest commit."
+          exit 1

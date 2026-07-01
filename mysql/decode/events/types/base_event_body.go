@@ -29,9 +29,9 @@ type BaseEventBody struct {
 	data []byte
 }
 
-// GetEventType return base env type
+// GetEventType returns no event types for the base decoder.
 func (event *BaseEventBody) GetEventType() []uint8 {
-	panic("Not support")
+	return nil
 }
 
 // Decode will decode binary to event structs

@@ -59,14 +59,20 @@ func (plugin) Match(fde *types.FmtDescEvent) bool {
 	return fde != nil && strings.Contains(fde.MySQLVersion, "MariaDB")
 }
 
-func (plugin) Register(registry *types.EventRegistry) {
-	registry.Register(new(AnnotateRowsLogEvent))
-	registry.Register(new(BinlogCheckpointLogEvent))
-	registry.Register(new(GTIDLogEvent))
-	registry.Register(new(GTIDListLogEvent))
-	registry.Register(new(StartEncryptionLogEvent))
-	registry.Register(new(QueryCompressedLogEvent))
-	registry.Register(new(RowsCompressedLogEvent))
+func (p plugin) Register(registry *types.EventRegistry) error {
+	for _, decoder := range []types.EventBody{
+		new(AnnotateRowsLogEvent),
+		new(BinlogCheckpointLogEvent),
+		new(GTIDLogEvent),
+		new(GTIDListLogEvent),
+		new(StartEncryptionLogEvent),
+		new(QueryCompressedLogEvent),
+		new(RowsCompressedLogEvent),
+	} {
+		if err := registry.Register(decoder); err != nil {
+			return fmt.Errorf("%s plugin: %w", p.Name(), err)
+		}
+	}
 
 	registry.RegisterName(AnnotateRowsEvent, "MARIADB_ANNOTATE_ROWS_EVENT")
 	registry.RegisterName(BinlogCheckpointEvent, "MARIADB_BINLOG_CHECKPOINT_EVENT")
@@ -77,6 +83,7 @@ func (plugin) Register(registry *types.EventRegistry) {
 	registry.RegisterName(WriteRowsCompressedEvent, "MARIADB_WRITE_ROWS_COMPRESSED_EVENT_V1")
 	registry.RegisterName(UpdateRowsCompressedEvent, "MARIADB_UPDATE_ROWS_COMPRESSED_EVENT_V1")
 	registry.RegisterName(DeleteRowsCompressedEvent, "MARIADB_DELETE_ROWS_COMPRESSED_EVENT_V1")
+	return nil
 }
 
 func requireData(data []byte, n int) error {
@@ -397,6 +404,13 @@ func inflateZlib(data []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer reader.Close()
-	return io.ReadAll(reader)
+	out, readErr := io.ReadAll(reader)
+	closeErr := reader.Close()
+	if readErr != nil {
+		return nil, readErr
+	}
+	if closeErr != nil {
+		return nil, closeErr
+	}
+	return out, nil
 }

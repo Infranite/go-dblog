@@ -229,13 +229,13 @@ patch release in that series emits the event in all configurations.
 From the repository root, run the MySQL backend test suite:
 
 ```bash
-go test ./mysql/...
+cd mysql && GOWORK=off go test ./...
 ```
 
 Run tests with coverage:
 
 ```bash
-go test ./mysql/... -coverprofile=coverage.out
+cd mysql && GOWORK=off go test ./... -coverprofile=coverage.out
 go tool cover -func=coverage.out
 ```
 
@@ -244,13 +244,13 @@ locally:
 
 ```bash
 ./mysql/test/testdata/generate_mysql_binlog.sh mysql:8.0
-go test ./mysql/...
+cd mysql && GOWORK=off go test ./...
 ```
 
 ## Contributing
 
 Issues and pull requests are welcome. Keep changes focused, add tests for parser
-behavior, and run `go test ./mysql/...` before submitting.
+behavior, and run `cd mysql && GOWORK=off go test ./...` before submitting.
 
 ## License
 

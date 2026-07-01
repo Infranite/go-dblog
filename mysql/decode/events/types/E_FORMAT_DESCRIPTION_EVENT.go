@@ -38,7 +38,7 @@ type FmtDescEvent struct {
 }
 
 func init() {
-	Register(new(FmtDescEvent))
+	_ = Register(new(FmtDescEvent))
 }
 
 // GetEventType return base env type

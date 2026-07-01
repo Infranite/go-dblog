@@ -45,7 +45,7 @@ func (e *MetadataEvent) Decode(opts ...EventOptionFunc) (EventBody, error) {
 		event.Payload = opt.Data
 		return event, nil
 	}
-	event.PostHeaderLength = opt.EventContext.EventPostHeaderLength(eventType)
+	event.PostHeaderLength = opt.EventPostHeaderLength(eventType)
 	if event.PostHeaderLength <= 0 || event.PostHeaderLength > len(opt.Data) {
 		event.Payload = opt.Data
 		return event, nil

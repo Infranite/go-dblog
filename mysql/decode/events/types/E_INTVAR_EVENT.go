@@ -31,7 +31,7 @@ type IntvarEvent struct {
 }
 
 func init() {
-	Register(new(IntvarEvent))
+	_ = Register(new(IntvarEvent))
 }
 
 // GetEventType return base env type

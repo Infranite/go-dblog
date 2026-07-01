@@ -95,7 +95,7 @@ type BinRowsEvent struct {
 }
 
 func init() {
-	Register(new(BinRowsEvent))
+	_ = Register(new(BinRowsEvent))
 }
 
 // GetEventType return base env type

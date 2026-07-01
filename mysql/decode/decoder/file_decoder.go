@@ -105,25 +105,28 @@ func (decoder *BinFileDecoder) knowsEventType(eventType uint8) bool {
 	if decoder.Option != nil && decoder.Option.CompatibilityMode == EventCompatibilityLoose {
 		return true
 	}
-	if decoder.EventContext.Registry.KnowsEventType(eventType) {
+	if decoder.Registry.KnowsEventType(eventType) {
 		return true
 	}
 	if decoder.Option != nil && decoder.Option.CompatibilityMode == EventCompatibilityStrict {
 		return false
 	}
-	return decoder.EventContext.KnowsEventType(eventType)
+	return decoder.KnowsEventType(eventType)
 }
 
-func (decoder *BinFileDecoder) applyEventPlugins(fde *types.FmtDescEvent) {
+func (decoder *BinFileDecoder) applyEventPlugins(fde *types.FmtDescEvent) error {
 	if decoder.pluginsApplied || decoder.Option == nil || len(decoder.Option.EventPlugins) == 0 {
-		return
+		return nil
 	}
 	for _, plugin := range decoder.Option.EventPlugins {
 		if plugin.Match(fde) {
-			plugin.Register(decoder.EventContext.Registry)
+			if err := plugin.Register(decoder.Registry); err != nil {
+				return err
+			}
 		}
 	}
 	decoder.pluginsApplied = true
+	return nil
 }
 
 // readEventData
@@ -173,10 +176,10 @@ func (decoder *BinFileDecoder) DecodeEvent() (*events.Event, error) {
 		return event, err
 	}
 
-	bodyDecoder := decoder.EventContext.Registry.GetEventBodyDecoder(event.Header.EventType)
+	bodyDecoder := decoder.Registry.GetEventBodyDecoder(event.Header.EventType)
 	if bodyDecoder == nil {
 		return nil, fmt.Errorf("can't find decoder for event type %s[%x], may not suppoted event",
-			decoder.EventContext.Registry.EventTypeName(event.Header.EventType), event.Header.EventType)
+			decoder.Registry.EventTypeName(event.Header.EventType), event.Header.EventType)
 	}
 
 	event.Body, err = bodyDecoder.Decode(
@@ -188,7 +191,9 @@ func (decoder *BinFileDecoder) DecodeEvent() (*events.Event, error) {
 		return event, err
 	}
 	if fde, ok := event.Body.(*types.FmtDescEvent); ok {
-		decoder.applyEventPlugins(fde)
+		if err := decoder.applyEventPlugins(fde); err != nil {
+			return event, err
+		}
 	}
 
 	return event, nil

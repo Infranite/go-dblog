@@ -31,7 +31,7 @@ type XIDEvent struct {
 }
 
 func init() {
-	Register(new(XIDEvent))
+	_ = Register(new(XIDEvent))
 }
 
 // GetEventType return base env type

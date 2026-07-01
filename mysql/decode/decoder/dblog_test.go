@@ -11,7 +11,11 @@ func TestDblogDecoderEvents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer fileDecoder.Close()
+	t.Cleanup(func() {
+		if err := fileDecoder.Close(); err != nil {
+			t.Fatal(err)
+		}
+	})
 
 	decoder := WrapDblogDecoder(Source{Name: "mysql-bin.000004"}, fileDecoder)
 	for event, err := range decoder.Events() {
@@ -43,7 +47,11 @@ func TestDblogBodiesFiltersTypedBody(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer decoder.Close()
+	t.Cleanup(func() {
+		if err := decoder.Close(); err != nil {
+			t.Fatal(err)
+		}
+	})
 
 	for event, err := range decoder.Events() {
 		if err != nil {
