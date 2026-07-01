@@ -1,5 +1,9 @@
 # go-mysql-binlog
 
+<p align="center">
+  <img src="./doc/assets/title-banner.svg" alt="go-mysql-binlog title banner">
+</p>
+
 [![CI](https://github.com/Infranite/go-mysql-binlog/actions/workflows/dev-test.yml/badge.svg?branch=develop)](https://github.com/Infranite/go-mysql-binlog/actions/workflows/dev-test.yml)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/Infranite/go-mysql-binlog)](https://github.com/Infranite/go-mysql-binlog/blob/develop/go.mod)
 [![Go Reference](https://pkg.go.dev/badge/github.com/Infranite/go-mysql-binlog.svg)](https://pkg.go.dev/github.com/Infranite/go-mysql-binlog)
