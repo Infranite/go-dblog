@@ -20,10 +20,10 @@ gates for `go-dblog`. It is not a commitment to dates.
 
 | Release | Status | Theme | Deliverables | Exit gates |
 |---|---|---|---|---|
-| `v0.1.0` | Ready | Offline parser developer preview | Root common API, MySQL binlog file parser, PostgreSQL logical decoding text parser, MongoDB JSON line parser, Redis RESP AOF parser, plugin hooks, filtering, and safe flashback helpers where the log contains enough data. | Protected PR `ci` and `merge-policy` checks pass: lint, vet, vulnerability scan, unit tests, and real fixture-backed MySQL, MongoDB, PostgreSQL, and Redis integration tests. README documents offline scope and module tags. |
+| `v0.1.0` | Ready | Offline parser developer preview | Root common API, MySQL binlog file parser, PostgreSQL logical decoding text parser, MongoDB JSON line parser, Redis RESP AOF parser, plugin hooks, filtering, checkpoint resume, and safe flashback helpers where the log contains enough data. | Protected PR `ci` and `merge-policy` checks pass: lint, vet, vulnerability scan, unit tests, and real fixture-backed MySQL, MongoDB, PostgreSQL, and Redis integration tests. README documents offline scope and module tags. |
 | `v0.2.0` | Planned | Compatibility hardening | Compatibility fixtures and negative cases for each backend; documented supported inputs and known gaps per backend. | Backend README files include supported versions/formats, unsupported cases, fixture source, and parser behavior for unknown events. |
 | `v0.3.0` | Planned | Live readers | MySQL replication reader, PostgreSQL logical replication reader, MongoDB change stream reader, Redis replication stream reader. | Live readers implement `dblog.Decoder`, support context cancellation, and have integration tests isolated from unit tests. |
-| `v0.4.0` | Planned | Recovery workflows | Checkpoint model, resumable decoding hooks, expanded flashback operations, and unsafe-operation guardrails. | Recovery APIs are backend-neutral; lossy or state-dependent reverse operations are documented and opt-in. |
+| `v0.4.0` | Planned | Recovery workflows | Expanded flashback operations and unsafe-operation guardrails. | Recovery APIs are backend-neutral; lossy or state-dependent reverse operations are documented and opt-in. |
 | `v0.5.0` | Planned | Operational maturity | Release notes with tested versions and long-running benchmark history. | CI runs fuzz smoke tests, benchmark smoke tests, and publishes the tested backend/version matrix. |
 | `v1.0.0` | Candidate | Stable public API | Frozen root API, stable backend package contracts, migration notes from `v0.x`. | No known API blockers; compatibility policy and deprecation policy are documented. |
 
@@ -45,7 +45,7 @@ merge queue runs, and `master` pushes.
 | Static quality gates | Done | Done | Done | Done | `lint`, `vet`, and `vuln` matrix jobs run with `GOWORK=off` for every module. |
 | Compatibility matrix | Done | Done | Done | Done | Backend README files publish supported inputs, limits, and tested fixture versions; CI fixture jobs and fuzz seeds prove those claims. |
 | Live reader | Planned for `v0.3.0` | Planned for `v0.3.0` | Planned for `v0.3.0` | Planned for `v0.3.0` | Not a shipped `v0.1.0` capability. |
-| Checkpoint/resume | Planned for `v0.4.0` | Planned for `v0.4.0` | Planned for `v0.4.0` | Planned for `v0.4.0` | Not a shipped `v0.1.0` capability. |
+| Checkpoint/resume | Done | Done | Done | Done | `dblog.TestCheckpointOfAndOpenOptions` and backend `TestRegisterResumesAfterCheckpoint` tests prove `dblog.WithCheckpoint` resumes after the stored event position; fixture-backed CI covers MySQL binlog checkpoints with generated binlogs. |
 | Fuzz coverage | Done: event header parser | Done: logical decoding line parser | Done: JSON line parser | Done: RESP command parser | `fuzz` matrix job runs parser fuzz smoke targets for every backend. |
 | Throughput baseline | Done: fixture decoder benchmark | Done: line parser benchmark | Done: line parser benchmark | Done: RESP command benchmark | `bench` matrix job runs parser benchmark smoke targets for every backend. |
 
@@ -92,7 +92,6 @@ Goal: provide recovery helpers without inventing data that is not in the log.
 
 Required work:
 
-- define checkpoint and resume contracts;
 - expand safe flashback output per backend;
 - reject or omit reverse operations that require missing prior state;
 - document lossy cases at the backend level.
@@ -101,7 +100,7 @@ Done when:
 
 - flashback behavior is tested per supported operation;
 - unsafe reverse operations are not emitted silently;
-- checkpoint state is portable across process restarts.
+- checkpoint state remains portable across process restarts.
 
 ### 4. Operations
 

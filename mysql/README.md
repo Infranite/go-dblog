@@ -80,6 +80,8 @@ Got QUERY_EVENT:
 - Future metadata-declared events preserved as `*types.MetadataEvent`.
 - Go 1.23 iterator support for streaming and type filtering.
 - Copy-aware row value decoding for variable-width payloads.
+- Checkpoint resume through `dblog.WithCheckpoint` when opened through the root
+  registry.
 
 ## Supported Inputs
 

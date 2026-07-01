@@ -1,7 +1,9 @@
 package backend
 
 import (
+	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/Infranite/go-dblog"
 	"github.com/Infranite/go-dblog/postgres/decode/decoder"
@@ -41,7 +43,11 @@ func (Backend) Open(options dblog.OpenOptions) (dblog.Decoder[dblog.Event], erro
 	if source.Driver == "" {
 		source.Driver = Driver
 	}
-	return decoder.NewDecoder(source, reader, close), nil
+	startPosition, err := startPosition(options)
+	if err != nil {
+		return nil, err
+	}
+	return decoder.NewDecoder(source, reader, close, decoder.WithStartPosition(startPosition)), nil
 }
 
 // Register adds Backend to a registry, or to dblog.DefaultRegistry when nil.
@@ -50,4 +56,19 @@ func Register(registry *dblog.Registry) error {
 		return dblog.Register(Backend{})
 	}
 	return registry.Register(Backend{})
+}
+
+func startPosition(options dblog.OpenOptions) (int, error) {
+	position := dblog.StartPositionOf(options)
+	if position.Value == "" {
+		return 0, nil
+	}
+	if position.Driver != "" && position.Driver != Driver {
+		return 0, fmt.Errorf("postgres: checkpoint driver %q does not match %q", position.Driver, Driver)
+	}
+	value, err := strconv.Atoi(position.Value)
+	if err != nil || value < 0 {
+		return 0, fmt.Errorf("postgres: invalid checkpoint position %q", position.Value)
+	}
+	return value, nil
 }
