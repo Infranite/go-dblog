@@ -7,7 +7,7 @@ import (
 )
 
 func TestDblogDecoderEvents(t *testing.T) {
-	fileDecoder, err := NewBinFileDecoder(testBinlogPath)
+	fileDecoder, err := NewBinFileDecoder(requireTestBinlog(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestDblogDecoderEvents(t *testing.T) {
 }
 
 func TestDblogBodiesFiltersTypedBody(t *testing.T) {
-	decoder, err := NewDblogDecoder(testBinlogPath)
+	decoder, err := NewDblogDecoder(requireTestBinlog(t))
 	if err != nil {
 		t.Fatal(err)
 	}

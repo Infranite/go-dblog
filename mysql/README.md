@@ -239,6 +239,14 @@ go test ./mysql/... -coverprofile=coverage.out
 go tool cover -func=coverage.out
 ```
 
+Generate a real MySQL binlog fixture when you want the integration tests to run
+locally:
+
+```bash
+./mysql/test/testdata/generate_mysql_binlog.sh mysql:8.0
+go test ./mysql/...
+```
+
 ## Contributing
 
 Issues and pull requests are welcome. Keep changes focused, add tests for parser

@@ -17,7 +17,9 @@ limitations under the License.
 package test
 
 import (
+	"errors"
 	"fmt"
+	"os"
 	"runtime"
 	"testing"
 	"time"
@@ -27,9 +29,17 @@ import (
 )
 
 func TestDecoder(t *testing.T) {
+	const binlogPath = "./testdata/mysql-bin.000004"
+	if _, err := os.Stat(binlogPath); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			t.Skipf("test binlog %s not found; run testdata/generate_mysql_binlog.sh", binlogPath)
+		}
+		t.Fatal(err)
+	}
+
 	memStats := &runtime.MemStats{}
 	runtime.ReadMemStats(memStats)
-	fileDecoder, err := decoder.NewBinFileDecoder("./testdata/mysql-bin.000004")
+	fileDecoder, err := decoder.NewBinFileDecoder(binlogPath)
 
 	if err != nil {
 		t.Error(err)
