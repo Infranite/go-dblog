@@ -245,8 +245,7 @@ Generate a real MySQL binlog fixture when you want the integration tests to run
 locally:
 
 ```bash
-./mysql/test/testdata/generate_mysql_binlog.sh mysql:8.0
-cd mysql && GOWORK=off go test ./...
+make integration-mysql
 ```
 
 ## License

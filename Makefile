@@ -1,7 +1,7 @@
 GO ?= go
 GOLANGCI_LINT ?= golangci-lint
 
-.PHONY: test test-backends test-mysql integration-mysql lint vet bench
+.PHONY: test test-backends test-mysql integration integration-mysql integration-mongo integration-postgres integration-redis lint vet bench
 
 test:
 	$(GO) test -short ./...
@@ -19,6 +19,20 @@ test-mysql:
 integration-mysql:
 	./mysql/test/testdata/generate_mysql_binlog.sh mysql:8.4
 	cd mysql && GOWORK=off $(GO) test ./...
+
+integration: integration-mysql integration-mongo integration-postgres integration-redis
+
+integration-mongo:
+	./mongo/testdata/generate_mongo_oplog.sh mongo:7.0
+	cd mongo && GOWORK=off $(GO) test ./...
+
+integration-postgres:
+	./postgres/testdata/generate_postgres_logical.sh postgres:16
+	cd postgres && GOWORK=off $(GO) test ./...
+
+integration-redis:
+	./redis/testdata/generate_redis_aof.sh redis:7.2
+	cd redis && GOWORK=off $(GO) test ./...
 
 lint:
 	$(GOLANGCI_LINT) run ./... ./mysql/... ./mongo/... ./postgres/... ./redis/...

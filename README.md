@@ -98,7 +98,8 @@ func main() {
 
 Use the common API for multi-source routing, shared filtering, CDC pipelines,
 backend registration, and recovery tasks. Use backend-native APIs when you need
-full database-specific event details.
+full database-specific event details. The current backend capability matrix and
+CI evidence are tracked in [ROADMAP.md](./ROADMAP.md#capability-matrix).
 
 ## Examples
 
@@ -237,6 +238,12 @@ make lint
 Full fixture-backed MySQL, MongoDB, PostgreSQL, and Redis integration tests run
 in pull request CI. Pull requests merge through the protected `ci` and
 `merge-policy` checks.
+
+Run all fixture-backed integration tests locally when Docker is available:
+
+```bash
+make integration
+```
 
 When touching parser behavior, update tests in the affected backend module and
 document user-visible behavior in the relevant README. Keep backend-specific

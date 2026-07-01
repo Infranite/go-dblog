@@ -89,7 +89,8 @@ func main() {
 ```
 
 需要数据库完整细节时，直接使用 backend 原生 API。需要多数据源路由、共享过滤、
-backend 注册、CDC 或恢复流水线时，再接入根模块公共 API。
+backend 注册、CDC 或恢复流水线时，再接入根模块公共 API。当前 backend 能力矩阵和
+CI 证据记录在 [`ROADMAP.md`](../ROADMAP.md#capability-matrix)。
 
 ## 示例
 
@@ -226,6 +227,12 @@ make lint
 
 完整的 MySQL、MongoDB、PostgreSQL、Redis 真实 fixture 集成测试在 pull request CI
 中运行，合入受 `ci` 和 `merge-policy` 检查约束。
+
+有 Docker 时可本地运行完整 fixture 集成测试：
+
+```bash
+make integration
+```
 
 修改 parser 行为时，在对应 backend module 更新测试，并在相关 README 中记录用户可见
 行为。backend 特有逻辑应留在对应 backend，除非公共 API 确实需要承载。

@@ -138,6 +138,13 @@ From the repository root, run:
 cd postgres && GOWORK=off go test ./...
 ```
 
+Run the PostgreSQL fixture-backed integration test locally when Docker is
+available:
+
+```bash
+make integration-postgres
+```
+
 ## License
 
 Apache License 2.0. See [LICENSE](../LICENSE).

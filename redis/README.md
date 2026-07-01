@@ -137,6 +137,12 @@ From the repository root, run:
 cd redis && GOWORK=off go test ./...
 ```
 
+Run the Redis fixture-backed integration test locally when Docker is available:
+
+```bash
+make integration-redis
+```
+
 ## License
 
 Apache License 2.0. See [LICENSE](../LICENSE).
