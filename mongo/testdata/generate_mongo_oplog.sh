@@ -51,7 +51,7 @@ if [[ "$primary" != 1 ]]; then
 	exit 1
 fi
 
-docker exec "$name" mongosh --quiet <<'JS' >/dev/null
+docker exec -i "$name" mongosh --quiet <<'JS' >/dev/null
 const db = db.getSiblingDB("dblog_ci");
 db.users.drop();
 db.users.insertOne({_id: 1, name: "Ada", active: true});
@@ -60,7 +60,7 @@ db.users.deleteOne({_id: 1});
 JS
 
 mkdir -p "$(dirname "$out")"
-docker exec "$name" mongosh --quiet <<'JS' >"$out"
+docker exec -i "$name" mongosh --quiet <<'JS' >"$out"
 let seen = 0;
 const cursor = db.getSiblingDB("local").getCollection("oplog.rs")
   .find({ns: "dblog_ci.users", op: {$in: ["i", "u", "d"]}})

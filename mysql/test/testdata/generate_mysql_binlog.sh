@@ -38,6 +38,32 @@ if [[ "$ready" != 1 ]]; then
 	exit 1
 fi
 
+listening=0
+for _ in $(seq 1 90); do
+	if docker logs "$name" 2>&1 | grep -q 'port: 3306'; then
+		listening=1
+		break
+	fi
+	sleep 1
+done
+if [[ "$listening" != 1 ]]; then
+	docker logs "$name"
+	exit 1
+fi
+
+ready=0
+for _ in $(seq 1 90); do
+	if docker exec "$name" mysqladmin ping -uroot --silent >/dev/null 2>&1; then
+		ready=1
+		break
+	fi
+	sleep 1
+done
+if [[ "$ready" != 1 ]]; then
+	docker logs "$name"
+	exit 1
+fi
+
 discover_binlog_file() {
 	local file
 	file="$(docker exec "$name" mysql -N -uroot -e "SHOW BINARY LOG STATUS" 2>/dev/null | awk 'NR == 1 {print $1}' || true)"
@@ -81,7 +107,7 @@ if [[ -z "$(discover_binlog_file)" ]]; then
 	exit 1
 fi
 
-docker exec "$name" mysql -uroot <<'SQL'
+docker exec -i "$name" mysql -uroot <<'SQL'
 SET SESSION SQL_LOG_BIN = 1;
 SET SESSION binlog_format = 'ROW';
 CREATE DATABASE dblog_ci;
