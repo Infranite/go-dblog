@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"github.com/liipx/go-mysql-binlog/binlog/common"
+	"github.com/Infranite/go-mysql-binlog/binlog/common"
 )
 
 func TestQueryEventDecodesStatusVars(t *testing.T) {

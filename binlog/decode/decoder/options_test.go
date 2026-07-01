@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/liipx/go-mysql-binlog/binlog/decode/events"
-	"github.com/liipx/go-mysql-binlog/binlog/decode/events/types"
+	"github.com/Infranite/go-mysql-binlog/binlog/decode/events"
+	"github.com/Infranite/go-mysql-binlog/binlog/decode/events/types"
 )
 
 type testPlugin struct{}

@@ -6,8 +6,8 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"github.com/liipx/go-mysql-binlog/binlog/common"
-	"github.com/liipx/go-mysql-binlog/binlog/decode/events/types"
+	"github.com/Infranite/go-mysql-binlog/binlog/common"
+	"github.com/Infranite/go-mysql-binlog/binlog/decode/events/types"
 )
 
 func le32(v uint32) []byte {

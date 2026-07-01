@@ -19,7 +19,7 @@ package types
 import (
 	"fmt"
 
-	"github.com/liipx/go-mysql-binlog/binlog/common"
+	"github.com/Infranite/go-mysql-binlog/binlog/common"
 )
 
 // EventRegistry holds event body decoders by event type.

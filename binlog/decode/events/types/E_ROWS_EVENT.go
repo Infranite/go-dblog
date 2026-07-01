@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/liipx/go-mysql-binlog/binlog/common"
+	"github.com/Infranite/go-mysql-binlog/binlog/common"
 )
 
 // ColumnValue is a decoded column in a rows event.

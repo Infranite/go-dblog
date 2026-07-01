@@ -22,8 +22,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/liipx/go-mysql-binlog/binlog/decode/decoder"
-	"github.com/liipx/go-mysql-binlog/binlog/decode/events"
+	"github.com/Infranite/go-mysql-binlog/binlog/decode/decoder"
+	"github.com/Infranite/go-mysql-binlog/binlog/decode/events"
 )
 
 func TestDecoder(t *testing.T) {

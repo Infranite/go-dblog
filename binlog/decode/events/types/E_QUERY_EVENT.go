@@ -20,7 +20,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/liipx/go-mysql-binlog/binlog/common"
+	"github.com/Infranite/go-mysql-binlog/binlog/common"
 )
 
 // QueryEvent is the definition of QUERY_EVENT

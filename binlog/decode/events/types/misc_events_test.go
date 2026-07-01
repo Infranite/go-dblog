@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/liipx/go-mysql-binlog/binlog/common"
+	"github.com/Infranite/go-mysql-binlog/binlog/common"
 )
 
 func le32(v uint32) []byte {

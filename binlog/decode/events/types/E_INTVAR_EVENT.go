@@ -19,7 +19,7 @@ package types
 import (
 	"encoding/binary"
 
-	"github.com/liipx/go-mysql-binlog/binlog/common"
+	"github.com/Infranite/go-mysql-binlog/binlog/common"
 )
 
 // IntvarEvent is the definition of INTVAR_EVENT

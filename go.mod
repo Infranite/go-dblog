@@ -1,3 +1,3 @@
-module github.com/liipx/go-mysql-binlog
+module github.com/Infranite/go-mysql-binlog
 
 go 1.23

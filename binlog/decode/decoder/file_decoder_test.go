@@ -5,9 +5,9 @@ import (
 	"io"
 	"testing"
 
-	"github.com/liipx/go-mysql-binlog/binlog/common"
-	"github.com/liipx/go-mysql-binlog/binlog/decode/events"
-	"github.com/liipx/go-mysql-binlog/binlog/decode/events/types"
+	"github.com/Infranite/go-mysql-binlog/binlog/common"
+	"github.com/Infranite/go-mysql-binlog/binlog/decode/events"
+	"github.com/Infranite/go-mysql-binlog/binlog/decode/events/types"
 )
 
 const testBinlogPath = "../../../test/testdata/mysql-bin.000004"

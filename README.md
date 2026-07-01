@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Infranite/go-mysql-binlog/actions/workflows/dev-test.yml/badge.svg?branch=develop)](https://github.com/Infranite/go-mysql-binlog/actions/workflows/dev-test.yml)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/Infranite/go-mysql-binlog)](https://github.com/Infranite/go-mysql-binlog/blob/develop/go.mod)
-[![Go Reference](https://pkg.go.dev/badge/github.com/liipx/go-mysql-binlog.svg)](https://pkg.go.dev/github.com/liipx/go-mysql-binlog)
+[![Go Reference](https://pkg.go.dev/badge/github.com/Infranite/go-mysql-binlog.svg)](https://pkg.go.dev/github.com/Infranite/go-mysql-binlog)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Infranite/go-mysql-binlog)](https://goreportcard.com/report/github.com/Infranite/go-mysql-binlog)
 [![License](https://img.shields.io/github/license/Infranite/go-mysql-binlog)](https://github.com/Infranite/go-mysql-binlog/blob/develop/LICENSE)
 
@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/liipx/go-mysql-binlog/binlog/common"
-	"github.com/liipx/go-mysql-binlog/binlog/decode/decoder"
+	"github.com/Infranite/go-mysql-binlog/binlog/common"
+	"github.com/Infranite/go-mysql-binlog/binlog/decode/decoder"
 )
 
 func main() {

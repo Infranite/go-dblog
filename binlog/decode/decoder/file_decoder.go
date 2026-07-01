@@ -24,10 +24,10 @@ import (
 	"iter"
 	"os"
 
-	"github.com/liipx/go-mysql-binlog/binlog/common"
-	"github.com/liipx/go-mysql-binlog/binlog/decode/events"
-	"github.com/liipx/go-mysql-binlog/binlog/decode/events/types"
-	"github.com/liipx/go-mysql-binlog/binlog/plugin/mariadb"
+	"github.com/Infranite/go-mysql-binlog/binlog/common"
+	"github.com/Infranite/go-mysql-binlog/binlog/decode/events"
+	"github.com/Infranite/go-mysql-binlog/binlog/decode/events/types"
+	"github.com/Infranite/go-mysql-binlog/binlog/plugin/mariadb"
 )
 
 // binFileHeader : A binlog file starts with a Binlog File Header [ fe 'bin' ]

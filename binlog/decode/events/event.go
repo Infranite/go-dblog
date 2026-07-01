@@ -19,8 +19,8 @@ package events
 import (
 	"fmt"
 
-	"github.com/liipx/go-mysql-binlog/binlog/common"
-	"github.com/liipx/go-mysql-binlog/binlog/decode/events/types"
+	"github.com/Infranite/go-mysql-binlog/binlog/common"
+	"github.com/Infranite/go-mysql-binlog/binlog/decode/events/types"
 )
 
 // Event is binary log event definition
