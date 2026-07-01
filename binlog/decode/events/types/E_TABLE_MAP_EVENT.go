@@ -18,7 +18,6 @@ package types
 
 import (
 	"encoding/binary"
-	"fmt"
 	"io"
 
 	"github.com/liipx/go-mysql-binlog/binlog/common"
@@ -37,6 +36,7 @@ type TableMapEvent struct {
 	ColumnTypeDef []byte
 	ColumnMetaDef []uint16
 	NullBitmap    []byte
+	OptionalMeta  []byte
 }
 
 func init() {
@@ -88,10 +88,6 @@ func (e *TableMapEvent) decodeMeta(data []byte) error {
 		case common.MySQLTypeTime2, common.MySQLTypeDatetime2, common.MySQLTypeTimestamp2:
 			e.ColumnMetaDef[i] = uint16(data[pos])
 			pos++
-
-		case common.MySQLTypeNewDate, common.MySQLTypeEnum, common.MySQLTypeSet,
-			common.MySQLTypeTinyBlob, common.MySQLTypeMediumBlob, common.MySQLTypeLongBlob:
-			return fmt.Errorf("unsupport type in binlog %d", t)
 
 		default:
 			e.ColumnMetaDef[i] = 0
@@ -149,8 +145,14 @@ func (e *TableMapEvent) Decode(opts ...EventOptionFunc) (EventBody, error) {
 	pos += n
 
 	// null_bitmap (string.var_len) [len=(column_count + 8) / 7]
-	if len(opt.Data[pos:]) == common.BitmapByteSize(int(event.ColumnCount)) {
-		event.NullBitmap = opt.Data[pos:]
+	nullBitmapSize := common.BitmapByteSize(int(event.ColumnCount))
+	if len(opt.Data[pos:]) >= nullBitmapSize {
+		event.NullBitmap = opt.Data[pos : pos+nullBitmapSize]
+		pos += nullBitmapSize
+		event.OptionalMeta = opt.Data[pos:]
+		if opt.EventContext == nil || opt.TableInfo == nil {
+			return event, nil
+		}
 		opt.TableInfo[event.TableID] = event
 		return event, nil
 	}
