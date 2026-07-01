@@ -212,6 +212,30 @@ func TestSourceAndPositionHandleNilEvent(t *testing.T) {
 	}
 }
 
+func TestCheckpointOfAndOpenOptions(t *testing.T) {
+	checkpoint := CheckpointOf(testEvent{body: "query"})
+	if checkpoint.Source != (Source{Driver: "test", Name: "fixture"}) {
+		t.Fatalf("source = %#v", checkpoint.Source)
+	}
+	if checkpoint.Position != (Position{Driver: "test", Value: "1"}) {
+		t.Fatalf("position = %#v", checkpoint.Position)
+	}
+
+	options := newOpenOptions(WithCheckpoint(checkpoint))
+	if got := options.Source(); got != checkpoint.Source {
+		t.Fatalf("source option = %#v", got)
+	}
+	if got := StartPositionOf(options); got != checkpoint.Position {
+		t.Fatalf("start position = %#v", got)
+	}
+}
+
+func TestCheckpointOfNilEvent(t *testing.T) {
+	if got := CheckpointOf(nil); got != (Checkpoint{}) {
+		t.Fatalf("CheckpointOf(nil) = %#v", got)
+	}
+}
+
 type registryBackend struct {
 	driver string
 	events []Event

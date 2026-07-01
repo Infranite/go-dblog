@@ -31,6 +31,12 @@ type Position struct {
 	Value  string
 }
 
+// Checkpoint stores the last consumed event location for a source.
+type Checkpoint struct {
+	Source   Source
+	Position Position
+}
+
 // Event is the minimal common shape shared by database log backends.
 type Event interface {
 	SourceDriver() string
@@ -57,16 +63,20 @@ type OpenOptions interface {
 }
 
 type openOptions struct {
-	source Source
-	path   string
-	dsn    string
-	reader io.Reader
+	source        Source
+	path          string
+	dsn           string
+	reader        io.Reader
+	startPosition Position
 }
 
 func (o openOptions) Source() Source    { return o.source }
 func (o openOptions) Path() string      { return o.path }
 func (o openOptions) DSN() string       { return o.dsn }
 func (o openOptions) Reader() io.Reader { return o.reader }
+func (o openOptions) StartPosition() Position {
+	return o.startPosition
+}
 
 // OpenOption configures backend decoder creation.
 type OpenOption func(*openOptions)
@@ -96,6 +106,16 @@ func WithDSN(dsn string) OpenOption {
 func WithReader(reader io.Reader) OpenOption {
 	return func(options *openOptions) {
 		options.reader = reader
+	}
+}
+
+// WithCheckpoint resumes an opened backend after a previously consumed event.
+func WithCheckpoint(checkpoint Checkpoint) OpenOption {
+	return func(options *openOptions) {
+		if checkpoint.Source != (Source{}) {
+			options.source = checkpoint.Source
+		}
+		options.startPosition = checkpoint.Position
 	}
 }
 
@@ -195,6 +215,29 @@ func PositionOf(event Event) Position {
 		return Position{}
 	}
 	return Position{Driver: event.PositionDriver(), Value: event.PositionString()}
+}
+
+// CheckpointOf returns a portable checkpoint for the event.
+func CheckpointOf(event Event) Checkpoint {
+	if event == nil {
+		return Checkpoint{}
+	}
+	return Checkpoint{Source: SourceOf(event), Position: PositionOf(event)}
+}
+
+// StartPositionOf returns the checkpoint position carried by open options.
+func StartPositionOf(options OpenOptions) Position {
+	type startPositionOptions interface {
+		StartPosition() Position
+	}
+	if options == nil {
+		return Position{}
+	}
+	startOptions, ok := options.(startPositionOptions)
+	if !ok {
+		return Position{}
+	}
+	return startOptions.StartPosition()
 }
 
 // Bodies filters an event iterator by decoded body type.

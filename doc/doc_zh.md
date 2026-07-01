@@ -32,7 +32,7 @@ PostgreSQL 族后续使用 `postgres` 模块，以便容纳兼容方言和生态
 - MySQL、PostgreSQL、MongoDB、Redis 使用统一公共事件形态。
 - 通过 `dblog.Registry` 显式注册 backend；不依赖隐藏 import 或自动全局注册。
 - 基于 Go 1.23 iterator 的流式 decoder。
-- 公共层提供 source、position、过滤和闪回辅助能力。
+- 公共层提供 source、position、checkpoint resume、过滤和闪回辅助能力。
 - 各 backend 保留数据库原生 typed event，承载数据库特有细节。
 - 原生 decoder 包提供插件入口，用于方言事件和命令扩展。
 - 按 backend 拆分 module，调用方只安装实际需要的依赖。
@@ -170,6 +170,17 @@ func main() {
 		fmt.Println(op)
 	}
 }
+```
+
+### 从 checkpoint 恢复
+
+```go
+checkpoint := dblog.CheckpointOf(lastProcessedEvent)
+
+decoder, err := registry.Open(redis.Driver,
+	dblog.WithReader(strings.NewReader(aof)),
+	dblog.WithCheckpoint(checkpoint),
+)
 ```
 
 ## Backend 包结构

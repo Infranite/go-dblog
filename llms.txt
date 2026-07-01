@@ -5,8 +5,8 @@ adapting them to a shared event API.
 
 ## Modules
 
-- `github.com/Infranite/go-dblog`: common registry, event, filter, and flashback
-  contracts.
+- `github.com/Infranite/go-dblog`: common registry, event, checkpoint, filter,
+  and flashback contracts.
 - `github.com/Infranite/go-dblog/mysql`: MySQL-family binlog parser.
 - `github.com/Infranite/go-dblog/postgres`: PostgreSQL logical decoding text
   parser.

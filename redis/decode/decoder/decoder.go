@@ -13,10 +13,11 @@ import (
 
 // Decoder streams Redis AOF RESP commands.
 type Decoder struct {
-	source  dblog.Source
-	reader  *bufio.Reader
-	close   func() error
-	plugins []types.CommandPlugin
+	source        dblog.Source
+	reader        *bufio.Reader
+	close         func() error
+	plugins       []types.CommandPlugin
+	startPosition int
 }
 
 // NewDecoder creates a decoder over Redis AOF RESP commands.
@@ -31,10 +32,11 @@ func NewDecoder(source dblog.Source, reader io.Reader, close func() error, opts 
 		}
 	}
 	return &Decoder{
-		source:  source,
-		reader:  bufio.NewReader(reader),
-		close:   close,
-		plugins: cfg.commandPlugins,
+		source:        source,
+		reader:        bufio.NewReader(reader),
+		close:         close,
+		plugins:       cfg.commandPlugins,
+		startPosition: cfg.startPosition,
 	}
 }
 
@@ -52,11 +54,14 @@ func (d *Decoder) Events() iter.Seq2[dblog.Event, error] {
 				}
 				return
 			}
+			position++
+			if position <= d.startPosition {
+				continue
+			}
 			if err := applyCommandPlugins(&command, d.plugins); err != nil {
 				yield(nil, err)
 				return
 			}
-			position++
 			event := types.NewEvent(d.source, position, raw, command)
 			if !yield(event, nil) {
 				return

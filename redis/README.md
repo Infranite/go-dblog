@@ -75,6 +75,8 @@ func main() {
 - Lowercase normalized command names.
 - Streaming RESP decoder.
 - Root registry integration through `redis/backend`.
+- Checkpoint resume through `dblog.WithCheckpoint` when opened through the root
+  registry.
 - Flashback commands for operations that can be safely reversed without reading
   Redis state.
 - Command plugins for Redis-compatible products and module commands.

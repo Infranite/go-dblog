@@ -47,3 +47,61 @@ func TestRegisterOpensMySQLDecoder(t *testing.T) {
 	}
 	t.Fatal("no events")
 }
+
+func TestRegisterResumesAfterCheckpoint(t *testing.T) {
+	var registry dblog.Registry
+	if err := Register(&registry); err != nil {
+		t.Fatal(err)
+	}
+
+	path := filepath.Join("..", "test", "testdata", "mysql-bin.000004")
+	if _, err := os.Stat(path); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			t.Skipf("test binlog %s not found", path)
+		}
+		t.Fatal(err)
+	}
+
+	firstDecoder, err := registry.Open(Driver, dblog.WithPath(path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var checkpoint dblog.Checkpoint
+	for event, err := range firstDecoder.Events() {
+		if err != nil {
+			t.Fatal(err)
+		}
+		checkpoint = dblog.CheckpointOf(event)
+		break
+	}
+	if err := firstDecoder.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	decoder, err := registry.Open(Driver,
+		dblog.WithPath(path),
+		dblog.WithCheckpoint(checkpoint),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := decoder.Close(); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	for event, err := range decoder.Events() {
+		if err != nil {
+			t.Fatal(err)
+		}
+		if dblog.PositionOf(event) == checkpoint.Position {
+			t.Fatalf("resumed at checkpoint again: %#v", checkpoint.Position)
+		}
+		if event.Kind() == "FORMAT_DESCRIPTION_EVENT" {
+			t.Fatalf("resumed at first event again: %s", event.Kind())
+		}
+		return
+	}
+	t.Fatal("no resumed events")
+}

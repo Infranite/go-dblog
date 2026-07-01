@@ -34,7 +34,8 @@ compatibility layers.
 - Explicit backend registration through `dblog.Registry`; no hidden imports or
   automatic global registration.
 - Streaming decoders based on Go 1.23 iterators.
-- Shared event helpers for source, position, filtering, and flashback output.
+- Shared event helpers for source, position, checkpoint resume, filtering, and
+  flashback output.
 - Backend-native typed events for database-specific details.
 - Plugin hooks inside native decoder packages for dialect-specific events and
   commands.
@@ -180,6 +181,17 @@ func main() {
 		fmt.Println(op)
 	}
 }
+```
+
+### Resume after a checkpoint
+
+```go
+checkpoint := dblog.CheckpointOf(lastProcessedEvent)
+
+decoder, err := registry.Open(redis.Driver,
+	dblog.WithReader(strings.NewReader(aof)),
+	dblog.WithCheckpoint(checkpoint),
+)
 ```
 
 ## Backend Packages

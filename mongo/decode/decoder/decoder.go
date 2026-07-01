@@ -12,10 +12,11 @@ import (
 
 // Decoder streams MongoDB oplog or change stream JSON lines.
 type Decoder struct {
-	source  dblog.Source
-	scanner *bufio.Scanner
-	close   func() error
-	plugins []types.EventPlugin
+	source        dblog.Source
+	scanner       *bufio.Scanner
+	close         func() error
+	plugins       []types.EventPlugin
+	startPosition int
 }
 
 // NewDecoder creates a decoder over MongoDB JSON change lines.
@@ -32,10 +33,11 @@ func NewDecoder(source dblog.Source, reader io.Reader, close func() error, opts 
 		}
 	}
 	return &Decoder{
-		source:  source,
-		scanner: scanner,
-		close:   close,
-		plugins: cfg.eventPlugins,
+		source:        source,
+		scanner:       scanner,
+		close:         close,
+		plugins:       cfg.eventPlugins,
+		startPosition: cfg.startPosition,
 	}
 }
 
@@ -48,6 +50,9 @@ func (d *Decoder) Events() iter.Seq2[dblog.Event, error] {
 		for d.scanner.Scan() {
 			position++
 			line := d.scanner.Text()
+			if position <= d.startPosition {
+				continue
+			}
 			if strings.TrimSpace(line) == "" {
 				continue
 			}

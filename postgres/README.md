@@ -78,6 +78,8 @@ func main() {
 - Scalar parsing for `null`, booleans, integers, floats, and quoted strings.
 - Streaming line decoder with bounded scanner buffers.
 - Root registry integration through `postgres/backend`.
+- Checkpoint resume through `dblog.WithCheckpoint` when opened through the root
+  registry.
 - SQL flashbacks for inserts and deletes.
 - Event plugins for PostgreSQL-compatible sources with extra line types.
 

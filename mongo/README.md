@@ -76,6 +76,8 @@ func main() {
   `fullDocument`, `fullDocumentBeforeChange`, and `updateDescription`.
 - Streaming line decoder with bounded scanner buffers.
 - Root registry integration through `mongo/backend`.
+- Checkpoint resume through `dblog.WithCheckpoint` when opened through the root
+  registry.
 - Flashback commands for inserts and deletes when the input contains enough
   document or key data.
 - Event plugins for MongoDB-compatible products that emit different operation
