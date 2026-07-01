@@ -50,7 +50,7 @@ func TestEventValidateData(t *testing.T) {
 		t.Fatal("invalid size got nil error")
 	}
 
-	body := []byte{1, 2, 3, common.BinlogChecksumAlgCRC32}
+	body := []byte{1, 2, 3}
 	checksumData := append(append([]byte{}, header.Data...), body...)
 	sum := make([]byte, common.BinlogChecksumLength)
 	binary.LittleEndian.PutUint32(sum, crc32.ChecksumIEEE(checksumData))
@@ -63,8 +63,44 @@ func TestEventValidateData(t *testing.T) {
 	if len(got) != len(body) {
 		t.Fatalf("validated body length = %d, want %d", len(got), len(body))
 	}
+	if event.ChecksumType != common.BinlogChecksumAlgCRC32 || len(event.ChecksumVal) != common.BinlogChecksumLength {
+		t.Fatalf("checksum metadata = (%d, %d), want (%d, %d)",
+			event.ChecksumType, len(event.ChecksumVal), common.BinlogChecksumAlgCRC32, common.BinlogChecksumLength)
+	}
 	if _, err := (&Event{}).ValidateData(nil, false); err == nil {
 		t.Fatal("nil header got nil error")
+	}
+}
+
+func TestEventValidateDataChecksumOnlyBody(t *testing.T) {
+	t.Parallel()
+
+	header := &EventHeader{Data: make([]byte, common.DefaultEventHeaderSize)}
+	sum := make([]byte, common.BinlogChecksumLength)
+	binary.LittleEndian.PutUint32(sum, crc32.ChecksumIEEE(header.Data))
+	header.EventSize = int64(len(header.Data) + len(sum))
+
+	event := &Event{Header: header}
+	got, err := event.ValidateData(sum, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 0 {
+		t.Fatalf("validated body length = %d, want 0", len(got))
+	}
+}
+
+func TestEventValidateDataRejectsShortChecksumBody(t *testing.T) {
+	t.Parallel()
+
+	body := []byte{1, 2, 3}
+	header := &EventHeader{
+		Data:      make([]byte, common.DefaultEventHeaderSize),
+		EventSize: common.DefaultEventHeaderSize + int64(len(body)),
+	}
+
+	if _, err := (&Event{Header: header}).ValidateData(body, true); err == nil {
+		t.Fatal("short checksum body got nil error")
 	}
 }
 
