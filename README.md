@@ -42,9 +42,10 @@ compatibility layers.
 
 ## Current Scope
 
-The next public tag target is `v0.1.0`: an offline parser release for users who
-already have database log files, exported records, or captured streams. Live
-replication readers are planned, but not part of this release line.
+The current public target is `v0.1.0` (unreleased): an offline parser release
+for users who already have database log files, exported records, or captured
+streams. Live replication readers are planned, but not part of this release
+line.
 
 | Backend | Supported input for `v0.1.0` | Not included yet |
 |---|---|---|
@@ -60,7 +61,7 @@ by orchestration code and leaves backend-specific parsing details inside each
 backend module.
 
 ```bash
-# These installs are intended for the first published v0.1.0 tags.
+# These installs are intended for published v0.1.0 tags.
 go get github.com/Infranite/go-dblog
 go get github.com/Infranite/go-dblog/mysql
 go get github.com/Infranite/go-dblog/postgres
@@ -204,18 +205,14 @@ event types, or compatibility behavior without changing the common API.
 
 ## Roadmap
 
-The full roadmap lives in [ROADMAP.md](./ROADMAP.md). Current release line:
+The detailed roadmap and capability matrix live in [ROADMAP.md](./ROADMAP.md).
+Keep release planning there so version status, shipped capability, and CI
+evidence have one source of truth.
 
-| Release | Status | Theme |
-|---|---|---|
-| `v0.1.0` | Ready for tag | Offline parser developer preview |
-| `v0.2.0` | Planned | Compatibility hardening |
-| `v0.3.0` | Planned | Live readers |
-| `v0.4.0` | Planned | Recovery workflows |
-| `v0.5.0` | Planned | Operational maturity |
-| `v1.0.0` | Candidate | Stable public API |
+Current public target: `v0.1.0` (unreleased), an offline parser developer
+preview.
 
-## Development
+## Development and Contributing
 
 Requirements:
 
@@ -265,12 +262,22 @@ Fixture generation can be debugged locally when Docker is available:
 ./redis/testdata/generate_redis_aof.sh redis:7.2
 ```
 
+Contributions are handled through pull requests:
+
+- Run `make test` and the affected module tests locally before opening a pull
+  request.
+- Keep parser behavior changes covered by tests in the affected backend.
+- Update the relevant README when user-visible behavior changes.
+- Full fixture-backed integration, fuzz smoke, benchmark smoke, lint, vet, and
+  vulnerability checks run in CI.
+
 ## Versioning
 
 Releases are managed with GitHub Releases and Git tags. The root module uses
 `vX.Y.Z`; backend modules use module-prefixed tags such as `mysql/vX.Y.Z`,
-`mongo/vX.Y.Z`, `postgres/vX.Y.Z`, and `redis/vX.Y.Z`. Release notes live in
-GitHub Releases; commit history remains the detailed change log.
+`mongo/vX.Y.Z`, `postgres/vX.Y.Z`, and `redis/vX.Y.Z`. There is no standalone
+release or changelog document in the repository: GitHub Releases are the public
+release notes, and git history remains the detailed change log.
 
 ## License
 
