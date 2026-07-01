@@ -99,6 +99,41 @@ func TestBackendStreamsEventsAndFlashbacks(t *testing.T) {
 	}
 }
 
+func TestParseLineFlashbackRestoresUpdateOldKey(t *testing.T) {
+	event, err := ParseLine(
+		dblog.Source{Name: "slot"},
+		1,
+		"table public.users: UPDATE: old-key: id[integer]:1 name[text]:'Ada' new-tuple: id[integer]:2 name[text]:'Grace'",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, ok := event.Reverse()
+	if !ok {
+		t.Fatal("expected flashback SQL")
+	}
+	want := `UPDATE public.users SET id = 1, name = 'Ada' WHERE id = 2 AND name = 'Grace';`
+	if got != want {
+		t.Fatalf("flashback = %q, want %q", got, want)
+	}
+}
+
+func TestParseLineSkipsUpdateFlashbackWithPartialOldKey(t *testing.T) {
+	event, err := ParseLine(
+		dblog.Source{Name: "slot"},
+		1,
+		"table public.users: UPDATE: old-key: id[integer]:1 new-tuple: id[integer]:2 name[text]:'Grace'",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got, ok := event.Reverse(); ok {
+		t.Fatalf("flashback = %#v, want none", got)
+	}
+}
+
 func TestParseLineRejectsInvalidLogicalLine(t *testing.T) {
 	_, err := ParseLine(dblog.Source{}, 1, "message prefix payload")
 	if !errors.Is(err, ErrInvalidLine) {

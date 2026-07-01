@@ -78,11 +78,42 @@ func parseChange(line string) (types.Change, error) {
 	if op == "" {
 		return types.Change{}, fmt.Errorf("%w: operation %q", types.ErrInvalidLine, line)
 	}
-	columns, err := parseColumns(rest[i+len(fieldSeparator):])
+	body := rest[i+len(fieldSeparator):]
+	columns, oldKey, newTuple, err := parseChangeColumns(op, body)
 	if err != nil {
 		return types.Change{}, err
 	}
-	return types.Change{Schema: schema, Table: table, Operation: op, Columns: columns}, nil
+	return types.Change{
+		Schema:    schema,
+		Table:     table,
+		Operation: op,
+		Columns:   columns,
+		OldKey:    oldKey,
+		NewTuple:  newTuple,
+	}, nil
+}
+
+func parseChangeColumns(op, body string) ([]types.Column, []types.Column, []types.Column, error) {
+	if op != types.OperationUpdate || !strings.HasPrefix(body, oldKeyPrefix) {
+		columns, err := parseColumns(body)
+		return columns, nil, nil, err
+	}
+
+	body = strings.TrimPrefix(body, oldKeyPrefix)
+	i := strings.Index(body, " "+newTuplePrefix)
+	if i < 0 {
+		return nil, nil, nil, fmt.Errorf("%w: update tuple %q", types.ErrInvalidLine, body)
+	}
+
+	oldKey, err := parseColumns(body[:i])
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	newTuple, err := parseColumns(body[i+1+len(newTuplePrefix):])
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return newTuple, oldKey, newTuple, nil
 }
 
 func splitTable(name string) (string, string) {

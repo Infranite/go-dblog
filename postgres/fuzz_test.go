@@ -10,6 +10,7 @@ func FuzzParseLine(f *testing.F) {
 	f.Add("BEGIN 42")
 	f.Add("COMMIT 42")
 	f.Add("table public.users: INSERT: id[integer]:1 name[text]:'Ada'")
+	f.Add("table public.users: UPDATE: old-key: id[integer]:1 name[text]:'Ada' new-tuple: id[integer]:2 name[text]:'Grace'")
 	f.Add("table public.users: DELETE: id[integer]:2 name[text]:'Grace'")
 	f.Add("table : : ")
 	f.Add("message unsupported")
