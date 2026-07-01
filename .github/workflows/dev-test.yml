@@ -13,12 +13,117 @@ on:
 permissions:
   contents: read
 
+env:
+  GO_VERSION: "1.24"
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  unit:
+  lint:
+    name: lint (${{ matrix.module }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - module: root
+            path: .
+          - module: mysql
+            path: mysql
+          - module: mongo
+            path: mongo
+          - module: postgres
+            path: postgres
+          - module: redis
+            path: redis
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.8.0
+
+      - name: Lint module
+        working-directory: ${{ matrix.path }}
+        env:
+          GOWORK: off
+        run: $(go env GOPATH)/bin/golangci-lint run ./...
+
+  vet:
+    name: vet (${{ matrix.module }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - module: root
+            path: .
+          - module: mysql
+            path: mysql
+          - module: mongo
+            path: mongo
+          - module: postgres
+            path: postgres
+          - module: redis
+            path: redis
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      - name: Vet module
+        working-directory: ${{ matrix.path }}
+        env:
+          GOWORK: off
+        run: go vet ./...
+
+  vuln:
+    name: vuln (${{ matrix.module }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - module: root
+            path: .
+          - module: mysql
+            path: mysql
+          - module: mongo
+            path: mongo
+          - module: postgres
+            path: postgres
+          - module: redis
+            path: redis
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+
+      - name: Scan vulnerabilities
+        working-directory: ${{ matrix.path }}
+        env:
+          GOWORK: off
+        run: $(go env GOPATH)/bin/govulncheck ./...
+
+  root_test:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -26,32 +131,29 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version: "1.24"
+          go-version: ${{ env.GO_VERSION }}
           cache: false
-
-      - name: Install tools
-        run: |
-          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.8.0
-          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-
-      - name: Lint all modules
-        run: golangci-lint run ./... ./mysql/... ./mongo/... ./postgres/... ./redis/...
-
-      - name: Vet all modules
-        run: go vet ./... ./mysql/... ./mongo/... ./postgres/... ./redis/...
-
-      - name: Scan vulnerabilities
-        run: govulncheck ./... ./mysql/... ./mongo/... ./postgres/... ./redis/...
 
       - name: Test root module
         run: go test -short -race -count=1 ./...
 
-      - name: Test backend modules
-        run: |
-          for module in mysql mongo postgres redis; do
-            (cd "$module" && GOWORK=off go test -short -race -count=1 ./...)
-          done
+  backend_short:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [mysql, mongo, postgres, redis]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      - name: Test backend module
+        run: cd "${{ matrix.module }}" && GOWORK=off go test -short -race -count=1 ./...
 
   mysql:
     runs-on: ubuntu-latest
@@ -69,7 +171,7 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version: "1.24"
+          go-version: ${{ env.GO_VERSION }}
           cache: false
 
       - name: Generate MySQL binlog fixture
@@ -90,7 +192,7 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version: "1.24"
+          go-version: ${{ env.GO_VERSION }}
           cache: false
 
       - name: Generate MongoDB oplog fixture
@@ -107,7 +209,7 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version: "1.24"
+          go-version: ${{ env.GO_VERSION }}
           cache: false
 
       - name: Generate PostgreSQL logical decoding fixture
@@ -124,7 +226,7 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version: "1.24"
+          go-version: ${{ env.GO_VERSION }}
           cache: false
 
       - name: Generate Redis AOF fixture
@@ -136,12 +238,16 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [unit, mysql, mongo, postgres, redis]
+    needs: [lint, vet, vuln, root_test, backend_short, mysql, mongo, postgres, redis]
     if: always()
     steps:
       - name: Require all CI jobs
         run: |
-          test "${{ needs.unit.result }}" = "success"
+          test "${{ needs.lint.result }}" = "success"
+          test "${{ needs.vet.result }}" = "success"
+          test "${{ needs.vuln.result }}" = "success"
+          test "${{ needs.root_test.result }}" = "success"
+          test "${{ needs.backend_short.result }}" = "success"
           test "${{ needs.mysql.result }}" = "success"
           test "${{ needs.mongo.result }}" = "success"
           test "${{ needs.postgres.result }}" = "success"
