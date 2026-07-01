@@ -11,6 +11,9 @@ import (
 const redisFixturePath = "testdata/appendonly.aof"
 
 func TestFixtureBackedAOFDecoding(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping fixture-backed integration test in short mode")
+	}
 	path := requireRedisFixture(t)
 
 	decoder := openRedisFixture(t, path)

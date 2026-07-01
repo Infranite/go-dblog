@@ -31,11 +31,7 @@ if [[ "$ready" != 1 ]]; then
 	exit 1
 fi
 
-docker exec "$name" psql -U postgres -v ON_ERROR_STOP=1 <<'SQL' >/dev/null
-CREATE DATABASE dblog_ci;
-SQL
-
-docker exec "$name" psql -U postgres -d dblog_ci -v ON_ERROR_STOP=1 <<'SQL' >/dev/null
+docker exec "$name" psql -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL' >/dev/null
 CREATE TABLE public.users (
 	id integer PRIMARY KEY,
 	name text NOT NULL,
@@ -50,7 +46,7 @@ COMMIT;
 SQL
 
 mkdir -p "$(dirname "$out")"
-docker exec "$name" psql -U postgres -d dblog_ci -At \
+docker exec "$name" psql -U postgres -d postgres -At \
 	-c "SELECT data FROM pg_logical_slot_get_changes('dblog_ci_slot', NULL, NULL);" >"$out"
 
 grep -q '^BEGIN ' "$out"

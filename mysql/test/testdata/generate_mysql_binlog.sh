@@ -32,7 +32,10 @@ if [[ "$ready" != 1 ]]; then
 	exit 1
 fi
 
-binlog_file="$(docker exec "$name" mysql -N -uroot -e "SHOW MASTER STATUS" | awk '{print $1}')"
+binlog_file="$(docker exec "$name" mysql -N -uroot -e "SHOW BINARY LOG STATUS" 2>/dev/null | awk 'NR == 1 {print $1}' || true)"
+if [[ -z "$binlog_file" ]]; then
+	binlog_file="$(docker exec "$name" mysql -N -uroot -e "SHOW MASTER STATUS" 2>/dev/null | awk 'NR == 1 {print $1}' || true)"
+fi
 if [[ -z "$binlog_file" ]]; then
 	docker logs "$name"
 	echo "failed to discover active MySQL binlog" >&2
@@ -42,6 +45,7 @@ fi
 docker exec "$name" mysql -uroot <<'SQL'
 CREATE DATABASE dblog_ci;
 USE dblog_ci;
+SET SESSION binlog_format = 'ROW';
 CREATE TABLE events (
 	id BIGINT NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	name VARCHAR(64) NOT NULL,

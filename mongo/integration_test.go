@@ -11,6 +11,9 @@ import (
 const mongoFixturePath = "testdata/oplog.jsonl"
 
 func TestFixtureBackedOplogDecoding(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping fixture-backed integration test in short mode")
+	}
 	path := requireMongoFixture(t)
 
 	decoder := openMongoFixture(t, path)

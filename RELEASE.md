@@ -9,13 +9,11 @@ Run these before tagging:
 ```bash
 make lint
 make test
-make test-mysql
-go test -race -count=1 ./... ./mysql/... ./mongo/... ./postgres/... ./redis/...
-govulncheck ./... ./mysql/... ./mongo/... ./postgres/... ./redis/...
 ```
 
-`make test-mysql` skips locally when the binlog fixture is absent. CI generates
-the fixture for each MySQL matrix image.
+Tag only from a pull request merge commit that passed the protected `ci` check.
+The `ci` check includes lint, vet, vulnerability scanning, unit tests, and real
+fixture-backed MySQL, MongoDB, PostgreSQL, and Redis integration tests.
 
 ## Tag Order
 

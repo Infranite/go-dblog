@@ -12,6 +12,9 @@ import (
 const postgresFixturePath = "testdata/test_decoding.log"
 
 func TestFixtureBackedLogicalDecoding(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping fixture-backed integration test in short mode")
+	}
 	path := requirePostgresFixture(t)
 
 	decoder := openPostgresFixture(t, path)

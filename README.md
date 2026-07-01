@@ -222,22 +222,24 @@ The full roadmap lives in [ROADMAP.md](./ROADMAP.md). Current release line:
 
 ## Development
 
-Run the root and backend module tests:
+Run local unit tests:
 
 ```bash
 make test
-```
-
-Run MySQL fixture-backed tests:
-
-```bash
-make test-mysql
 ```
 
 Run lint:
 
 ```bash
 make lint
+```
+
+Full fixture-backed MySQL, MongoDB, PostgreSQL, and Redis integration tests run
+in pull request CI. Pull requests merge through the protected `ci` check.
+MySQL fixture generation can still be debugged locally when Docker is available:
+
+```bash
+make integration-mysql
 ```
 
 ## Release

@@ -1,17 +1,26 @@
 name: CI
 
 on:
-  push:
   pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+    types: [checks_requested]
+  push:
     branches: [master]
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
+  unit:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -36,16 +45,17 @@ jobs:
         run: govulncheck ./... ./mysql/... ./mongo/... ./postgres/... ./redis/...
 
       - name: Test root module
-        run: go test -race -count=1 ./...
+        run: go test -short -race -count=1 ./...
 
       - name: Test backend modules
         run: |
-          for module in mongo postgres redis; do
-            (cd "$module" && GOWORK=off go test -race -count=1 ./...)
+          for module in mysql mongo postgres redis; do
+            (cd "$module" && GOWORK=off go test -short -race -count=1 ./...)
           done
 
   mysql:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -74,6 +84,7 @@ jobs:
 
   mongo:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -90,6 +101,7 @@ jobs:
 
   postgres:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -106,6 +118,7 @@ jobs:
 
   redis:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -119,3 +132,17 @@ jobs:
 
       - name: Test Redis module
         run: cd redis && GOWORK=off go test -race -count=1 ./...
+
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [unit, mysql, mongo, postgres, redis]
+    if: always()
+    steps:
+      - name: Require all CI jobs
+        run: |
+          test "${{ needs.unit.result }}" = "success"
+          test "${{ needs.mysql.result }}" = "success"
+          test "${{ needs.mongo.result }}" = "success"
+          test "${{ needs.postgres.result }}" = "success"
+          test "${{ needs.redis.result }}" = "success"

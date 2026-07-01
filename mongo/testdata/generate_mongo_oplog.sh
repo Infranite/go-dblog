@@ -26,8 +26,7 @@ if [[ "$ready" != 1 ]]; then
 	exit 1
 fi
 
-docker exec "$name" mongosh --quiet --eval \
-	"rs.initiate({_id:'rs0',members:[{_id:0,host:'127.0.0.1:27017'}]})" >/dev/null
+docker exec "$name" mongosh --quiet --eval "rs.initiate()" >/dev/null
 
 primary=0
 for _ in $(seq 1 90); do

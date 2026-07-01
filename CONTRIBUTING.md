@@ -8,28 +8,28 @@ behavior being changed.
 
 - Go 1.23 or newer.
 - `golangci-lint` for local lint checks.
-- Docker only when regenerating MySQL binlog fixtures.
+- Docker only when debugging fixture generation locally.
 
 ## Local Checks
 
-Run the same checks used by CI:
+Local checks are intentionally unit-only and do not require database services:
 
 ```bash
-make lint
 make test
-make test-mysql
+make lint
 ```
 
-`make test` runs the root module plus MongoDB, PostgreSQL, and Redis as
-independent modules with `GOWORK=off`. `make test-mysql` expects the MySQL
-fixture under `mysql/test/testdata/mysql-bin.000004`; without it, fixture-backed
-tests are skipped. CI generates the fixture for the MySQL matrix before running
-the MySQL module tests.
+`make test` runs the root module plus MySQL, MongoDB, PostgreSQL, and Redis as
+independent modules with `GOWORK=off` and `-short`. Fixture-backed integration
+tests are skipped in this path.
 
-To regenerate the MySQL fixture:
+To debug a fixture locally, run the relevant generator explicitly:
 
 ```bash
 ./mysql/test/testdata/generate_mysql_binlog.sh mysql:8.4
+./mongo/testdata/generate_mongo_oplog.sh mongo:7.0
+./postgres/testdata/generate_postgres_logical.sh postgres:16
+./redis/testdata/generate_redis_aof.sh redis:7.2
 ```
 
 ## Pull Requests
@@ -39,3 +39,7 @@ To regenerate the MySQL fixture:
 - Add benchmark coverage when changing parser hot paths.
 - Keep backend-specific behavior inside that backend module unless the common
   API genuinely needs it.
+- Open a pull request into `master`; do not push directly to `master`.
+- Enable auto-merge after the pull request is ready. The required `ci` check
+  aggregates lint, vet, vulnerability scanning, unit tests, and real
+  fixture-backed MySQL, MongoDB, PostgreSQL, and Redis integration tests.
