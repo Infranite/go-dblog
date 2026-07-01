@@ -44,20 +44,34 @@ fi
 docker exec "$name" mongosh --quiet <<'JS' >/dev/null
 const db = db.getSiblingDB("dblog_ci");
 db.users.drop();
-db.users.insertOne({_id: 1, name: "Ada", active: true});
-db.users.updateOne({_id: 1}, {$set: {name: "Ada Lovelace"}});
-db.users.deleteOne({_id: 1});
 JS
 
 mkdir -p "$(dirname "$out")"
 docker exec "$name" mongosh --quiet <<'JS' >"$out"
-db.getSiblingDB("local").oplog.rs
-  .find({ns: "dblog_ci.users", op: {$in: ["i", "u", "d"]}})
-  .sort({$natural: 1})
-  .forEach(doc => print(EJSON.stringify(doc)));
+const db = db.getSiblingDB("dblog_ci");
+const stream = db.users.watch([], {fullDocument: "updateLookup"});
+db.users.insertOne({_id: 1, name: "Ada", active: true});
+db.users.updateOne({_id: 1}, {$set: {name: "Ada Lovelace"}});
+db.users.deleteOne({_id: 1});
+
+let seen = 0;
+const deadline = Date.now() + 10000;
+while (seen < 3 && Date.now() < deadline) {
+  const change = stream.tryNext();
+  if (change) {
+    print(EJSON.stringify(change));
+    seen++;
+    continue;
+  }
+  sleep(100);
+}
+stream.close();
+if (seen !== 3) {
+  quit(2);
+}
 JS
 
-grep -q '"op":"i"' "$out"
-grep -q '"op":"u"' "$out"
-grep -q '"op":"d"' "$out"
+grep -q '"operationType":"insert"' "$out"
+grep -q '"operationType":"update"' "$out"
+grep -q '"operationType":"delete"' "$out"
 ls -lh "$out"

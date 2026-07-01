@@ -32,15 +32,14 @@ if [[ "$ready" != 1 ]]; then
 	exit 1
 fi
 
-binlog_file="$(docker exec "$name" mysql -N -uroot -e "SHOW BINARY LOG STATUS" 2>/dev/null | awk 'NR == 1 {print $1}' || true)"
-if [[ -z "$binlog_file" ]]; then
-	binlog_file="$(docker exec "$name" mysql -N -uroot -e "SHOW MASTER STATUS" 2>/dev/null | awk 'NR == 1 {print $1}' || true)"
-fi
-if [[ -z "$binlog_file" ]]; then
-	docker logs "$name"
-	echo "failed to discover active MySQL binlog" >&2
-	exit 1
-fi
+discover_binlog_file() {
+	local file
+	file="$(docker exec "$name" mysql -N -uroot -e "SHOW BINARY LOG STATUS" 2>/dev/null | awk 'NR == 1 {print $1}' || true)"
+	if [[ -z "$file" ]]; then
+		file="$(docker exec "$name" mysql -N -uroot -e "SHOW MASTER STATUS" 2>/dev/null | awk 'NR == 1 {print $1}' || true)"
+	fi
+	printf '%s' "$file"
+}
 
 docker exec "$name" mysql -uroot <<'SQL'
 CREATE DATABASE dblog_ci;
@@ -57,8 +56,15 @@ INSERT INTO events(name, amount, note, created_at)
 VALUES ('alpha', 12.30, X'010203', '2026-07-01 00:00:00');
 UPDATE events SET amount = 13.40 WHERE name = 'alpha';
 DELETE FROM events WHERE name = 'alpha';
-FLUSH LOGS;
 SQL
+
+binlog_file="$(discover_binlog_file)"
+if [[ -z "$binlog_file" ]]; then
+	docker logs "$name"
+	echo "failed to discover active MySQL binlog" >&2
+	exit 1
+fi
+docker exec "$name" mysql -uroot -e "FLUSH LOGS" >/dev/null
 
 mkdir -p "$(dirname "$out")"
 docker cp "$name:/var/lib/mysql/$binlog_file" "$out"

@@ -31,13 +31,13 @@ if [[ "$ready" != 1 ]]; then
 	exit 1
 fi
 
+docker exec "$name" psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c \
+	"CREATE TABLE public.users (id integer PRIMARY KEY, name text NOT NULL, active boolean NOT NULL);" >/dev/null
+
+docker exec "$name" psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c \
+	"SELECT pg_create_logical_replication_slot('dblog_ci_slot', 'test_decoding');" >/dev/null
+
 docker exec "$name" psql -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL' >/dev/null
-CREATE TABLE public.users (
-	id integer PRIMARY KEY,
-	name text NOT NULL,
-	active boolean NOT NULL
-);
-SELECT pg_create_logical_replication_slot('dblog_ci_slot', 'test_decoding');
 BEGIN;
 INSERT INTO public.users(id, name, active) VALUES (1, 'Ada', true);
 UPDATE public.users SET name = 'Ada Lovelace' WHERE id = 1;
