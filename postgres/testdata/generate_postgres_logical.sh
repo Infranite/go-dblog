@@ -6,7 +6,16 @@ out="${2:-$(dirname "$0")/test_decoding.log}"
 name="go-dblog-postgres-${image//[^a-zA-Z0-9]/-}-$$"
 
 cleanup() {
+	status=$?
+	if [[ "$status" -ne 0 ]]; then
+		if [[ -n "${out:-}" && -f "$out" ]]; then
+			echo "generated PostgreSQL logical decoding output:" >&2
+			sed -n '1,120p' "$out" >&2
+		fi
+		docker logs "$name" >&2 || true
+	fi
 	docker rm -f "$name" >/dev/null 2>&1 || true
+	exit "$status"
 }
 trap cleanup EXIT
 
@@ -47,11 +56,11 @@ SQL
 
 mkdir -p "$(dirname "$out")"
 docker exec "$name" psql -U postgres -d postgres -At \
-	-c "SELECT data FROM pg_logical_slot_get_changes('dblog_ci_slot', NULL, NULL);" >"$out"
+	-c "SELECT data FROM pg_logical_slot_get_changes('dblog_ci_slot', NULL, NULL, 'include-xids', '1');" >"$out"
 
-grep -q '^BEGIN ' "$out"
+grep -q '^BEGIN' "$out"
 grep -q 'table public.users: INSERT:' "$out"
 grep -q 'table public.users: UPDATE:' "$out"
 grep -q 'table public.users: DELETE:' "$out"
-grep -q '^COMMIT ' "$out"
+grep -q '^COMMIT' "$out"
 ls -lh "$out"
