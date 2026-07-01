@@ -78,7 +78,7 @@ find_event_binlog_file() {
 		for path in /var/lib/mysql/mysql-bin.[0-9]*; do
 			[ -f "$path" ] || continue
 			summary="/tmp/go-dblog-mysqlbinlog.$$"
-			mysqlbinlog --base64-output=DECODE-ROWS -vv "$path" >"$summary" 2>/dev/null || {
+			mysqlbinlog --no-defaults --base64-output=DECODE-ROWS -vv "$path" >"$summary" 2>/dev/null || {
 				rm -f "$summary"
 				continue
 			}
@@ -132,13 +132,13 @@ if [[ -z "$binlog_file" ]]; then
 	echo "failed to find a MySQL binlog with query and rows events" >&2
 	for path in $(docker exec "$name" sh -c 'ls /var/lib/mysql/mysql-bin.[0-9]* 2>/dev/null' || true); do
 		echo "---- $path ----" >&2
-		docker exec "$name" sh -c "mysqlbinlog --base64-output=DECODE-ROWS -vv '$path' 2>/dev/null | sed -n '1,120p'" >&2 || true
+		docker exec "$name" sh -c "mysqlbinlog --no-defaults --base64-output=DECODE-ROWS -vv '$path' 2>/dev/null | sed -n '1,120p'" >&2 || true
 	done
 	exit 1
 fi
 
 summary="$(mktemp)"
-docker exec "$name" sh -c "mysqlbinlog --base64-output=DECODE-ROWS -vv '/var/lib/mysql/$binlog_file'" >"$summary"
+docker exec "$name" sh -c "mysqlbinlog --no-defaults --base64-output=DECODE-ROWS -vv '/var/lib/mysql/$binlog_file'" >"$summary"
 if ! grep -q 'Query' "$summary"; then
 	echo "generated MySQL binlog has no query events" >&2
 	sed -n '1,160p' "$summary" >&2

@@ -51,28 +51,28 @@ if [[ "$primary" != 1 ]]; then
 	exit 1
 fi
 
-docker exec -i "$name" mongosh --quiet <<'JS' >/dev/null
-const db = db.getSiblingDB("dblog_ci");
-db.users.drop();
-db.users.insertOne({_id: 1, name: "Ada", active: true});
-db.users.updateOne({_id: 1}, {$set: {name: "Ada Lovelace"}});
-db.users.deleteOne({_id: 1});
-JS
+docker exec "$name" mongosh --quiet --norc --eval '
+const database = db.getSiblingDB("dblog_ci");
+database.users.drop();
+database.users.insertOne({_id: 1, name: "Ada", active: true});
+database.users.updateOne({_id: 1}, {$set: {name: "Ada Lovelace"}});
+database.users.deleteOne({_id: 1});
+' >/dev/null
 
 mkdir -p "$(dirname "$out")"
-docker exec -i "$name" mongosh --quiet <<'JS' >"$out"
+docker exec "$name" mongosh --quiet --norc --eval '
 let seen = 0;
-const cursor = db.getSiblingDB("local").getCollection("oplog.rs")
+db.getSiblingDB("local").getCollection("oplog.rs")
   .find({ns: "dblog_ci.users", op: {$in: ["i", "u", "d"]}})
-  .sort({$natural: 1});
-for (const doc of cursor) {
-  print(EJSON.stringify(doc, {relaxed: true}));
-  seen++;
-}
+  .sort({$natural: 1})
+  .forEach((doc) => {
+    print(EJSON.stringify(doc, null, 0, {relaxed: true}));
+    seen++;
+  });
 if (seen < 3) {
   quit(2);
 }
-JS
+' >"$out"
 
 grep -q '"op":"i"' "$out"
 grep -q '"op":"u"' "$out"
