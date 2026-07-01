@@ -102,6 +102,39 @@ func TestBackendStreamsEventsAndFlashbacks(t *testing.T) {
 	}
 }
 
+func TestParseLineFlashbackRestoresUpdateBeforeImage(t *testing.T) {
+	line := strings.Join([]string{
+		`{"operationType":"update","ns":{"db":"app","coll":"users"},`,
+		`"documentKey":{"_id":1},`,
+		`"fullDocument":{"_id":1,"name":"Grace","role":"admin"},`,
+		`"fullDocumentBeforeChange":{"_id":1,"name":"Ada","role":"reader"},`,
+		`"updateDescription":{"updatedFields":{"name":"Grace","role":"admin"},"removedFields":[]}}`,
+	}, "")
+	event, err := ParseLine(dblog.Source{Name: "changes"}, 1, line)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, ok := event.Reverse()
+	if !ok {
+		t.Fatal("expected flashback command")
+	}
+	want := Command{
+		Operation:  CommandReplace,
+		Database:   "app",
+		Collection: "users",
+		Filter:     map[string]any{"_id": json.Number("1")},
+		Document: map[string]any{
+			"_id":  json.Number("1"),
+			"name": "Ada",
+			"role": "reader",
+		},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("flashback = %#v, want %#v", got, want)
+	}
+}
+
 func TestParseLineRejectsUnsupportedOplogOperation(t *testing.T) {
 	_, err := ParseLine(dblog.Source{}, 1, `{"op":"x","ns":"app.users"}`)
 	if !errors.Is(err, ErrUnsupportedOperation) {

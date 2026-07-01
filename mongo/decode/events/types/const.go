@@ -14,4 +14,11 @@ const (
 	OperationCommand = "command"
 	// OperationNoop is a MongoDB no-op event.
 	OperationNoop = "noop"
+
+	// CommandInsert is a MongoDB insert command emitted for flashback output.
+	CommandInsert = OperationInsert
+	// CommandDelete is a MongoDB delete command emitted for flashback output.
+	CommandDelete = OperationDelete
+	// CommandReplace is a MongoDB replacement command emitted for flashback output.
+	CommandReplace = "replace"
 )

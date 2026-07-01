@@ -51,8 +51,9 @@ func parseChange(raw map[string]any) (types.Change, error) {
 			change.Collection = stringValue(ns[fieldNamespaceCollection])
 		}
 		change.Document = asMap(raw[fieldFullDocument])
-		if before := asMap(raw[fieldFullDocumentBeforeChange]); before != nil && change.Document == nil {
-			change.Document = before
+		change.BeforeDocument = asMap(raw[fieldFullDocumentBeforeChange])
+		if change.BeforeDocument != nil && change.Document == nil {
+			change.Document = change.BeforeDocument
 		}
 		change.DocumentKey = asMap(raw[fieldDocumentKey])
 		change.Update = asMap(raw[fieldUpdateDescription])

@@ -16,4 +16,11 @@ const (
 	OperationCommand = types.OperationCommand
 	// OperationNoop is a MongoDB no-op event.
 	OperationNoop = types.OperationNoop
+
+	// CommandInsert is a MongoDB insert command emitted for flashback output.
+	CommandInsert = types.CommandInsert
+	// CommandDelete is a MongoDB delete command emitted for flashback output.
+	CommandDelete = types.CommandDelete
+	// CommandReplace is a MongoDB replacement command emitted for flashback output.
+	CommandReplace = types.CommandReplace
 )

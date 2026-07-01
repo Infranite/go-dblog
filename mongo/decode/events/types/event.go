@@ -53,17 +53,28 @@ func (e Event) Reverse() (any, bool) {
 			return nil, false
 		}
 		return Command{
-			Operation:  OperationDelete,
+			Operation:  CommandDelete,
 			Database:   e.change.Database,
 			Collection: e.change.Collection,
 			Filter:     e.change.DocumentKey,
+		}, true
+	case OperationUpdate:
+		if len(e.change.DocumentKey) == 0 || len(e.change.BeforeDocument) == 0 {
+			return nil, false
+		}
+		return Command{
+			Operation:  CommandReplace,
+			Database:   e.change.Database,
+			Collection: e.change.Collection,
+			Filter:     e.change.DocumentKey,
+			Document:   e.change.BeforeDocument,
 		}, true
 	case OperationDelete:
 		if len(e.change.Document) == 0 {
 			return nil, false
 		}
 		return Command{
-			Operation:  OperationInsert,
+			Operation:  CommandInsert,
 			Database:   e.change.Database,
 			Collection: e.change.Collection,
 			Document:   e.change.Document,
