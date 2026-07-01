@@ -9,16 +9,18 @@ gates for `go-dblog`. It is not a commitment to dates.
 |---|---|
 | Done | Implemented, documented, and covered by CI. |
 | Ready | Implemented and covered by CI; waiting for tag and GitHub Release. |
+| Partial | A safe documented subset is implemented and covered by CI. |
 | In progress | Actively being built on the main development branch. |
 | Planned | Accepted scope, not yet started. |
 | Candidate | Useful direction, still needs design or user validation. |
+| Unsupported | Explicitly not emitted or accepted in this release line. |
 | Deferred | Explicitly out of the current release line. |
 
 ## Release Line
 
 | Release | Status | Theme | Deliverables | Exit gates |
 |---|---|---|---|---|
-| `v0.1.0` | Ready | Offline parser developer preview | Root common API, MySQL binlog file parser, PostgreSQL logical decoding text parser, MongoDB JSON line parser, Redis RESP AOF parser, plugin hooks, filtering, basic flashback helpers. | Protected PR `ci` and `merge-policy` checks pass: lint, vet, vulnerability scan, unit tests, and real fixture-backed MySQL, MongoDB, PostgreSQL, and Redis integration tests. README documents offline scope and module tags. |
+| `v0.1.0` | Ready | Offline parser developer preview | Root common API, MySQL binlog file parser, PostgreSQL logical decoding text parser, MongoDB JSON line parser, Redis RESP AOF parser, plugin hooks, filtering, and safe flashback helpers where the log contains enough data. | Protected PR `ci` and `merge-policy` checks pass: lint, vet, vulnerability scan, unit tests, and real fixture-backed MySQL, MongoDB, PostgreSQL, and Redis integration tests. README documents offline scope and module tags. |
 | `v0.2.0` | Planned | Compatibility hardening | Compatibility fixtures and negative cases for each backend; documented supported inputs and known gaps per backend. | Backend README files include supported versions/formats, unsupported cases, fixture source, and parser behavior for unknown events. |
 | `v0.3.0` | Planned | Live readers | MySQL replication reader, PostgreSQL logical replication reader, MongoDB change stream reader, Redis replication stream reader. | Live readers implement `dblog.Decoder`, support context cancellation, and have integration tests isolated from unit tests. |
 | `v0.4.0` | Planned | Recovery workflows | Checkpoint model, resumable decoding hooks, expanded flashback operations, and unsafe-operation guardrails. | Recovery APIs are backend-neutral; lossy or state-dependent reverse operations are documented and opt-in. |
@@ -27,19 +29,25 @@ gates for `go-dblog`. It is not a commitment to dates.
 
 ## Capability Matrix
 
-| Capability | MySQL | PostgreSQL | MongoDB | Redis |
-|---|---|---|---|---|
-| Offline parser | Done | Done | Done | Done |
-| Native typed events | Done | Done | Done | Done |
-| Common `dblog.Event` adapter | Done | Done | Done | Done |
-| Plugin hooks | Done | Done | Done | Done |
-| Basic filtering | Done | Done | Done | Done |
-| Basic flashback | Partial | Partial | Partial | Partial |
-| Compatibility matrix | Planned | Planned | Planned | Planned |
-| Live reader | Planned | Planned | Planned | Planned |
-| Checkpoint/resume | Planned | Planned | Planned | Planned |
-| Fuzz coverage | Planned | Planned | Planned | Planned |
-| Throughput baseline | Planned | Planned | Planned | Planned |
+Rows marked Done, Partial, or Unsupported are protected by the `ci` workflow.
+The final `ci` job requires every referenced job below to pass on pull requests,
+merge queue runs, and `master` pushes.
+
+| Capability | MySQL | PostgreSQL | MongoDB | Redis | CI evidence |
+|---|---|---|---|---|---|
+| Offline parser | Done: local MySQL-family binlog files | Done: logical decoding text records | Done: JSONL oplog and change stream records | Done: RESP array AOF commands | `mysql`, `postgres`, `mongo`, and `redis` jobs generate real fixtures and run `go test -race -count=1 -shuffle=on ./...`. |
+| Native typed events | Done | Done | Done | Done | Backend package tests assert typed bodies and event fields; fixture jobs exercise the real decoders. |
+| Common `dblog.Event` adapter | Done | Done | Done | Done | `root_test`, backend registration tests, and MySQL `TestDblogDecoderEvents`. |
+| Plugin hooks | Done: event plugins plus built-in MariaDB plugin | Done: event plugins | Done: event plugins | Done: command plugins | `mysql/plugin/mariadb`, `postgres/decode/decoder`, `mongo/decode/decoder`, and `redis/decode/decoder` plugin tests. |
+| Basic filtering | Done | Done | Done | Done | `dblog.TestFilterAppliesPredicates`; fixture-backed backend tests filter real decoded events. |
+| Safe flashback | Unsupported in `v0.1.0`: no MySQL reverse operation is emitted | Partial: insert/delete SQL only | Partial: insert/delete commands only | Partial: HSET, SADD, PUSH, and INCR-family commands | `dblog.TestFlashbacksYieldsReverseOperations`; fixture-backed backend tests assert emitted operations; MySQL fixture test asserts no unsafe operation is emitted. |
+| Fixture provenance | Done: generated from MySQL 5.6, 5.7, 8.0, and 8.4 containers | Done: generated from PostgreSQL 16 | Done: generated from MongoDB 7.0 | Done: generated from Redis 7.2 | Workflow fixture generation steps run before integration tests. |
+| Static quality gates | Done | Done | Done | Done | `lint`, `vet`, and `vuln` matrix jobs run with `GOWORK=off` for every module. |
+| Compatibility matrix | Planned for `v0.2.0` | Planned for `v0.2.0` | Planned for `v0.2.0` | Planned for `v0.2.0` | Not a shipped `v0.1.0` capability. |
+| Live reader | Planned for `v0.3.0` | Planned for `v0.3.0` | Planned for `v0.3.0` | Planned for `v0.3.0` | Not a shipped `v0.1.0` capability. |
+| Checkpoint/resume | Planned for `v0.4.0` | Planned for `v0.4.0` | Planned for `v0.4.0` | Planned for `v0.4.0` | Not a shipped `v0.1.0` capability. |
+| Fuzz coverage | Planned for `v0.5.0` | Planned for `v0.5.0` | Planned for `v0.5.0` | Planned for `v0.5.0` | Not a shipped `v0.1.0` capability. |
+| Throughput baseline | Planned for `v0.5.0` | Planned for `v0.5.0` | Planned for `v0.5.0` | Planned for `v0.5.0` | Not a shipped `v0.1.0` capability. |
 
 ## Workstreams
 

@@ -135,7 +135,7 @@ jobs:
           cache: false
 
       - name: Test root module
-        run: go test -short -race -count=1 ./...
+        run: go test -short -race -count=1 -shuffle=on ./...
 
   backend_short:
     runs-on: ubuntu-latest
@@ -153,7 +153,7 @@ jobs:
           cache: false
 
       - name: Test backend module
-        run: cd "${{ matrix.module }}" && GOWORK=off go test -short -race -count=1 ./...
+        run: cd "${{ matrix.module }}" && GOWORK=off go test -short -race -count=1 -shuffle=on ./...
 
   mysql:
     runs-on: ubuntu-latest
@@ -178,7 +178,7 @@ jobs:
         run: ./mysql/test/testdata/generate_mysql_binlog.sh "${{ matrix.mysql-image }}"
 
       - name: Test MySQL module
-        run: cd mysql && GOWORK=off go test -race -count=1 ./...
+        run: cd mysql && GOWORK=off go test -race -count=1 -shuffle=on ./...
 
       - name: Benchmark MySQL fixture decoder
         if: matrix.mysql-image == 'mysql:8.4'
@@ -199,7 +199,7 @@ jobs:
         run: ./mongo/testdata/generate_mongo_oplog.sh mongo:7.0
 
       - name: Test MongoDB module
-        run: cd mongo && GOWORK=off go test -race -count=1 ./...
+        run: cd mongo && GOWORK=off go test -race -count=1 -shuffle=on ./...
 
   postgres:
     runs-on: ubuntu-latest
@@ -216,7 +216,7 @@ jobs:
         run: ./postgres/testdata/generate_postgres_logical.sh postgres:16
 
       - name: Test PostgreSQL module
-        run: cd postgres && GOWORK=off go test -race -count=1 ./...
+        run: cd postgres && GOWORK=off go test -race -count=1 -shuffle=on ./...
 
   redis:
     runs-on: ubuntu-latest
@@ -233,7 +233,7 @@ jobs:
         run: ./redis/testdata/generate_redis_aof.sh redis:7.2
 
       - name: Test Redis module
-        run: cd redis && GOWORK=off go test -race -count=1 ./...
+        run: cd redis && GOWORK=off go test -race -count=1 -shuffle=on ./...
 
   ci:
     runs-on: ubuntu-latest

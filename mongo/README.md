@@ -137,6 +137,13 @@ From the repository root, run:
 cd mongo && GOWORK=off go test ./...
 ```
 
+Run the MongoDB fixture-backed integration test locally when Docker is
+available:
+
+```bash
+make integration-mongo
+```
+
 ## License
 
 Apache License 2.0. See [LICENSE](../LICENSE).
