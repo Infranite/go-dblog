@@ -16,12 +16,13 @@ adapting them to a shared event API.
 
 ## Key Files
 
-- `README.md`: feature overview, examples, backend package layout, contribution
-  notes, roadmap, and versioning.
+- `README.md`: feature overview, examples, backend package layout, inline
+  contribution notes, roadmap pointer, and versioning.
 - `ROADMAP.md`: release line, capability matrix, workstreams, and versioning
   rules.
 - `doc/doc_zh.md`: Chinese documentation.
-- GitHub Releases: public release notes.
+- GitHub Releases: public release notes. The repository does not maintain a
+  standalone release document or changelog.
 - `SECURITY.md`: vulnerability reporting policy.
 
 ## Checks
@@ -29,7 +30,12 @@ adapting them to a shared event API.
 ```bash
 make lint
 make test
-make test-mysql
 make fuzz-smoke
 make bench-smoke
+```
+
+Run fixture-backed integration tests when Docker is available:
+
+```bash
+make integration
 ```

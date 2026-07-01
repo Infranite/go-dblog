@@ -2,8 +2,9 @@
 
 ## Supported Versions
 
-Security fixes are handled on the default branch until tagged releases define a
-version support window.
+Before the first `v0.1.0` tags are published, security fixes target the default
+branch only. After public tags exist, supported version windows are documented
+in GitHub Releases.
 
 ## Reporting a Vulnerability
 
