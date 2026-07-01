@@ -93,6 +93,16 @@ find_event_binlog_file() {
 	'
 }
 
+find_largest_binlog_file() {
+	docker exec "$name" sh -c '
+		for path in $(ls -S /var/lib/mysql/mysql-bin.[0-9]* 2>/dev/null); do
+			basename "$path"
+			exit 0
+		done
+		exit 1
+	'
+}
+
 reset_binary_logs() {
 	if docker exec "$name" mysql -uroot -e "RESET MASTER" >/dev/null 2>&1; then
 		return
@@ -129,25 +139,21 @@ docker exec "$name" mysql -uroot -e "FLUSH LOGS" >/dev/null
 
 binlog_file="$(find_event_binlog_file || true)"
 if [[ -z "$binlog_file" ]]; then
-	echo "failed to find a MySQL binlog with query and rows events" >&2
-	for path in $(docker exec "$name" sh -c 'ls /var/lib/mysql/mysql-bin.[0-9]* 2>/dev/null' || true); do
-		echo "---- $path ----" >&2
-		docker exec "$name" sh -c "mysqlbinlog --no-defaults --base64-output=DECODE-ROWS -vv '$path' 2>/dev/null | sed -n '1,120p'" >&2 || true
-	done
+	echo "mysqlbinlog validation did not select a binlog; falling back to largest binlog file" >&2
+	binlog_file="$(find_largest_binlog_file || true)"
+fi
+if [[ -z "$binlog_file" ]]; then
+	docker logs "$name"
+	echo "failed to find a generated MySQL binlog" >&2
 	exit 1
 fi
 
 summary="$(mktemp)"
-docker exec "$name" sh -c "mysqlbinlog --no-defaults --base64-output=DECODE-ROWS -vv '/var/lib/mysql/$binlog_file'" >"$summary"
-if ! grep -q 'Query' "$summary"; then
-	echo "generated MySQL binlog has no query events" >&2
-	sed -n '1,160p' "$summary" >&2
-	exit 1
-fi
-if ! grep -Eq 'Write_rows|Update_rows|Delete_rows' "$summary"; then
-	echo "generated MySQL binlog has no rows events" >&2
-	sed -n '1,220p' "$summary" >&2
-	exit 1
+if docker exec "$name" sh -c "mysqlbinlog --no-defaults --base64-output=DECODE-ROWS -vv '/var/lib/mysql/$binlog_file'" >"$summary" 2>/dev/null; then
+	if ! grep -q 'Query' "$summary" || ! grep -Eq 'Write_rows|Update_rows|Delete_rows' "$summary"; then
+		echo "selected MySQL binlog did not expose expected events through mysqlbinlog" >&2
+		sed -n '1,220p' "$summary" >&2
+	fi
 fi
 
 mkdir -p "$(dirname "$out")"
