@@ -32,8 +32,32 @@ type QueryEvent struct {
 	ErrorCode        uint16
 	statusVarsLength int
 	StatusVars       []byte
+	Status           QueryStatusVars
 	Schema           string
 	Query            string
+}
+
+// QueryStatusVars is the decoded status-vars of QUERY_EVENT
+type QueryStatusVars struct {
+	Flags2                   uint32
+	SQLMode                  uint64
+	Catalog                  string
+	AutoIncrementIncrement   uint16
+	AutoIncrementOffset      uint16
+	ClientCharset            uint16
+	CollationConnection      uint16
+	CollationServer          uint16
+	TimeZone                 string
+	CatalogNZ                string
+	LCTimeNames              uint16
+	CharsetDatabase          uint16
+	TableMapForUpdate        uint64
+	MasterDataWritten        uint32
+	InvokerUser              string
+	InvokerHost              string
+	UpdatedDBNames           []string
+	Microseconds             uint32
+	UnknownStatusVarsPayload []byte
 }
 
 func init() {
@@ -49,6 +73,9 @@ func (e *QueryEvent) Decode(opts ...EventOptionFunc) (EventBody, error) {
 	opt := e.InitOption(opts...)
 	if opt.Description == nil {
 		return nil, fmt.Errorf("invalid binlog version: binary log version info not found")
+	}
+	if err := requireData(opt.Data, 11); err != nil {
+		return nil, err
 	}
 
 	var pos int
@@ -71,15 +98,29 @@ func (e *QueryEvent) Decode(opts ...EventOptionFunc) (EventBody, error) {
 	pos += 2
 
 	if opt.Description.BinlogVersion >= 4 {
+		if err := requireData(opt.Data[pos:], 2); err != nil {
+			return nil, err
+		}
 		// status-vars length
 		event.statusVarsLength = int(binary.LittleEndian.Uint16(opt.Data[pos:]))
 		pos += 2
 
+		if err := requireData(opt.Data[pos:], event.statusVarsLength); err != nil {
+			return nil, err
+		}
 		// status-vars
 		event.StatusVars = opt.Data[pos : pos+event.statusVarsLength]
+		var err error
+		event.Status, err = DecodeQueryStatusVars(event.StatusVars)
+		if err != nil {
+			event.Status = QueryStatusVars{UnknownStatusVarsPayload: event.StatusVars}
+		}
 		pos += event.statusVarsLength
 	}
 
+	if err := requireData(opt.Data[pos:], schemaLength+1); err != nil {
+		return nil, err
+	}
 	// schema
 	event.Schema = string(opt.Data[pos : pos+schemaLength])
 	pos += schemaLength
@@ -93,93 +134,153 @@ func (e *QueryEvent) Decode(opts ...EventOptionFunc) (EventBody, error) {
 }
 
 // Statue will format status_vars of QUERY_EVENT
-// TODO decode QUERY_EVENT status_var
 func (e *QueryEvent) Statue() error {
-	fmt.Println(e.statusVarsLength)
-	for i := 0; i < e.statusVarsLength; {
+	status, err := DecodeQueryStatusVars(e.StatusVars)
+	if err != nil {
+		return err
+	}
+	e.Status = status
+	return nil
+}
+
+// DecodeQueryStatusVars decode status-vars payload of QUERY_EVENT
+func DecodeQueryStatusVars(data []byte) (QueryStatusVars, error) {
+	var status QueryStatusVars
+	for i := 0; i < len(data); {
 		// got status_vars key
-		k := e.StatusVars[i]
+		k := data[i]
 		i++
 
 		// decode values
 		switch k {
 		case common.QFlags2Code:
-			v := e.StatusVars[i : i+4]
+			if err := requireData(data[i:], 4); err != nil {
+				return status, err
+			}
+			status.Flags2 = binary.LittleEndian.Uint32(data[i:])
 			i += 4
-
-			// TODO
-			fmt.Println("QFlags2Code", v)
 		case common.QSQLModeCode:
-			v := e.StatusVars[i : i+8]
+			if err := requireData(data[i:], 8); err != nil {
+				return status, err
+			}
+			status.SQLMode = binary.LittleEndian.Uint64(data[i:])
 			i += 8
-
-			// TODO
-			fmt.Println("QSQLModeCode", v)
 		case common.QCatalog:
-			n := int(e.StatusVars[i])
-			v := string(e.StatusVars[i+1 : i+1+n])
+			if err := requireData(data[i:], 1); err != nil {
+				return status, err
+			}
+			n := int(data[i])
+			if err := requireData(data[i+1:], n+1); err != nil {
+				return status, err
+			}
+			status.Catalog = string(data[i+1 : i+1+n])
 			i += 1 + n + 1
-
-			// TODO
-			fmt.Println("QCatalog", v)
 		case common.QAutoIncrement:
-			increment := binary.LittleEndian.Uint32(e.StatusVars[i:])
-			offset := binary.LittleEndian.Uint32(e.StatusVars[i+2:])
-
-			// TODO
-			fmt.Printf("QAutoIncrement %d, %d\n", increment, offset)
+			if err := requireData(data[i:], 4); err != nil {
+				return status, err
+			}
+			status.AutoIncrementIncrement = binary.LittleEndian.Uint16(data[i:])
+			status.AutoIncrementOffset = binary.LittleEndian.Uint16(data[i+2:])
+			i += 4
 		case common.QCharsetCode:
-			clientCharSet := e.StatusVars[i : i+2]
-			i += 2
-			collationConnection := e.StatusVars[i : i+2]
-			i += 2
-			collationServer := e.StatusVars[i : i+2]
-			i += 2
-
-			// TODO
-			fmt.Println("QCharsetCode", clientCharSet, collationConnection, collationServer)
+			if err := requireData(data[i:], 6); err != nil {
+				return status, err
+			}
+			status.ClientCharset = binary.LittleEndian.Uint16(data[i:])
+			status.CollationConnection = binary.LittleEndian.Uint16(data[i+2:])
+			status.CollationServer = binary.LittleEndian.Uint16(data[i+4:])
+			i += 6
 		case common.QTimeZoneCode:
-			n := int(e.StatusVars[i])
-			v := string(e.StatusVars[i+1 : i+1+n])
+			if err := requireData(data[i:], 1); err != nil {
+				return status, err
+			}
+			n := int(data[i])
+			if err := requireData(data[i+1:], n); err != nil {
+				return status, err
+			}
+			status.TimeZone = string(data[i+1 : i+1+n])
 			i += 1 + n
-
-			// TODO
-			fmt.Println("QTimeZoneCode", v)
 		case common.QCatalogNZCode:
-			n := int(e.StatusVars[i])
-			v := string(e.StatusVars[i+1 : i+1+n])
+			if err := requireData(data[i:], 1); err != nil {
+				return status, err
+			}
+			n := int(data[i])
+			if err := requireData(data[i+1:], n); err != nil {
+				return status, err
+			}
+			status.CatalogNZ = string(data[i+1 : i+1+n])
 			i += 1 + n
-
-			// TODO
-			fmt.Printf("QCatalogNZCode %s\n", v)
 		case common.QLCTimeNamesCode:
-			// TODO
-			fmt.Println("QLCTimeNamesCode")
+			if err := requireData(data[i:], 2); err != nil {
+				return status, err
+			}
+			status.LCTimeNames = binary.LittleEndian.Uint16(data[i:])
+			i += 2
 		case common.QCharsetDatabaseCode:
-			// TODO
-			fmt.Println("QCharsetDatabaseCode")
+			if err := requireData(data[i:], 2); err != nil {
+				return status, err
+			}
+			status.CharsetDatabase = binary.LittleEndian.Uint16(data[i:])
+			i += 2
 		case common.QTableMapForUpdateCode:
-			// TODO
-			fmt.Println("QTableMapForUpdateCode")
+			if err := requireData(data[i:], 8); err != nil {
+				return status, err
+			}
+			status.TableMapForUpdate = binary.LittleEndian.Uint64(data[i:])
+			i += 8
 		case common.QMasterDataWrittenCode:
-			// TODO
-			fmt.Println("QMasterDataWrittenCode")
+			if err := requireData(data[i:], 4); err != nil {
+				return status, err
+			}
+			status.MasterDataWritten = binary.LittleEndian.Uint32(data[i:])
+			i += 4
 		case common.QInvokers:
-			// TODO
-			fmt.Println("QInvokers")
+			if err := requireData(data[i:], 1); err != nil {
+				return status, err
+			}
+			userLength := int(data[i])
+			i++
+			if err := requireData(data[i:], userLength+1); err != nil {
+				return status, err
+			}
+			status.InvokerUser = string(data[i : i+userLength])
+			i += userLength
+			hostLength := int(data[i])
+			i++
+			if err := requireData(data[i:], hostLength); err != nil {
+				return status, err
+			}
+			status.InvokerHost = string(data[i : i+hostLength])
+			i += hostLength
 		case common.QUpdatedDBNames:
-			// TODO
-			fmt.Println("QUpdatedDBNames")
+			if err := requireData(data[i:], 1); err != nil {
+				return status, err
+			}
+			count := int(data[i])
+			i++
+			status.UpdatedDBNames = make([]string, 0, count)
+			for n := 0; n < count; n++ {
+				start := i
+				for i < len(data) && data[i] != 0 {
+					i++
+				}
+				if i >= len(data) {
+					return status, fmt.Errorf("unterminated updated db name")
+				}
+				status.UpdatedDBNames = append(status.UpdatedDBNames, string(data[start:i]))
+				i++
+			}
 		case common.QMicroseconds:
-			microseconds := binary.LittleEndian.Uint32(e.StatusVars[i:])
+			if err := requireData(data[i:], 3); err != nil {
+				return status, err
+			}
+			status.Microseconds = uint32(common.FixedLengthInt(data[i : i+3]))
 			i += 3
-
-			// TODO
-			fmt.Printf("QMicroseconds %d\n", microseconds)
 		default:
-			return fmt.Errorf("unknown status var %x", k)
+			status.UnknownStatusVarsPayload = data[i-1:]
+			return status, nil
 		}
 	}
 
-	return nil
+	return status, nil
 }
