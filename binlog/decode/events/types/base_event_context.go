@@ -26,6 +26,7 @@ import (
 type EventContext struct {
 	Description *FmtDescEvent
 	TableInfo   map[uint64]*TableMapEvent
+	Registry    *EventRegistry
 }
 
 func (c *EventContext) HasCheckSum() bool {
@@ -42,9 +43,31 @@ func (c *EventContext) GetEventHeaderLength() int64 {
 	return c.Description.EventHeaderLength
 }
 
+// KnowsEventType reports whether the current FORMAT_DESCRIPTION_EVENT declares
+// a post-header slot for eventType. This lets the decoder follow newer MySQL
+// versions before this package has a first-class decoder for their new events.
+func (c *EventContext) KnowsEventType(eventType uint8) bool {
+	if c != nil && c.Registry != nil && c.Registry.KnowsEventType(eventType) {
+		return true
+	}
+	return c.EventPostHeaderLength(eventType) >= 0
+}
+
+func (c *EventContext) EventPostHeaderLength(eventType uint8) int {
+	if c == nil || c.Description == nil || eventType == 0 {
+		return -1
+	}
+	idx := int(eventType) - 1
+	if idx >= len(c.Description.EventTypeHeader) {
+		return -1
+	}
+	return int(c.Description.EventTypeHeader[idx])
+}
+
 // NewEventContext returns a empty context pointer
 func NewEventContext() *EventContext {
 	return &EventContext{
 		TableInfo: map[uint64]*TableMapEvent{},
+		Registry:  DefaultEventRegistry(),
 	}
 }

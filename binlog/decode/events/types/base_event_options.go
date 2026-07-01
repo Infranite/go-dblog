@@ -22,6 +22,7 @@ type EventOption struct {
 	Data []byte
 
 	*EventContext
+	EventType uint8
 }
 
 func NewOptionWith(opts ...EventOptionFunc) *EventOption {
@@ -41,5 +42,11 @@ func WithContext(context *EventContext) EventOptionFunc {
 func WithData(data []byte) EventOptionFunc {
 	return func(option *EventOption) {
 		option.Data = data
+	}
+}
+
+func WithEventType(eventType uint8) EventOptionFunc {
+	return func(option *EventOption) {
+		option.EventType = eventType
 	}
 }

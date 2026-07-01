@@ -57,7 +57,7 @@ func (e *FmtDescEvent) Decode(opts ...EventOptionFunc) (EventBody, error) {
 	pos += 2
 
 	// mysql-server version
-	event.MySQLVersion = string(bytes.Trim(opt.Data[pos:pos+50], string(0x00)))
+	event.MySQLVersion = string(bytes.Trim(opt.Data[pos:pos+50], "\x00"))
 	event.HasCheckSum = common.HasChecksum(event.MySQLVersion)
 	pos += 50
 

@@ -16,28 +16,26 @@ limitations under the License.
 
 package types
 
-import (
-	"fmt"
-
-	"github.com/liipx/go-mysql-binlog/binlog/common"
-)
-
+// UnsupportedEvent preserves event payload that cannot be decoded
 type UnsupportedEvent struct {
 	BaseEventBody
-}
-
-func init() {
-	Register(new(UnsupportedEvent))
+	EventType uint8
 }
 
 // GetEventType return base env type
 func (e *UnsupportedEvent) GetEventType() []uint8 {
-	return []uint8{
-		common.PreviousGTIDEvent,
-		common.AnonymousGTIDEvent,
-	}
+	return []uint8{e.EventType}
 }
+
+// Decode return unsupported event with raw data
 func (e *UnsupportedEvent) Decode(opts ...EventOptionFunc) (EventBody, error) {
-	fmt.Println("NOT_SUPPORT")
-	return e.BaseEventBody.Decode(opts...)
+	opt := e.InitOption(opts...)
+	eventType := e.EventType
+	if opt.EventType != 0 {
+		eventType = opt.EventType
+	}
+	return &UnsupportedEvent{
+		BaseEventBody: BaseEventBody{data: opt.Data},
+		EventType:     eventType,
+	}, nil
 }

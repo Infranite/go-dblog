@@ -50,7 +50,7 @@ func MysqlVersion(versionStr string) int {
 		return version
 	}
 
-	index := 0
+	index := len(split[2])
 	for i, c := range split[2] {
 		if !unicode.IsNumber(c) {
 			index = i
@@ -87,8 +87,5 @@ func crc32Validate(expectedChecksum []byte, data []byte) bool {
 	checksum := crc32.ChecksumIEEE(data)
 	computed := make([]byte, BinlogChecksumLength)
 	binary.LittleEndian.PutUint32(computed, checksum)
-	if !bytes.Equal(expectedChecksum, computed) {
-		return false
-	}
-	return true
+	return bytes.Equal(expectedChecksum, computed)
 }

@@ -24,9 +24,6 @@ import (
 	"github.com/liipx/go-mysql-binlog/binlog/common"
 )
 
-// mysql binlog version > 1 (version > mysql 4.0.0), size = 19
-var defaultEventHeaderSize int64 = 19
-
 // EventHeader binary log header definition
 // https://dev.mysql.com/doc/internals/en/binlog-event-header.html
 type EventHeader struct {
@@ -41,7 +38,7 @@ type EventHeader struct {
 
 // Type function will translate event type into string
 func (header *EventHeader) Type() string {
-	return common.EventType2Str[header.EventType]
+	return common.EventTypeName(header.EventType)
 }
 
 // String interface implement
