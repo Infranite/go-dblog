@@ -1,7 +1,7 @@
 GO ?= go
 GOLANGCI_LINT ?= golangci-lint
 
-.PHONY: test test-backends test-mysql integration integration-mysql integration-mongo integration-postgres integration-redis lint vet bench
+.PHONY: test test-backends test-mysql integration integration-mysql integration-mongo integration-postgres integration-redis lint vet fuzz-smoke bench bench-smoke
 
 test:
 	$(GO) test -short ./...
@@ -40,8 +40,20 @@ lint:
 vet:
 	$(GO) vet ./... ./mysql/... ./mongo/... ./postgres/... ./redis/...
 
+fuzz-smoke:
+	cd mysql && GOWORK=off $(GO) test -run '^$$' -fuzz=FuzzDecodeEventHeader -fuzztime=5s -parallel=2 ./decode/events
+	cd mongo && GOWORK=off $(GO) test -run '^$$' -fuzz=FuzzParseLine -fuzztime=5s -parallel=2 .
+	cd postgres && GOWORK=off $(GO) test -run '^$$' -fuzz=FuzzParseLine -fuzztime=5s -parallel=2 .
+	cd redis && GOWORK=off $(GO) test -run '^$$' -fuzz=FuzzParseCommand -fuzztime=5s -parallel=2 .
+
 bench:
 	cd mongo && GOWORK=off $(GO) test -bench=. -benchmem ./...
 	cd postgres && GOWORK=off $(GO) test -bench=. -benchmem ./...
 	cd redis && GOWORK=off $(GO) test -bench=. -benchmem ./...
 	cd mysql && GOWORK=off $(GO) test -bench=. -benchmem ./...
+
+bench-smoke:
+	cd mysql && GOWORK=off $(GO) test -run '^$$' -bench=BenchmarkDecoder -benchmem -benchtime=100x ./test
+	cd mongo && GOWORK=off $(GO) test -run '^$$' -bench=BenchmarkParseLine -benchmem -benchtime=100x .
+	cd postgres && GOWORK=off $(GO) test -run '^$$' -bench=BenchmarkParseLine -benchmem -benchtime=100x .
+	cd redis && GOWORK=off $(GO) test -run '^$$' -bench=BenchmarkParseCommand -benchmem -benchtime=100x .

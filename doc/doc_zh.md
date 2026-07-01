@@ -225,6 +225,13 @@ make test
 make lint
 ```
 
+运行 parser fuzz 和 benchmark smoke 门禁：
+
+```bash
+make fuzz-smoke
+make bench-smoke
+```
+
 完整的 MySQL、MongoDB、PostgreSQL、Redis 真实 fixture 集成测试在 pull request CI
 中运行，合入受 `ci` 和 `merge-policy` 检查约束。
 

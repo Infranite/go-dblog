@@ -42,7 +42,10 @@ func parseLine(
 func parseChange(raw map[string]any) (types.Change, error) {
 	change := types.Change{Raw: raw}
 	if op, ok := raw[fieldOperationType].(string); ok {
-		change.Operation = strings.ToLower(op)
+		change.Operation = strings.ToLower(strings.TrimSpace(op))
+		if change.Operation == "" {
+			return types.Change{}, fmt.Errorf("%w: %q", types.ErrUnsupportedOperation, op)
+		}
 		if ns := asMap(raw[fieldNamespace]); ns != nil {
 			change.Database = stringValue(ns[fieldNamespaceDatabase])
 			change.Collection = stringValue(ns[fieldNamespaceCollection])

@@ -81,6 +81,16 @@ Got QUERY_EVENT:
 - Go 1.23 iterator support for streaming and type filtering.
 - Copy-aware row value decoding for variable-width payloads.
 
+## Supported Inputs
+
+| Input | Status | CI evidence |
+|---|---|---|
+| Local MySQL-family binlog files from MySQL 5.6, 5.7, 8.0, and 8.4 | Supported | `mysql` CI matrix generates real binlog fixtures from each image. |
+| MySQL, MariaDB, and MySQL-compatible binlog event bodies listed below | Supported | Unit tests cover event decoders and the MariaDB plugin. |
+| Unknown events declared by `FORMAT_DESCRIPTION_EVENT` metadata | Supported as metadata events in auto/loose compatibility modes | Compatibility mode tests and fixture tests. |
+| Malformed or undersized event headers | Rejected | `FuzzDecodeEventHeader` smoke target. |
+| Online replication connections | Planned | Not part of the offline parser release line. |
+
 ### Typed Event Filtering
 
 Use `decoder.EventBodies` when only one event body type matters:

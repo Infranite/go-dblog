@@ -26,7 +26,7 @@ func parseCommand(reader *bufio.Reader) (types.Command, []byte, error) {
 		return types.Command{}, raw.Bytes(), fmt.Errorf("%w: array header %q", types.ErrInvalidRESP, line)
 	}
 	count, err := strconv.Atoi(line[1:])
-	if err != nil || count <= 0 {
+	if err != nil || count <= 0 || count > maxRESPArrayElements {
 		return types.Command{}, raw.Bytes(), fmt.Errorf("%w: array length %q", types.ErrInvalidRESP, line)
 	}
 	parts := make([]string, 0, count)
@@ -36,6 +36,9 @@ func parseCommand(reader *bufio.Reader) (types.Command, []byte, error) {
 			return types.Command{}, raw.Bytes(), err
 		}
 		parts = append(parts, part)
+	}
+	if parts[0] == "" {
+		return types.Command{}, raw.Bytes(), fmt.Errorf("%w: empty command name", types.ErrInvalidRESP)
 	}
 	return types.Command{
 		Name: strings.ToLower(parts[0]),
@@ -52,7 +55,7 @@ func readBulkString(reader *bufio.Reader, raw *bytes.Buffer) (string, error) {
 		return "", fmt.Errorf("%w: bulk header %q", types.ErrInvalidRESP, header)
 	}
 	n, err := strconv.Atoi(header[1:])
-	if err != nil || n < 0 {
+	if err != nil || n < 0 || n > maxRESPBulkStringBytes {
 		return "", fmt.Errorf("%w: bulk length %q", types.ErrInvalidRESP, header)
 	}
 	data := make([]byte, n+len(respLineEnd))
@@ -72,6 +75,9 @@ func readLine(reader *bufio.Reader, raw *bytes.Buffer) (string, error) {
 		return "", err
 	}
 	raw.WriteString(line)
+	if !strings.HasSuffix(line, respLineEnd) {
+		return "", fmt.Errorf("%w: line terminator", types.ErrInvalidRESP)
+	}
 	line = strings.TrimSuffix(line, "\n")
 	line = strings.TrimSuffix(line, "\r")
 	return line, nil

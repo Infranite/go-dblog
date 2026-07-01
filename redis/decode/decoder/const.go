@@ -7,3 +7,8 @@ const (
 	respLF          = '\n'
 	respLineEnd     = "\r\n"
 )
+
+const (
+	maxRESPArrayElements   = 8192
+	maxRESPBulkStringBytes = 8 << 20
+)

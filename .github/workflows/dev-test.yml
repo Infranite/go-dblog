@@ -235,10 +235,86 @@ jobs:
       - name: Test Redis module
         run: cd redis && GOWORK=off go test -race -count=1 -shuffle=on ./...
 
+  fuzz:
+    name: fuzz (${{ matrix.module }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - module: mysql
+            path: mysql
+            package: ./decode/events
+            target: FuzzDecodeEventHeader
+          - module: mongo
+            path: mongo
+            package: .
+            target: FuzzParseLine
+          - module: postgres
+            path: postgres
+            package: .
+            target: FuzzParseLine
+          - module: redis
+            path: redis
+            package: .
+            target: FuzzParseCommand
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      - name: Fuzz parser smoke target
+        working-directory: ${{ matrix.path }}
+        env:
+          GOWORK: off
+        run: go test -run '^$' -fuzz='${{ matrix.target }}' -fuzztime=5s -parallel=2 '${{ matrix.package }}'
+
+  bench:
+    name: bench (${{ matrix.module }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - module: mysql
+            path: mysql
+            package: ./test
+            target: BenchmarkDecoder
+          - module: mongo
+            path: mongo
+            package: .
+            target: BenchmarkParseLine
+          - module: postgres
+            path: postgres
+            package: .
+            target: BenchmarkParseLine
+          - module: redis
+            path: redis
+            package: .
+            target: BenchmarkParseCommand
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      - name: Benchmark parser smoke target
+        working-directory: ${{ matrix.path }}
+        env:
+          GOWORK: off
+        run: go test -run '^$' -bench='${{ matrix.target }}' -benchmem -benchtime=100x '${{ matrix.package }}'
+
   ci:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [lint, vet, vuln, root_test, backend_short, mysql, mongo, postgres, redis]
+    needs: [lint, vet, vuln, root_test, backend_short, mysql, mongo, postgres, redis, fuzz, bench]
     if: always()
     steps:
       - name: Require all CI jobs
@@ -252,3 +328,5 @@ jobs:
           test "${{ needs.mongo.result }}" = "success"
           test "${{ needs.postgres.result }}" = "success"
           test "${{ needs.redis.result }}" = "success"
+          test "${{ needs.fuzz.result }}" = "success"
+          test "${{ needs.bench.result }}" = "success"

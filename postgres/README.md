@@ -83,6 +83,15 @@ func main() {
 
 The backend driver name is `pg`, while the module path remains `postgres`.
 
+## Supported Inputs
+
+| Input | Status | CI evidence |
+|---|---|---|
+| `BEGIN` and `COMMIT` records from logical decoding text output | Supported | Unit tests and PostgreSQL fixture job generated from `postgres:16`. |
+| Row changes in `table schema.table: OPERATION: col[type]:value` form | Supported | Unit tests, fixture job, and `FuzzParseLine` smoke target. |
+| Empty table or operation names | Rejected | Parser tests and fuzz smoke target. |
+| Logical replication protocol messages | Planned | Not part of the offline parser release line. |
+
 ## Flashback Scope
 
 | Event | Flashback output |

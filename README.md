@@ -235,6 +235,13 @@ Run lint:
 make lint
 ```
 
+Run parser fuzz and benchmark smoke gates:
+
+```bash
+make fuzz-smoke
+make bench-smoke
+```
+
 Full fixture-backed MySQL, MongoDB, PostgreSQL, and Redis integration tests run
 in pull request CI. Pull requests merge through the protected `ci` and
 `merge-policy` checks.

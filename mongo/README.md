@@ -81,6 +81,16 @@ func main() {
 - Event plugins for MongoDB-compatible products that emit different operation
   names or metadata.
 
+## Supported Inputs
+
+| Input | Status | CI evidence |
+|---|---|---|
+| MongoDB oplog JSON records with `op`, `ns`, `o`, and `o2` | Supported | `mongo` fixture job generated from `mongo:7.0`; `FuzzParseLine` smoke target. |
+| MongoDB change stream JSON records with `operationType`, `ns`, `documentKey`, `fullDocument`, `fullDocumentBeforeChange`, and `updateDescription` | Supported | Unit tests and `FuzzParseLine` seeds cover valid and malformed records. |
+| Empty operation names | Rejected | Parser tests and fuzz smoke target. |
+| Unknown non-empty operation names | Emitted as backend event kinds unless a decoder plugin normalizes them | Plugin tests and parser tests. |
+| Live change streams | Planned | Not part of the offline parser release line. |
+
 ## Flashback Scope
 
 | Event | Flashback output |
