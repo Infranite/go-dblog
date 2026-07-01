@@ -8,7 +8,11 @@ name="go-dblog-mongo-${image//[^a-zA-Z0-9]/-}-$$"
 cleanup() {
 	status=$?
 	if [[ "$status" -ne 0 ]]; then
-		docker logs "$name" >&2 || true
+		if [[ -n "${out:-}" && -f "$out" ]]; then
+			echo "generated MongoDB oplog output:" >&2
+			sed -n '1,120p' "$out" >&2
+		fi
+		docker logs --tail 160 "$name" >&2 || true
 	fi
 	docker rm -f "$name" >/dev/null 2>&1 || true
 	exit "$status"
@@ -58,7 +62,7 @@ JS
 mkdir -p "$(dirname "$out")"
 docker exec "$name" mongosh --quiet <<'JS' >"$out"
 let seen = 0;
-const cursor = db.getSiblingDB("local").oplog.rs
+const cursor = db.getSiblingDB("local").getCollection("oplog.rs")
   .find({ns: "dblog_ci.users", op: {$in: ["i", "u", "d"]}})
   .sort({$natural: 1});
 for (const doc of cursor) {

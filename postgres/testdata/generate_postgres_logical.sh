@@ -12,7 +12,7 @@ cleanup() {
 			echo "generated PostgreSQL logical decoding output:" >&2
 			sed -n '1,120p' "$out" >&2
 		fi
-		docker logs "$name" >&2 || true
+		docker logs --tail 160 "$name" >&2 || true
 	fi
 	docker rm -f "$name" >/dev/null 2>&1 || true
 	exit "$status"
@@ -26,6 +26,32 @@ docker run -d --name "$name" \
 	-c wal_level=logical \
 	-c max_replication_slots=4 \
 	-c max_wal_senders=4 >/dev/null
+
+ready=0
+for _ in $(seq 1 90); do
+	if docker exec "$name" pg_isready -U postgres >/dev/null 2>&1; then
+		ready=1
+		break
+	fi
+	sleep 1
+done
+if [[ "$ready" != 1 ]]; then
+	docker logs "$name"
+	exit 1
+fi
+
+initialized=0
+for _ in $(seq 1 90); do
+	if docker logs "$name" 2>&1 | grep -q "PostgreSQL init process complete"; then
+		initialized=1
+		break
+	fi
+	sleep 1
+done
+if [[ "$initialized" != 1 ]]; then
+	docker logs "$name"
+	exit 1
+fi
 
 ready=0
 for _ in $(seq 1 90); do
@@ -55,8 +81,14 @@ COMMIT;
 SQL
 
 mkdir -p "$(dirname "$out")"
-docker exec "$name" psql -U postgres -d postgres -At \
-	-c "SELECT data FROM pg_logical_slot_get_changes('dblog_ci_slot', NULL, NULL, 'include-xids', '1');" >"$out"
+for _ in $(seq 1 30); do
+	docker exec "$name" psql -U postgres -d postgres -At \
+		-c "SELECT data FROM pg_logical_slot_peek_changes('dblog_ci_slot', NULL, NULL, 'include-xids', '1');" >"$out"
+	if [[ -s "$out" ]]; then
+		break
+	fi
+	sleep 1
+done
 
 grep -q '^BEGIN' "$out"
 grep -q 'table public.users: INSERT:' "$out"

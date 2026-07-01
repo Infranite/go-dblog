@@ -8,7 +8,7 @@ name="go-dblog-mysql-${image//[^a-zA-Z0-9]/-}-$$"
 cleanup() {
 	status=$?
 	if [[ "$status" -ne 0 ]]; then
-		docker logs "$name" >&2 || true
+		docker logs --tail 160 "$name" >&2 || true
 		docker exec "$name" sh -c 'ls -lh /var/lib/mysql/mysql-bin.* 2>/dev/null || true' >&2 || true
 	fi
 	docker rm -f "$name" >/dev/null 2>&1 || true
@@ -47,6 +47,26 @@ discover_binlog_file() {
 	printf '%s' "$file"
 }
 
+find_event_binlog_file() {
+	docker exec "$name" sh -c '
+		for path in /var/lib/mysql/mysql-bin.[0-9]*; do
+			[ -f "$path" ] || continue
+			summary="/tmp/go-dblog-mysqlbinlog.$$"
+			mysqlbinlog --base64-output=DECODE-ROWS -vv "$path" >"$summary" 2>/dev/null || {
+				rm -f "$summary"
+				continue
+			}
+			if grep -q "Query" "$summary" && grep -Eq "Write_rows|Update_rows|Delete_rows" "$summary"; then
+				basename "$path"
+				rm -f "$summary"
+				exit 0
+			fi
+			rm -f "$summary"
+		done
+		exit 1
+	'
+}
+
 reset_binary_logs() {
 	if docker exec "$name" mysql -uroot -e "RESET MASTER" >/dev/null 2>&1; then
 		return
@@ -55,17 +75,17 @@ reset_binary_logs() {
 }
 
 reset_binary_logs
-binlog_file="$(discover_binlog_file)"
-if [[ -z "$binlog_file" ]]; then
+if [[ -z "$(discover_binlog_file)" ]]; then
 	docker logs "$name"
 	echo "failed to discover active MySQL binlog" >&2
 	exit 1
 fi
 
 docker exec "$name" mysql -uroot <<'SQL'
+SET SESSION SQL_LOG_BIN = 1;
+SET SESSION binlog_format = 'ROW';
 CREATE DATABASE dblog_ci;
 USE dblog_ci;
-SET SESSION binlog_format = 'ROW';
 CREATE TABLE events (
 	id BIGINT NOT NULL PRIMARY KEY AUTO_INCREMENT,
 	name VARCHAR(64) NOT NULL,
@@ -80,6 +100,16 @@ DELETE FROM events WHERE name = 'alpha';
 SQL
 
 docker exec "$name" mysql -uroot -e "FLUSH LOGS" >/dev/null
+
+binlog_file="$(find_event_binlog_file || true)"
+if [[ -z "$binlog_file" ]]; then
+	echo "failed to find a MySQL binlog with query and rows events" >&2
+	for path in $(docker exec "$name" sh -c 'ls /var/lib/mysql/mysql-bin.[0-9]* 2>/dev/null' || true); do
+		echo "---- $path ----" >&2
+		docker exec "$name" sh -c "mysqlbinlog --base64-output=DECODE-ROWS -vv '$path' 2>/dev/null | sed -n '1,120p'" >&2 || true
+	done
+	exit 1
+fi
 
 summary="$(mktemp)"
 docker exec "$name" sh -c "mysqlbinlog --base64-output=DECODE-ROWS -vv '/var/lib/mysql/$binlog_file'" >"$summary"
