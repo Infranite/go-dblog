@@ -33,7 +33,7 @@ type RotateEvent struct {
 }
 
 func init() {
-	Register(new(RotateEvent))
+	_ = Register(new(RotateEvent))
 }
 
 // GetEventType return base env type

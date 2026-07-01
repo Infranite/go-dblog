@@ -17,9 +17,17 @@ limitations under the License.
 package types
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/Infranite/go-dblog/mysql/common"
+)
+
+var (
+	// ErrInvalidEventDecoder is returned when a registry receives a nil decoder.
+	ErrInvalidEventDecoder = errors.New("invalid event decoder")
+	// ErrEventTypeRegistered is returned when an event type already has a decoder.
+	ErrEventTypeRegistered = errors.New("event type already registered")
 )
 
 // EventRegistry holds event body decoders by event type.
@@ -32,7 +40,7 @@ type EventRegistry struct {
 type EventPlugin interface {
 	Name() string
 	Match(*FmtDescEvent) bool
-	Register(*EventRegistry)
+	Register(*EventRegistry) error
 }
 
 var defaultEventRegistry = NewEventRegistry()
@@ -62,17 +70,24 @@ func (r *EventRegistry) Clone() *EventRegistry {
 	return clone
 }
 
-// Register add an event body decoder to the registry
-func (r *EventRegistry) Register(decoder EventBody) {
-	for _, eventType := range decoder.GetEventType() {
+// Register adds an event body decoder to the registry.
+func (r *EventRegistry) Register(decoder EventBody) error {
+	if decoder == nil {
+		return ErrInvalidEventDecoder
+	}
+	eventTypes := decoder.GetEventType()
+	for _, eventType := range eventTypes {
 		if _, has := r.decoders[eventType]; has {
-			panic(fmt.Errorf("EventType {%x} has already been registered", eventType))
+			return fmt.Errorf("%w: %x", ErrEventTypeRegistered, eventType)
 		}
+	}
+	for _, eventType := range eventTypes {
 		r.decoders[eventType] = decoder
 		if name, ok := common.EventType2Str[eventType]; ok {
 			r.names[eventType] = name
 		}
 	}
+	return nil
 }
 
 // RegisterName add a display name for an event type
@@ -108,9 +123,9 @@ func (r *EventRegistry) EventTypeName(eventType uint8) string {
 	return common.EventTypeName(eventType)
 }
 
-// Register add an event body decoder to default registry
-func Register(decoder EventBody) {
-	defaultEventRegistry.Register(decoder)
+// Register adds an event body decoder to the default registry.
+func Register(decoder EventBody) error {
+	return defaultEventRegistry.Register(decoder)
 }
 
 // GetEventBodyDecoder return decoder from default registry

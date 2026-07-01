@@ -1,0 +1,33 @@
+# go-dblog
+
+`go-dblog` is a multi-module Go library for parsing database change logs and
+adapting them to a shared event API.
+
+## Modules
+
+- `github.com/Infranite/go-dblog`: common registry, event, filter, and flashback
+  contracts.
+- `github.com/Infranite/go-dblog/mysql`: MySQL-family binlog parser.
+- `github.com/Infranite/go-dblog/postgres`: PostgreSQL logical decoding text
+  parser.
+- `github.com/Infranite/go-dblog/mongo`: MongoDB oplog and change stream JSON
+  parser.
+- `github.com/Infranite/go-dblog/redis`: Redis AOF RESP parser.
+
+## Key Files
+
+- `README.md`: feature overview, examples, backend package layout, roadmap.
+- `ROADMAP.md`: release line, capability matrix, workstreams, and versioning
+  rules.
+- `doc/doc_zh.md`: Chinese documentation.
+- `CONTRIBUTING.md`: local checks and contribution expectations.
+- `CHANGELOG.md`: user-visible changes.
+- `SECURITY.md`: vulnerability reporting policy.
+
+## Checks
+
+```bash
+make lint
+make test
+make test-mysql
+```

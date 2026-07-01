@@ -1,6 +1,9 @@
 package types
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 type testEventBody struct {
 	BaseEventBody
@@ -15,7 +18,9 @@ func TestEventRegistryCloneDoesNotPolluteDefaultRegistry(t *testing.T) {
 	t.Parallel()
 
 	registry := DefaultEventRegistry()
-	registry.Register(&testEventBody{eventType: 160})
+	if err := registry.Register(&testEventBody{eventType: 160}); err != nil {
+		t.Fatal(err)
+	}
 	registry.RegisterName(160, "MARIADB_TEST_EVENT")
 
 	if _, ok := registry.GetEventBodyDecoder(160).(*testEventBody); !ok {
@@ -28,5 +33,18 @@ func TestEventRegistryCloneDoesNotPolluteDefaultRegistry(t *testing.T) {
 	globalDecoder := GetEventBodyDecoder(160)
 	if _, ok := globalDecoder.(*MetadataEvent); !ok {
 		t.Fatalf("global decoder = %T, want *MetadataEvent", globalDecoder)
+	}
+}
+
+func TestEventRegistryRegisterReportsDuplicateEventType(t *testing.T) {
+	t.Parallel()
+
+	registry := NewEventRegistry()
+	if err := registry.Register(&testEventBody{eventType: 160}); err != nil {
+		t.Fatal(err)
+	}
+	err := registry.Register(&testEventBody{eventType: 160})
+	if !errors.Is(err, ErrEventTypeRegistered) {
+		t.Fatalf("err = %v, want %v", err, ErrEventTypeRegistered)
 	}
 }

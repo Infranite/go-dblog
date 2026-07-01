@@ -25,7 +25,7 @@ type UnknownEvent struct {
 }
 
 func init() {
-	Register(new(UnknownEvent))
+	_ = Register(new(UnknownEvent))
 }
 
 // GetEventType return base env type

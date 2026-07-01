@@ -61,7 +61,7 @@ type QueryStatusVars struct {
 }
 
 func init() {
-	Register(new(QueryEvent))
+	_ = Register(new(QueryEvent))
 }
 
 // GetEventType return base env type

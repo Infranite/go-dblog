@@ -18,6 +18,21 @@ func (e testEvent) Kind() string           { return "fixture" }
 func (e testEvent) Raw() []byte            { return []byte("raw") }
 func (e testEvent) Body() any              { return e.body }
 
+type reverseEvent struct {
+	testEvent
+	reverse any
+	ok      bool
+}
+
+func (e reverseEvent) Reverse() (any, bool) { return e.reverse, e.ok }
+
+type kindEvent struct {
+	testEvent
+	kind string
+}
+
+func (e kindEvent) Kind() string { return e.kind }
+
 type testDecoder struct{}
 
 func (d testDecoder) Events() iter.Seq2[testEvent, error] {
@@ -194,5 +209,133 @@ func TestSourceAndPositionHandleNilEvent(t *testing.T) {
 	}
 	if got := PositionOf(nil); got != (Position{}) {
 		t.Fatalf("PositionOf(nil) = %#v", got)
+	}
+}
+
+type registryBackend struct {
+	driver string
+	events []Event
+}
+
+func (b registryBackend) Driver() string { return b.driver }
+
+func (b registryBackend) Open(OpenOptions) (Decoder[Event], error) {
+	return NewSeqDecoder(func(yield func(Event, error) bool) {
+		for _, event := range b.events {
+			if !yield(event, nil) {
+				return
+			}
+		}
+	}, nil), nil
+}
+
+func TestRegistryOpensBackend(t *testing.T) {
+	var registry Registry
+	err := registry.Register(registryBackend{
+		driver: "mongo",
+		events: []Event{
+			testEvent{body: "insert"},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	decoder, err := registry.Open("mongo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := decoder.Close(); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	var got []any
+	for event, err := range decoder.Events() {
+		if err != nil {
+			t.Fatal(err)
+		}
+		got = append(got, event.Body())
+	}
+	if len(got) != 1 || got[0] != "insert" {
+		t.Fatalf("events = %#v", got)
+	}
+}
+
+func TestRegistryRejectsDuplicateBackend(t *testing.T) {
+	var registry Registry
+	if err := registry.Register(registryBackend{driver: "redis"}); err != nil {
+		t.Fatal(err)
+	}
+	err := registry.Register(registryBackend{driver: "redis"})
+	if !errors.Is(err, ErrBackendExists) {
+		t.Fatalf("err = %v, want %v", err, ErrBackendExists)
+	}
+}
+
+func TestRegistryRejectsInvalidBackend(t *testing.T) {
+	var registry Registry
+	err := registry.Register(registryBackend{})
+	if !errors.Is(err, ErrInvalidBackend) {
+		t.Fatalf("err = %v, want %v", err, ErrInvalidBackend)
+	}
+}
+
+func TestRegistryReportsUnknownBackend(t *testing.T) {
+	var registry Registry
+	_, err := registry.Open("pg")
+	if !errors.Is(err, ErrBackendNotFound) {
+		t.Fatalf("err = %v, want %v", err, ErrBackendNotFound)
+	}
+}
+
+func TestOpenOptionsUseFunctionalOptions(t *testing.T) {
+	options := newOpenOptions(
+		WithSource(Source{Driver: "redis", Name: "appendonly.aof"}),
+		WithPath("appendonly.aof"),
+		WithDSN("redis://localhost"),
+	)
+	if options.Source() != (Source{Driver: "redis", Name: "appendonly.aof"}) {
+		t.Fatalf("source = %#v", options.Source())
+	}
+	if options.Path() != "appendonly.aof" || options.DSN() != "redis://localhost" {
+		t.Fatalf("path/dsn = %q/%q", options.Path(), options.DSN())
+	}
+}
+
+func TestFilterAppliesPredicates(t *testing.T) {
+	seq := func(yield func(Event, error) bool) {
+		yield(testEvent{body: "query"}, nil)
+		yield(kindEvent{testEvent: testEvent{body: "insert"}, kind: "other"}, nil)
+	}
+
+	var got []string
+	for event, err := range Filter(seq, ByDriver("test"), ByKind("fixture")) {
+		if err != nil {
+			t.Fatal(err)
+		}
+		got = append(got, event.Body().(string))
+	}
+	if len(got) != 1 || got[0] != "query" {
+		t.Fatalf("Filter returned %#v", got)
+	}
+}
+
+func TestFlashbacksYieldsReverseOperations(t *testing.T) {
+	seq := func(yield func(Event, error) bool) {
+		yield(testEvent{body: "ignored"}, nil)
+		yield(reverseEvent{testEvent: testEvent{body: "delete"}, reverse: "insert back", ok: true}, nil)
+	}
+
+	var got []any
+	for op, err := range Flashbacks(seq) {
+		if err != nil {
+			t.Fatal(err)
+		}
+		got = append(got, op)
+	}
+	if len(got) != 1 || got[0] != "insert back" {
+		t.Fatalf("Flashbacks returned %#v", got)
 	}
 }

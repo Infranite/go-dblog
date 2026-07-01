@@ -40,7 +40,7 @@ type TableMapEvent struct {
 }
 
 func init() {
-	Register(new(TableMapEvent))
+	_ = Register(new(TableMapEvent))
 }
 
 // GetEventType return base env type

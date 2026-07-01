@@ -2,13 +2,45 @@ name: CI
 
 on:
   push:
-    branches: [develop]
   pull_request:
-    branches: [develop]
+    branches: [master]
   workflow_dispatch:
 
 jobs:
   test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Install tools
+        run: |
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.8.0
+          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Lint all modules
+        run: golangci-lint run ./... ./mysql/... ./mongo/... ./postgres/... ./redis/...
+
+      - name: Vet all modules
+        run: go vet ./... ./mysql/... ./mongo/... ./postgres/... ./redis/...
+
+      - name: Scan vulnerabilities
+        run: govulncheck ./... ./mysql/... ./mongo/... ./postgres/... ./redis/...
+
+      - name: Test root module
+        run: go test -race -count=1 ./...
+
+      - name: Test backend modules
+        run: |
+          for module in mongo postgres redis; do
+            (cd "$module" && GOWORK=off go test -race -count=1 ./...)
+          done
+
+  mysql:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -25,11 +57,12 @@ jobs:
         with:
           go-version: "1.23"
 
-      - name: Test root module
-        run: go test ./...
-
       - name: Generate MySQL binlog fixture
         run: ./mysql/test/testdata/generate_mysql_binlog.sh "${{ matrix.mysql-image }}"
 
       - name: Test MySQL module
-        run: go test ./mysql/...
+        run: cd mysql && GOWORK=off go test -race -count=1 ./...
+
+      - name: Benchmark MySQL fixture decoder
+        if: matrix.mysql-image == 'mysql:8.4'
+        run: cd mysql && GOWORK=off go test -run '^$' -bench=BenchmarkDecoder -benchmem -benchtime=100x ./test -v

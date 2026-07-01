@@ -14,7 +14,7 @@ func (testPlugin) Name() string { return "test" }
 
 func (testPlugin) Match(*types.FmtDescEvent) bool { return false }
 
-func (testPlugin) Register(*types.EventRegistry) {}
+func (testPlugin) Register(*types.EventRegistry) error { return nil }
 
 func TestDecodeOptions(t *testing.T) {
 	t.Parallel()
