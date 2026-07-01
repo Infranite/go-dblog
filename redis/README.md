@@ -79,6 +79,15 @@ func main() {
   Redis state.
 - Command plugins for Redis-compatible products and module commands.
 
+## Supported Inputs
+
+| Input | Status | CI evidence |
+|---|---|---|
+| Redis AOF RESP array commands | Supported | `redis` fixture job generated from `redis:7.2`; `FuzzParseCommand` smoke target. |
+| RESP frames with LF-only line endings, empty command names, invalid lengths, or oversized arrays/bulk strings | Rejected | Parser tests and fuzz smoke target. |
+| Commands up to 8,192 RESP array elements and 8 MiB per bulk string | Supported | Parser limits are covered by fuzz smoke. |
+| Redis replication streams | Planned | Not part of the offline parser release line. |
+
 ## Flashback Scope
 
 | Command | Flashback output |

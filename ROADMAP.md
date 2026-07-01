@@ -24,7 +24,7 @@ gates for `go-dblog`. It is not a commitment to dates.
 | `v0.2.0` | Planned | Compatibility hardening | Compatibility fixtures and negative cases for each backend; documented supported inputs and known gaps per backend. | Backend README files include supported versions/formats, unsupported cases, fixture source, and parser behavior for unknown events. |
 | `v0.3.0` | Planned | Live readers | MySQL replication reader, PostgreSQL logical replication reader, MongoDB change stream reader, Redis replication stream reader. | Live readers implement `dblog.Decoder`, support context cancellation, and have integration tests isolated from unit tests. |
 | `v0.4.0` | Planned | Recovery workflows | Checkpoint model, resumable decoding hooks, expanded flashback operations, and unsafe-operation guardrails. | Recovery APIs are backend-neutral; lossy or state-dependent reverse operations are documented and opt-in. |
-| `v0.5.0` | Planned | Operational maturity | Benchmark baselines, compatibility matrix, fuzz targets for parsers, release notes with tested versions. | CI runs fuzz smoke tests, benchmark smoke tests, and publishes tested backend/version matrix. |
+| `v0.5.0` | Planned | Operational maturity | Release notes with tested versions and long-running benchmark history. | CI runs fuzz smoke tests, benchmark smoke tests, and publishes the tested backend/version matrix. |
 | `v1.0.0` | Candidate | Stable public API | Frozen root API, stable backend package contracts, migration notes from `v0.x`. | No known API blockers; compatibility policy and deprecation policy are documented. |
 
 ## Capability Matrix
@@ -43,11 +43,11 @@ merge queue runs, and `master` pushes.
 | Safe flashback | Unsupported in `v0.1.0`: no MySQL reverse operation is emitted | Partial: insert/delete SQL only | Partial: insert/delete commands only | Partial: HSET, SADD, PUSH, and INCR-family commands | `dblog.TestFlashbacksYieldsReverseOperations`; fixture-backed backend tests assert emitted operations; MySQL fixture test asserts no unsafe operation is emitted. |
 | Fixture provenance | Done: generated from MySQL 5.6, 5.7, 8.0, and 8.4 containers | Done: generated from PostgreSQL 16 | Done: generated from MongoDB 7.0 | Done: generated from Redis 7.2 | Workflow fixture generation steps run before integration tests. |
 | Static quality gates | Done | Done | Done | Done | `lint`, `vet`, and `vuln` matrix jobs run with `GOWORK=off` for every module. |
-| Compatibility matrix | Planned for `v0.2.0` | Planned for `v0.2.0` | Planned for `v0.2.0` | Planned for `v0.2.0` | Not a shipped `v0.1.0` capability. |
+| Compatibility matrix | Done | Done | Done | Done | Backend README files publish supported inputs, limits, and tested fixture versions; CI fixture jobs and fuzz seeds prove those claims. |
 | Live reader | Planned for `v0.3.0` | Planned for `v0.3.0` | Planned for `v0.3.0` | Planned for `v0.3.0` | Not a shipped `v0.1.0` capability. |
 | Checkpoint/resume | Planned for `v0.4.0` | Planned for `v0.4.0` | Planned for `v0.4.0` | Planned for `v0.4.0` | Not a shipped `v0.1.0` capability. |
-| Fuzz coverage | Planned for `v0.5.0` | Planned for `v0.5.0` | Planned for `v0.5.0` | Planned for `v0.5.0` | Not a shipped `v0.1.0` capability. |
-| Throughput baseline | Planned for `v0.5.0` | Planned for `v0.5.0` | Planned for `v0.5.0` | Planned for `v0.5.0` | Not a shipped `v0.1.0` capability. |
+| Fuzz coverage | Done: event header parser | Done: logical decoding line parser | Done: JSON line parser | Done: RESP command parser | `fuzz` matrix job runs parser fuzz smoke targets for every backend. |
+| Throughput baseline | Done: fixture decoder benchmark | Done: line parser benchmark | Done: line parser benchmark | Done: RESP command benchmark | `bench` matrix job runs parser benchmark smoke targets for every backend. |
 
 ## Workstreams
 

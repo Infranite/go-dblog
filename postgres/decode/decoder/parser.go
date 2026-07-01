@@ -65,13 +65,19 @@ func parseChange(line string) (types.Change, error) {
 	if i < 0 {
 		return types.Change{}, fmt.Errorf("%w: change %q", types.ErrInvalidLine, line)
 	}
-	schema, table := splitTable(rest[:i])
+	schema, table := splitTable(strings.TrimSpace(rest[:i]))
+	if table == "" {
+		return types.Change{}, fmt.Errorf("%w: table %q", types.ErrInvalidLine, line)
+	}
 	rest = rest[i+len(fieldSeparator):]
 	i = strings.Index(rest, fieldSeparator)
 	if i < 0 {
 		return types.Change{}, fmt.Errorf("%w: operation %q", types.ErrInvalidLine, line)
 	}
-	op := strings.ToLower(rest[:i])
+	op := strings.ToLower(strings.TrimSpace(rest[:i]))
+	if op == "" {
+		return types.Change{}, fmt.Errorf("%w: operation %q", types.ErrInvalidLine, line)
+	}
 	columns, err := parseColumns(rest[i+len(fieldSeparator):])
 	if err != nil {
 		return types.Change{}, err

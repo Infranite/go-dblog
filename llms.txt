@@ -30,4 +30,6 @@ adapting them to a shared event API.
 make lint
 make test
 make test-mysql
+make fuzz-smoke
+make bench-smoke
 ```

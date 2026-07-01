@@ -24,6 +24,8 @@ import (
 	"github.com/Infranite/go-dblog/mysql/common"
 )
 
+const minEventHeaderSize int64 = 13
+
 // EventHeader binary log header definition
 // https://dev.mysql.com/doc/internals/en/binlog-event-header.html
 type EventHeader struct {
@@ -54,6 +56,9 @@ func (header *EventHeader) String() string {
 }
 
 func DecodeEventHeader(data []byte, size int64) (*EventHeader, error) {
+	if size != minEventHeaderSize && size < common.DefaultEventHeaderSize {
+		return nil, fmt.Errorf("invalid event header size %d", size)
+	}
 	if l := len(data); int64(l) < size {
 		return nil, fmt.Errorf("invalid event header size %d, should be %d", l, size)
 	}
