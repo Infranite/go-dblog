@@ -20,27 +20,46 @@ import (
 	"time"
 
 	"github.com/liipx/go-mysql-binlog/binlog/decode/events"
+	"github.com/liipx/go-mysql-binlog/binlog/decode/events/types"
 )
 
+// BinFileDecodeOptFunc configures binlog file decoder option.
 type BinFileDecodeOptFunc func(o *BinFileDecodeOption)
 
+// EventCompatibilityMode controls how unknown event types are handled.
+type EventCompatibilityMode uint8
+
+const (
+	// EventCompatibilityAuto checks event type with FORMAT_DESCRIPTION_EVENT metadata.
+	EventCompatibilityAuto EventCompatibilityMode = iota
+	// EventCompatibilityStrict rejects event types not built into this package.
+	EventCompatibilityStrict
+	// EventCompatibilityLoose keeps unknown event types as metadata events.
+	EventCompatibilityLoose
+)
+
+// BinFileDecodeOption is the option of binlog file decoder.
 type BinFileDecodeOption struct {
-	StartPos  int64
-	EndPos    int64
-	StartTime time.Time
-	EndTime   time.Time
+	StartPos          int64
+	EndPos            int64
+	StartTime         time.Time
+	EndTime           time.Time
+	CompatibilityMode EventCompatibilityMode
+	EventPlugins      []types.EventPlugin
 }
 
 // NeedStart return bool of if start decoding
 func (o *BinFileDecodeOption) NeedStart(header *events.EventHeader) bool {
 	if o == nil {
 		return true
-	} else if o.StartPos != 0 && o.StartPos <= header.LogPos-header.EventSize {
-		return true
-	} else if o.StartTime.Unix() <= time.Unix(header.Timestamp, 0).Unix() {
-		return true
 	}
-	return false
+	if o.StartPos != 0 && header.LogPos-header.EventSize < o.StartPos {
+		return false
+	}
+	if !o.StartTime.IsZero() && time.Unix(header.Timestamp, 0).Before(o.StartTime) {
+		return false
+	}
+	return true
 }
 
 // NeedStop return bool of if stop decoding
@@ -55,26 +74,44 @@ func (o *BinFileDecodeOption) NeedStop(header *events.EventHeader) bool {
 	return false
 }
 
+// WithStartPos set start position option
 func WithStartPos(startPos int64) BinFileDecodeOptFunc {
 	return func(o *BinFileDecodeOption) {
 		o.StartPos = startPos
 	}
 }
 
+// WithEndPos set end position option
 func WithEndPos(endPos int64) BinFileDecodeOptFunc {
 	return func(o *BinFileDecodeOption) {
 		o.EndPos = endPos
 	}
 }
 
+// WithStartTime set start time option
 func WithStartTime(startTime time.Time) BinFileDecodeOptFunc {
 	return func(o *BinFileDecodeOption) {
 		o.StartTime = startTime
 	}
 }
 
+// WithEndTime set end time option
 func WithEndTime(endTime time.Time) BinFileDecodeOptFunc {
 	return func(o *BinFileDecodeOption) {
 		o.EndTime = endTime
+	}
+}
+
+// WithEventCompatibilityMode set event compatibility mode option
+func WithEventCompatibilityMode(mode EventCompatibilityMode) BinFileDecodeOptFunc {
+	return func(o *BinFileDecodeOption) {
+		o.CompatibilityMode = mode
+	}
+}
+
+// WithEventPlugins set event plugin option
+func WithEventPlugins(plugins ...types.EventPlugin) BinFileDecodeOptFunc {
+	return func(o *BinFileDecodeOption) {
+		o.EventPlugins = append(o.EventPlugins, plugins...)
 	}
 }
