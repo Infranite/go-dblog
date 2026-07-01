@@ -2,13 +2,14 @@ package types
 
 // Change is one decoded MongoDB oplog or change stream event.
 type Change struct {
-	Operation   string
-	Database    string
-	Collection  string
-	Document    map[string]any
-	DocumentKey map[string]any
-	Update      map[string]any
-	Raw         map[string]any
+	Operation      string
+	Database       string
+	Collection     string
+	Document       map[string]any
+	BeforeDocument map[string]any
+	DocumentKey    map[string]any
+	Update         map[string]any
+	Raw            map[string]any
 }
 
 // Command is a MongoDB operation emitted for flashback output.
