@@ -1,163 +1,105 @@
-# go-mysql-binlog
+# go-dblog
 
-[![CI](https://github.com/Infranite/go-mysql-binlog/actions/workflows/dev-test.yml/badge.svg?branch=develop)](https://github.com/Infranite/go-mysql-binlog/actions/workflows/dev-test.yml)
-[![Go Version](https://img.shields.io/github/go-mod/go-version/Infranite/go-mysql-binlog)](https://github.com/Infranite/go-mysql-binlog/blob/develop/go.mod)
-[![Go Reference](https://pkg.go.dev/badge/github.com/Infranite/go-mysql-binlog.svg)](https://pkg.go.dev/github.com/Infranite/go-mysql-binlog)
-[![Go Report Card](https://goreportcard.com/badge/github.com/Infranite/go-mysql-binlog)](https://goreportcard.com/report/github.com/Infranite/go-mysql-binlog)
-[![License](https://img.shields.io/github/license/Infranite/go-mysql-binlog)](https://github.com/Infranite/go-mysql-binlog/blob/develop/LICENSE)
+[![CI](https://github.com/Infranite/go-dblog/actions/workflows/dev-test.yml/badge.svg?branch=develop)](https://github.com/Infranite/go-dblog/actions/workflows/dev-test.yml)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/Infranite/go-dblog)](https://github.com/Infranite/go-dblog/blob/develop/go.mod)
+[![Go Reference](https://pkg.go.dev/badge/github.com/Infranite/go-dblog.svg)](https://pkg.go.dev/github.com/Infranite/go-dblog)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Infranite/go-dblog)](https://goreportcard.com/report/github.com/Infranite/go-dblog)
+[![License](https://img.shields.io/github/license/Infranite/go-dblog)](https://github.com/Infranite/go-dblog/blob/develop/LICENSE)
 
-基于 Go 语言实现的 MySQL 族二进制日志文件解析 SDK（pre-binlog-server）。
+`go-dblog` 是一个面向数据库变更日志解析、CDC 和数据恢复工作流的多模块 Go
+工具包。根模块只提供公共事件模型和跨 backend 编排 API；具体数据库族保留自己的
+原生事件结构、解析细节和依赖图。
 
-[English](https://github.com/Infranite/go-mysql-binlog/blob/develop/README.md)
+[English](https://github.com/Infranite/go-dblog/blob/develop/README.md)
 
-## 使用案例
+## 模块
+
+只安装实际使用的 backend。
+
+|模块|范围|状态|
+|---|---|---|
+|[`github.com/Infranite/go-dblog`](https://pkg.go.dev/github.com/Infranite/go-dblog)|多数据源编排公共 API|已支持|
+|[`github.com/Infranite/go-dblog/mysql`](../mysql)|MySQL 族 binlog：MySQL、MariaDB、MySQL-compatible 方言|已支持|
+|`github.com/Infranite/go-dblog/postgres`|PostgreSQL 族 logical replication / WAL|计划中|
+|`github.com/Infranite/go-dblog/mongo`|MongoDB 族 oplog / change stream|计划中|
+|`github.com/Infranite/go-dblog/redis`|Redis 族 AOF / replication stream|计划中|
+
+backend 按数据库族命名，而不是按某一种日志格式命名。MySQL 族使用 `mysql` 模块；
+PostgreSQL 族后续使用 `postgres` 模块，以便容纳兼容方言和生态扩展。
+
+## 公共层 API
+
+```bash
+go get github.com/Infranite/go-dblog
+go get github.com/Infranite/go-dblog/mysql
+```
+
 ```go
 package main
 
 import (
 	"fmt"
-	"strings"
 
-	"github.com/Infranite/go-mysql-binlog/binlog/common"
-	"github.com/Infranite/go-mysql-binlog/binlog/decode/decoder"
+	"github.com/Infranite/go-dblog"
+	"github.com/Infranite/go-dblog/mysql/decode/decoder"
 )
 
 func main() {
-	fileDecoder, err := decoder.NewBinFileDecoder("./testdata/mysql-bin.000004")
+	mysqlDecoder, err := decoder.NewDblogDecoder("./testdata/mysql-bin.000004")
 	if err != nil {
 		panic(err)
 	}
-	defer fileDecoder.Close()
+	defer mysqlDecoder.Close()
 
-	for event, err := range fileDecoder.Events() {
+	for event, err := range dblog.Events(mysqlDecoder) {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Printf("Got %s: \n\t", common.EventTypeName(event.Header.EventType))
-		fmt.Println(event.Header)
-		fmt.Println(strings.Repeat("=", 100))
+		source := dblog.SourceOf(event)
+		position := dblog.PositionOf(event)
+		fmt.Println(source.Driver, position.Value, event.Kind())
 	}
 }
 ```
 
-基于 Go 1.23 iterator 和泛型，可以按 body 类型过滤：
+需要数据库完整细节时，直接使用 backend 原生 API。需要多数据源路由、共享过滤、
+CDC 或恢复流水线时，再接入根模块公共 API。
 
-```go
-for queryEvent, err := range decoder.EventBodies[*types.QueryEvent](fileDecoder.Events()) {
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(queryEvent.Schema, queryEvent.Query)
-}
-```
-### 输出
-```text
-Got FORMAT_DESCRIPTION_EVENT: 
-	Time:2018-09-22 18:24:30 +0800 CST, ServerID:1537611870, EventSize:119, LogPos:123, Flag:0x1
-====================================================================================================
-Got PREVIOUS_GTIDS_EVENT: 
-	Time:2018-09-22 18:24:30 +0800 CST, ServerID:1537611870, EventSize:31, LogPos:154, Flag:0x80
-====================================================================================================
-Got ANONYMOUS_GTID_EVENT: 
-	Time:2018-09-22 18:24:30 +0800 CST, ServerID:1537611870, EventSize:65, LogPos:219, Flag:0x0
-====================================================================================================
-Got QUERY_EVENT: 
-	Time:2018-09-22 18:24:30 +0800 CST, ServerID:1537611870, EventSize:79, LogPos:298, Flag:0x8
-====================================================================================================
-Got TABLE_MAP_EVENT: 
-	Time:2018-09-22 18:24:30 +0800 CST, ServerID:1537611870, EventSize:64, LogPos:362, Flag:0x0
-====================================================================================================
-Got WRITE_ROWS_EVENTv2: 
-	Time:2018-09-22 18:24:30 +0800 CST, ServerID:1537611870, EventSize:197, LogPos:559, Flag:0x0
-====================================================================================================
-Got XID_EVENT: 
-	Time:2018-09-22 18:24:30 +0800 CST, ServerID:1537611870, EventSize:31, LogPos:590, Flag:0x0
-====================================================================================================
+## MySQL 族 backend
+
+```bash
+go get github.com/Infranite/go-dblog/mysql
 ```
 
-## 项目进度
-目前并未把所有的binlog event实现完全，但每一个binlog event的读取已经做完。
+MySQL 族 backend 支持 MySQL 5.1 及之后版本、MariaDB binlog 扩展，以及
+MySQL-compatible 复制协议事件。安装、使用案例、兼容模式、插件机制和事件支持表见
+[`mysql/README.md`](../mysql/README.md)。
 
-解码器目标支持 MySQL 族 binlog：MySQL 5.1 及之后版本，以及 MariaDB、TiDB 等
-兼容 MySQL 复制协议的方言。默认会根据 `FORMAT_DESCRIPTION_EVENT` 里的 metadata
-识别不同版本的 event type。已内置的 event type 会解成专属结构体；未来版本新增但
-metadata 已声明的 event type 会保留为 `*types.MetadataEvent`，并拆出 post-header
-与 payload。
+## 路线图
 
-可以通过 `decoder.WithEventCompatibilityMode(decoder.EventCompatibilityStrict)` 拒绝
-当前包尚未内置的 event type，也可以用 `decoder.EventCompatibilityLoose` 在 metadata
-不完整时继续保留事件。
-
-MariaDB 插件默认启用。其他方言扩展可以通过 `decoder.WithEventPlugins(...)`
-注册进程内插件。插件会在 `FORMAT_DESCRIPTION_EVENT` 解码后匹配并合并到当前
-decoder 自己的 registry，后续热路径仍然只是一次 event type map 查找。
-
-Row event 会根据对应 table id 最近一次 `TABLE_MAP_EVENT` 解出字段值。如果从中间
-offset 开始读取导致缺少 table map，row event 仍会返回 header 和 bitmap 字段，并在
-`BinRowsEvent.DecodeError` 中说明缺失的 metadata，不会中断整个文件扫描。
-
-|EventType|Supported|
+|阶段|范围|
 |---|---|
-|UNKNOWN_EVENT|✔|
-|START_EVENT_V3|✔|
-|QUERY_EVENT|✔|
-|STOP_EVENT|✔|
-|ROTATE_EVENT|✔|
-|INTVAR_EVENT|✔|
-|LOAD_EVENT|✔|
-|SLAVE_EVENT|✔|
-|CREATE_FILE_EVENT|✔|
-|APPEND_BLOCK_EVENT|✔|
-|EXEC_LOAD_EVENT|✔|
-|DELETE_FILE_EVENT|✔|
-|NEW_LOAD_EVENT|✔|
-|RAND_EVENT|✔|
-|USER_VAR_EVENT|✔|
-|FORMAT_DESCRIPTION_EVENT|✔|
-|XID_EVENT|✔|
-|BEGIN_LOAD_QUERY_EVENT|✔|
-|EXECUTE_LOAD_QUERY_EVENT|✔|
-|TABLE_MAP_EVENT|✔|
-|WRITE_ROWS_EVENTv0|✔|
-|UPDATE_ROWS_EVENTv0|✔|
-|DELETE_ROWS_EVENTv0|✔|
-|WRITE_ROWS_EVENTv1|✔|
-|UPDATE_ROWS_EVENTv1|✔|
-|DELETE_ROWS_EVENTv1|✔|
-|INCIDENT_EVENT|✔|
-|HEARTBEAT_EVENT|✔|
-|IGNORABLE_EVENT|✔|
-|ROWS_QUERY_EVENT|✔|
-|WRITE_ROWS_EVENTv2|✔|
-|UPDATE_ROWS_EVENTv2|✔|
-|DELETE_ROWS_EVENTv2|✔|
-|GTID_EVENT|✔|
-|ANONYMOUS_GTID_EVENT|✔|
-|PREVIOUS_GTIDS_EVENT|✔|
-|TRANSACTION_CONTEXT_EVENT|✔|
-|VIEW_CHANGE_EVENT|✔|
-|XA_PREPARE_LOG_EVENT|✔|
-|PARTIAL_UPDATE_ROWS_EVENT|✔|
-|TRANSACTION_PAYLOAD_EVENT|✔|
-|HEARTBEAT_EVENT_V2|✔|
-|GTID_TAGGED_LOG_EVENT|✔|
+|1|MySQL 族复制连接 reader|
+|2|PostgreSQL 族 logical replication backend|
+|3|至少两个真实 backend 稳定后补齐共享 CDC helper|
+|4|MongoDB 族 oplog / change stream backend|
+|5|Redis 族 AOF / replication stream backend|
+|6|基于稳定 backend 构建数据恢复辅助能力|
 
-|MariaDB EventType|Supported|
-|---|---|
-|MARIADB_ANNOTATE_ROWS_EVENT|✔|
-|MARIADB_BINLOG_CHECKPOINT_EVENT|✔|
-|MARIADB_GTID_EVENT|✔|
-|MARIADB_GTID_LIST_EVENT|✔|
-|MARIADB_START_ENCRYPTION_EVENT|✔|
-|MARIADB_QUERY_COMPRESSED_EVENT|✔|
-|MARIADB_WRITE_ROWS_COMPRESSED_EVENT_V1|✔|
-|MARIADB_UPDATE_ROWS_COMPRESSED_EVENT_V1|✔|
-|MARIADB_DELETE_ROWS_COMPRESSED_EVENT_V1|✔|
+## 开发
 
-TiDB 面向复制协议的 binlog event 走 MySQL-compatible 解码器集合。除非 TiDB
-暴露需要单独处理的 binlog event type，否则不单独提供 TiDB 插件。
+运行根模块测试：
 
-## TODO
-1. 支持通过 MySQL 族复制连接获取 binlog event。
-1. 网络读取稳定后，再做并发 binlog dumper。
-1. 基于 row-format binary log 生成闪回 SQL。
+```bash
+go test ./...
+```
+
+运行 MySQL backend 测试：
+
+```bash
+go test ./mysql/...
+```
+
+## License
+
+Apache License 2.0. See [LICENSE](../LICENSE).
