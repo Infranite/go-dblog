@@ -54,6 +54,7 @@ func TestFixtureBackedLogicalDecoding(t *testing.T) {
 
 	decoder = openPostgresFixture(t, path)
 	var flashbacks int
+	var updateFlashbacks int
 	for op, err := range dblog.Flashbacks(decoder.Events()) {
 		if err != nil {
 			t.Fatal(err)
@@ -62,10 +63,16 @@ func TestFixtureBackedLogicalDecoding(t *testing.T) {
 		if !strings.Contains(sql, "public.users") {
 			t.Fatalf("flashback SQL = %s", sql)
 		}
+		if strings.HasPrefix(sql, "UPDATE public.users SET ") {
+			updateFlashbacks++
+		}
 		flashbacks++
 	}
 	if flashbacks == 0 {
 		t.Fatal("fixture produced no flashback SQL")
+	}
+	if updateFlashbacks == 0 {
+		t.Fatal("fixture produced no update flashback SQL")
 	}
 }
 

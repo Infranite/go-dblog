@@ -80,7 +80,8 @@ func main() {
 - Root registry integration through `postgres/backend`.
 - Checkpoint resume through `dblog.WithCheckpoint` when opened through the root
   registry.
-- SQL flashbacks for inserts and deletes.
+- SQL flashbacks for inserts, deletes, and updates with complete old/new tuple
+  data.
 - Event plugins for PostgreSQL-compatible sources with extra line types.
 
 The backend driver name is `pg`, while the module path remains `postgres`.
@@ -91,6 +92,7 @@ The backend driver name is `pg`, while the module path remains `postgres`.
 |---|---|---|
 | `BEGIN` and `COMMIT` records from logical decoding text output | Supported | Unit tests and PostgreSQL fixture job generated from `postgres:16`. |
 | Row changes in `table schema.table: OPERATION: col[type]:value` form | Supported | Unit tests, fixture job, and `FuzzParseLine` smoke target. |
+| `UPDATE: old-key: ... new-tuple: ...` records with complete old tuple data | Supported | Unit tests, `FuzzParseLine` seed, and PostgreSQL fixture job with `REPLICA IDENTITY FULL`. |
 | Empty table or operation names | Rejected | Parser tests and fuzz smoke target. |
 | Logical replication protocol messages | Planned | Not part of the offline parser release line. |
 
@@ -99,11 +101,12 @@ The backend driver name is `pg`, while the module path remains `postgres`.
 | Event | Flashback output |
 |---|---|
 | `insert` | `DELETE FROM ... WHERE ...;` |
+| `update` with complete `old-key` and `new-tuple` columns | `UPDATE ... SET old_values WHERE new_values;` |
 | `delete` | `INSERT INTO ... VALUES ...;` |
-| `update`, `begin`, `commit` | No flashback output. |
+| `update` without complete old/new tuple data, `begin`, `commit` | No flashback output. |
 
-Update flashback needs old and new row images. The text format this parser
-accepts does not guarantee both, so the backend does not synthesize unsafe SQL.
+Update flashback needs enough old values to restore every new tuple column. If
+the old tuple only contains key columns, the backend leaves the event out.
 
 ## Event Plugins
 

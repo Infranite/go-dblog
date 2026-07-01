@@ -70,6 +70,9 @@ docker exec "$name" psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c \
 	"CREATE TABLE public.users (id integer PRIMARY KEY, name text NOT NULL, active boolean NOT NULL);" >/dev/null
 
 docker exec "$name" psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c \
+	"ALTER TABLE public.users REPLICA IDENTITY FULL;" >/dev/null
+
+docker exec "$name" psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c \
 	"SELECT pg_create_logical_replication_slot('dblog_ci_slot', 'test_decoding');" >/dev/null
 
 docker exec -i "$name" psql -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL' >/dev/null

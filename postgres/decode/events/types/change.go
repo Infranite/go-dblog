@@ -14,6 +14,8 @@ type Change struct {
 	Table     string
 	Operation string
 	Columns   []Column
+	OldKey    []Column
+	NewTuple  []Column
 }
 
 // Transaction is a BEGIN or COMMIT record.

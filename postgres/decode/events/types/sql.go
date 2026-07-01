@@ -18,8 +18,21 @@ func insertSQL(change Change) string {
 }
 
 func deleteSQL(change Change) string {
-	where := make([]string, 0, len(change.Columns))
-	for _, column := range change.Columns {
+	return fmt.Sprintf("DELETE FROM %s WHERE %s;", tableName(change), whereSQL(change.Columns))
+}
+
+func updateSQL(change Change) string {
+	set := make([]string, 0, len(change.OldKey))
+	for _, column := range change.OldKey {
+		set = append(set, quoteIdent(column.Name)+sqlEquals+sqlValue(column.Value))
+	}
+	return fmt.Sprintf("UPDATE %s SET %s WHERE %s;",
+		tableName(change), strings.Join(set, ", "), whereSQL(change.NewTuple))
+}
+
+func whereSQL(columns []Column) string {
+	where := make([]string, 0, len(columns))
+	for _, column := range columns {
 		name := quoteIdent(column.Name)
 		if column.Value == nil {
 			where = append(where, name+sqlIsNull)
@@ -27,7 +40,7 @@ func deleteSQL(change Change) string {
 		}
 		where = append(where, name+sqlEquals+sqlValue(column.Value))
 	}
-	return fmt.Sprintf("DELETE FROM %s WHERE %s;", tableName(change), strings.Join(where, sqlAnd))
+	return strings.Join(where, sqlAnd)
 }
 
 func tableName(change Change) string {

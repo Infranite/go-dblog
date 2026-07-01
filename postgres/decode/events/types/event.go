@@ -56,6 +56,12 @@ func (e Event) Reverse() (any, bool) {
 	switch change.Operation {
 	case OperationInsert:
 		return deleteSQL(change), true
+	case OperationUpdate:
+		hasImages := len(change.OldKey) > 0 && len(change.NewTuple) > 0
+		if !hasImages || !coversColumns(change.OldKey, change.NewTuple) {
+			return nil, false
+		}
+		return updateSQL(change), true
 	case OperationDelete:
 		return insertSQL(change), true
 	default:
@@ -64,3 +70,16 @@ func (e Event) Reverse() (any, bool) {
 }
 
 var _ dblog.Event = Event{}
+
+func coversColumns(oldKey, newTuple []Column) bool {
+	columns := make(map[string]struct{}, len(oldKey))
+	for _, column := range oldKey {
+		columns[column.Name] = struct{}{}
+	}
+	for _, column := range newTuple {
+		if _, ok := columns[column.Name]; !ok {
+			return false
+		}
+	}
+	return true
+}
