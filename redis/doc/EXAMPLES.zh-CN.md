@@ -72,7 +72,8 @@ for event, err := range dblog.Flashbacks(decoder.Events()) {
 }
 ```
 
-只有具备确定性反向命令的操作会输出闪回。`SET`、`HSET`、`SADD`、`DEL` 等依赖状态的
+只有具备确定性反向命令的操作会输出闪回，包括 list push、counter increment、
+`HINCRBY`、`HINCRBYFLOAT` 和 `ZINCRBY`。`SET`、`HSET`、`SADD`、`DEL` 等依赖状态的
 命令会被省略。
 
 ## 注册命令插件

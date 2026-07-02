@@ -35,6 +35,9 @@ docker exec "$name" redis-cli HSET user:1 name Ada >/dev/null
 docker exec "$name" redis-cli SADD tags go >/dev/null
 docker exec "$name" redis-cli LPUSH queue job-1 >/dev/null
 docker exec "$name" redis-cli INCR counter >/dev/null
+docker exec "$name" redis-cli HINCRBY user:1 visits 3 >/dev/null
+docker exec "$name" redis-cli HINCRBYFLOAT user:1 score 1.25 >/dev/null
+docker exec "$name" redis-cli ZINCRBY leaderboard 2.5 ada >/dev/null
 
 aof_path="$(docker exec "$name" sh -c "find /data -type f \\( -name '*incr.aof' -o -name 'appendonly.aof' \\) | sort | tail -n 1")"
 if [[ -z "$aof_path" ]]; then
@@ -49,4 +52,7 @@ grep -aq 'HSET' "$out"
 grep -aq 'SADD' "$out"
 grep -aq 'LPUSH' "$out"
 grep -aq 'INCR' "$out"
+grep -aq 'HINCRBY' "$out"
+grep -aq 'HINCRBYFLOAT' "$out"
+grep -aq 'ZINCRBY' "$out"
 ls -lh "$out"

@@ -30,4 +30,10 @@ const (
 	CommandIncrBy = types.CommandIncrBy
 	// CommandDecrBy is the Redis DECRBY command.
 	CommandDecrBy = types.CommandDecrBy
+	// CommandHIncrBy is the Redis HINCRBY command.
+	CommandHIncrBy = types.CommandHIncrBy
+	// CommandHIncrByFloat is the Redis HINCRBYFLOAT command.
+	CommandHIncrByFloat = types.CommandHIncrByFloat
+	// CommandZIncrBy is the Redis ZINCRBY command.
+	CommandZIncrBy = types.CommandZIncrBy
 )

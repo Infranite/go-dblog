@@ -28,4 +28,10 @@ const (
 	CommandIncrBy = "incrby"
 	// CommandDecrBy is the Redis DECRBY command.
 	CommandDecrBy = "decrby"
+	// CommandHIncrBy is the Redis HINCRBY command.
+	CommandHIncrBy = "hincrby"
+	// CommandHIncrByFloat is the Redis HINCRBYFLOAT command.
+	CommandHIncrByFloat = "hincrbyfloat"
+	// CommandZIncrBy is the Redis ZINCRBY command.
+	CommandZIncrBy = "zincrby"
 )

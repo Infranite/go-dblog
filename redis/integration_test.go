@@ -31,7 +31,15 @@ func TestFixtureBackedAOFDecoding(t *testing.T) {
 		counts[event.Kind()]++
 	}
 
-	for _, kind := range []string{CommandHSet, CommandSAdd, CommandLPush, CommandIncr} {
+	for _, kind := range []string{
+		CommandHSet,
+		CommandSAdd,
+		CommandLPush,
+		CommandIncr,
+		CommandHIncrBy,
+		CommandHIncrByFloat,
+		CommandZIncrBy,
+	} {
 		if counts[kind] == 0 {
 			t.Fatalf("fixture has no %s commands: %v", kind, counts)
 		}
@@ -66,7 +74,15 @@ func TestFixtureBackedAOFDecoding(t *testing.T) {
 		switch command.Name {
 		case CommandHDel, CommandSRem:
 			t.Fatalf("state-dependent flashback command = %#v", command)
-		case CommandLPop, CommandRPop, CommandIncr, CommandDecr, CommandIncrBy, CommandDecrBy:
+		case CommandLPop,
+			CommandRPop,
+			CommandIncr,
+			CommandDecr,
+			CommandIncrBy,
+			CommandDecrBy,
+			CommandHIncrBy,
+			CommandHIncrByFloat,
+			CommandZIncrBy:
 			sawSafeReverse = true
 		}
 		flashbacks++
@@ -117,6 +133,9 @@ func TestLiveReplicationStream(t *testing.T) {
 			{"SET", "live:key", "value"},
 			{"INCR", "live:counter"},
 			{"LPUSH", "live:queue", "job-1"},
+			{"HINCRBY", "live:hash", "visits", "3"},
+			{"HINCRBYFLOAT", "live:hash", "score", "1.25"},
+			{"ZINCRBY", "live:zset", "2.5", "ada"},
 		} {
 			if err := sendRedisCommand(addr, command...); err != nil {
 				writeErr <- err
@@ -132,14 +151,26 @@ func TestLiveReplicationStream(t *testing.T) {
 			t.Fatal(err)
 		}
 		counts[event.Kind()]++
-		if counts["set"] > 0 && counts[CommandIncr] > 0 && counts[CommandLPush] > 0 {
+		if counts["set"] > 0 &&
+			counts[CommandIncr] > 0 &&
+			counts[CommandLPush] > 0 &&
+			counts[CommandHIncrBy] > 0 &&
+			counts[CommandHIncrByFloat] > 0 &&
+			counts[CommandZIncrBy] > 0 {
 			cancel()
 		}
 	}
 	if err := <-writeErr; err != nil {
 		t.Fatal(err)
 	}
-	for _, kind := range []string{"set", CommandIncr, CommandLPush} {
+	for _, kind := range []string{
+		"set",
+		CommandIncr,
+		CommandLPush,
+		CommandHIncrBy,
+		CommandHIncrByFloat,
+		CommandZIncrBy,
+	} {
 		if counts[kind] == 0 {
 			t.Fatalf("live reader has no %s commands: %v", kind, counts)
 		}

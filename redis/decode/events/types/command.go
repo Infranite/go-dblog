@@ -49,7 +49,44 @@ func (c Command) Reverse() (Command, bool) {
 			return Command{}, false
 		}
 		return Command{Name: CommandIncrBy, Args: append([]string(nil), c.Args...)}, true
+	case CommandHIncrBy, CommandHIncrByFloat:
+		return reverseNumericDelta(c, 2)
+	case CommandZIncrBy:
+		return reverseNumericDelta(c, 1)
 	default:
 		return Command{}, false
+	}
+}
+
+func reverseNumericDelta(c Command, deltaIndex int) (Command, bool) {
+	if len(c.Args) != 3 {
+		return Command{}, false
+	}
+	delta, ok := negateNumericDelta(c.Args[deltaIndex])
+	if !ok {
+		return Command{}, false
+	}
+	args := append([]string(nil), c.Args...)
+	args[deltaIndex] = delta
+	return Command{Name: c.Name, Args: args}, true
+}
+
+func negateNumericDelta(delta string) (string, bool) {
+	if delta == "" {
+		return "", false
+	}
+	switch delta[0] {
+	case '-':
+		if len(delta) == 1 {
+			return "", false
+		}
+		return delta[1:], true
+	case '+':
+		if len(delta) == 1 {
+			return "", false
+		}
+		return "-" + delta[1:], true
+	default:
+		return "-" + delta, true
 	}
 }

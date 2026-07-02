@@ -72,8 +72,9 @@ for event, err := range dblog.Flashbacks(decoder.Events()) {
 }
 ```
 
-Only commands with deterministic reverse commands are emitted. State-dependent
-commands such as `SET`, `HSET`, `SADD`, and `DEL` are omitted.
+Only commands with deterministic reverse commands are emitted. This includes
+list pushes, counter increments, `HINCRBY`, `HINCRBYFLOAT`, and `ZINCRBY`.
+State-dependent commands such as `SET`, `HSET`, `SADD`, and `DEL` are omitted.
 
 ## Register A Command Plugin
 

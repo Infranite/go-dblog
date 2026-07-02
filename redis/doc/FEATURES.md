@@ -23,8 +23,8 @@ Redis-family backend.
 - Root registry integration through `redis/backend`.
 - Checkpoint resume through `dblog.WithCheckpoint` when opened through the root
   registry.
-- Flashback commands for operations that can be safely reversed without reading
-  Redis state.
+- Flashback commands for list pushes and deterministic numeric increments that
+  can be safely reversed without reading Redis state.
 - Command plugins for Redis-compatible products and module commands.
 
 ## Unsupported
@@ -40,7 +40,7 @@ Redis-family backend.
 | Input | Status | CI evidence |
 |---|---|---|
 | Redis AOF RESP array commands | Supported | `redis` fixture job generated from `redis:7.2`; `FuzzParseCommand` smoke target. |
-| Redis replication streams | Supported | `redis` CI job starts `redis:7.2`, opens a PSYNC stream, writes SET/INCR/LPUSH, and reads them through `dblog.WithDSN` plus `dblog.WithContext`. |
+| Redis replication streams | Supported | `redis` CI job starts `redis:7.2`, opens a PSYNC stream, writes SET/INCR/LPUSH/HINCRBY/HINCRBYFLOAT/ZINCRBY, and reads them through `dblog.WithDSN` plus `dblog.WithContext`. |
 | RESP frames with LF-only line endings, empty command names, invalid lengths, or oversized arrays/bulk strings | Rejected | Parser tests and fuzz smoke target. |
 | RDB preambles or mixed RDB/AOF streams in offline input | Rejected | `TestParseCommandRejectsInvalidRESP`. |
 | Initial RDB snapshot payload in live PSYNC streams | Skipped before command decoding | `TestLiveDecoderSkipsSizedRDB` and live Redis CI. |
@@ -62,6 +62,8 @@ emitting events from the following RESP command frames.
 | `LPUSH key value ...` | `LPOP key count` |
 | `RPUSH key value ...` | `RPOP key count` |
 | `INCR`, `DECR`, `INCRBY`, `DECRBY` | Opposite increment command |
+| `HINCRBY key field delta`, `HINCRBYFLOAT key field delta` | Same command with the negated delta |
+| `ZINCRBY key delta member` | `ZINCRBY key -delta member` |
 
 Commands that require previous Redis state, TTLs, overwritten values, or
 knowledge of which set/hash members already existed do not emit flashback

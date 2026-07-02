@@ -8,6 +8,8 @@ const (
 	OperationInsert = "insert"
 	// OperationUpdate is a MongoDB update event.
 	OperationUpdate = "update"
+	// OperationReplace is a MongoDB replacement event.
+	OperationReplace = "replace"
 	// OperationDelete is a MongoDB delete event.
 	OperationDelete = "delete"
 	// OperationCommand is a MongoDB command event.

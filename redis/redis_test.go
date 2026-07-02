@@ -122,6 +122,60 @@ func TestCommandReverseOmitsStateDependentCommands(t *testing.T) {
 	}
 }
 
+func TestCommandReverseSupportsDeterministicNumericCommands(t *testing.T) {
+	tests := []struct {
+		name    string
+		command Command
+		want    Command
+	}{
+		{
+			name: "hash integer increment",
+			command: Command{
+				Name: CommandHIncrBy,
+				Args: []string{"user:1", "visits", "3"},
+			},
+			want: Command{
+				Name: CommandHIncrBy,
+				Args: []string{"user:1", "visits", "-3"},
+			},
+		},
+		{
+			name: "hash float increment",
+			command: Command{
+				Name: CommandHIncrByFloat,
+				Args: []string{"user:1", "score", "-1.25"},
+			},
+			want: Command{
+				Name: CommandHIncrByFloat,
+				Args: []string{"user:1", "score", "1.25"},
+			},
+		},
+		{
+			name: "sorted set score increment",
+			command: Command{
+				Name: CommandZIncrBy,
+				Args: []string{"leaderboard", "2.5e1", "ada"},
+			},
+			want: Command{
+				Name: CommandZIncrBy,
+				Args: []string{"leaderboard", "-2.5e1", "ada"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reverse, ok := tt.command.Reverse()
+			if !ok {
+				t.Fatal("expected flashback command")
+			}
+			if !reflect.DeepEqual(reverse, tt.want) {
+				t.Fatalf("reverse = %#v, want %#v", reverse, tt.want)
+			}
+		})
+	}
+}
+
 func TestParseCommandRejectsInvalidRESP(t *testing.T) {
 	tests := []struct {
 		name  string

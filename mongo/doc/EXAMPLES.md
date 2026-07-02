@@ -72,8 +72,8 @@ if err != nil {
 defer decoder.Close()
 ```
 
-Enable collection pre-images when update flashbacks must be emitted from live
-change streams.
+Enable collection pre-images when update or replace flashbacks must be emitted
+from live change streams.
 
 ## Iterate Flashback Commands
 
@@ -100,23 +100,23 @@ import (
 	"github.com/Infranite/go-dblog/mongo/decode/events/types"
 )
 
-type replacePlugin struct{}
+type upsertPlugin struct{}
 
-func (replacePlugin) Name() string { return "replace" }
-func (replacePlugin) Match(raw map[string]any) bool {
-	return raw["operationType"] == "replace"
+func (upsertPlugin) Name() string { return "upsert" }
+func (upsertPlugin) Match(raw map[string]any) bool {
+	return raw["operationType"] == "upsert"
 }
-func (replacePlugin) Apply(change *types.Change) error {
+func (upsertPlugin) Apply(change *types.Change) error {
 	change.Operation = types.OperationUpdate
 	return nil
 }
 
 func main() {
-	_ = decoder.NewDecoder(
+		_ = decoder.NewDecoder(
 		dblog.Source{Name: "changes"},
-		strings.NewReader(`{"operationType":"replace","ns":{"db":"app","coll":"users"}}`+"\n"),
+		strings.NewReader(`{"operationType":"upsert","ns":{"db":"app","coll":"users"}}`+"\n"),
 		nil,
-		decoder.WithEventPlugins(replacePlugin{}),
+		decoder.WithEventPlugins(upsertPlugin{}),
 	)
 }
 ```
