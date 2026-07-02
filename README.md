@@ -7,9 +7,9 @@
 [![License](https://img.shields.io/github/license/Infranite/go-dblog)](https://github.com/Infranite/go-dblog/blob/master/LICENSE)
 
 `go-dblog` is a multi-module Go toolkit for parsing database change logs. The
-root module defines the shared event, registry, checkpoint, filtering, and
-flashback contracts; each product backend keeps its native event model and
-dependencies in its own module.
+root module defines shared event, registry, checkpoint, filtering, and safe
+flashback contracts; each backend keeps product-specific parsing, live reading,
+typed events, and extension hooks in its own module.
 
 [中文](./doc/README.zh-CN.md)
 
@@ -17,26 +17,24 @@ dependencies in its own module.
 
 Install only the backend you use.
 
-| Product | Module | Details |
-|---|---|---|
-| Common API | `github.com/Infranite/go-dblog` | This README |
-| MySQL family | `github.com/Infranite/go-dblog/mysql` | [English](./mysql/README.md) / [中文](./mysql/README.zh-CN.md) |
-| PostgreSQL family | `github.com/Infranite/go-dblog/postgres` | [English](./postgres/README.md) / [中文](./postgres/README.zh-CN.md) |
-| MongoDB family | `github.com/Infranite/go-dblog/mongo` | [English](./mongo/README.md) / [中文](./mongo/README.zh-CN.md) |
-| Redis family | `github.com/Infranite/go-dblog/redis` | [English](./redis/README.md) / [中文](./redis/README.zh-CN.md) |
+| Product | Module | README | Features | Examples |
+|---|---|---|---|---|
+| Common API | `github.com/Infranite/go-dblog` | This README | [Roadmap scope](./doc/ROADMAP.md#common-api) | Minimal example below |
+| MySQL family | `github.com/Infranite/go-dblog/mysql` | [English](./mysql/README.md) / [中文](./mysql/README.zh-CN.md) | [English](./mysql/doc/FEATURES.md) / [中文](./mysql/doc/FEATURES.zh-CN.md) | [English](./mysql/doc/EXAMPLES.md) / [中文](./mysql/doc/EXAMPLES.zh-CN.md) |
+| PostgreSQL family | `github.com/Infranite/go-dblog/postgres` | [English](./postgres/README.md) / [中文](./postgres/README.zh-CN.md) | [English](./postgres/doc/FEATURES.md) / [中文](./postgres/doc/FEATURES.zh-CN.md) | [English](./postgres/doc/EXAMPLES.md) / [中文](./postgres/doc/EXAMPLES.zh-CN.md) |
+| MongoDB family | `github.com/Infranite/go-dblog/mongo` | [English](./mongo/README.md) / [中文](./mongo/README.zh-CN.md) | [English](./mongo/doc/FEATURES.md) / [中文](./mongo/doc/FEATURES.zh-CN.md) | [English](./mongo/doc/EXAMPLES.md) / [中文](./mongo/doc/EXAMPLES.zh-CN.md) |
+| Redis family | `github.com/Infranite/go-dblog/redis` | [English](./redis/README.md) / [中文](./redis/README.zh-CN.md) | [English](./redis/doc/FEATURES.md) / [中文](./redis/doc/FEATURES.zh-CN.md) | [English](./redis/doc/EXAMPLES.md) / [中文](./redis/doc/EXAMPLES.zh-CN.md) |
 
-Current supported and unsupported source details live in
-[doc/ROADMAP.md](./doc/ROADMAP.md).
+## Core Features
 
-## Features
-
-- Backend-neutral `dblog.Event` shape for routing mixed database log streams.
+- Backend-neutral `dblog.Event` shape for mixed database log streams.
 - Explicit backend registration through `dblog.Registry`.
 - Streaming decoders built on Go iterator APIs.
-- Shared helpers for source metadata, positions, checkpoint resume, filtering,
-  and safe flashback output.
+- Shared source metadata, position, checkpoint resume, filtering, and safe
+  flashback helpers.
 - Backend-native typed events for database-specific fields.
-- Plugin hooks inside backend decoder packages for dialect-specific records.
+- Plugin hooks inside backend decoder packages for compatible dialects and
+  product-specific records.
 - Separate Go modules so callers do not install unused database dependencies.
 
 ## Install
@@ -91,7 +89,7 @@ Use the common API for multi-source routing, shared filtering, CDC pipelines,
 backend registration, and recovery tasks. Use backend-native APIs when you need
 database-specific event fields.
 
-## Documentation
+## Project Docs
 
 | Topic | English | 中文 |
 |---|---|---|

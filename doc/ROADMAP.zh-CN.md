@@ -4,12 +4,12 @@
 
 [English](./ROADMAP.md)
 
-## 状态
+## 状态说明
 
 | 状态 | 含义 |
 |---|---|
-| Done | 已实现、已文档化，并由 CI 覆盖。 |
 | Released | 已通过 GitHub Releases 和 git tags 发布。 |
+| Done | 已实现、已文档化，并由 CI 覆盖。 |
 | Ready | 已实现且由 CI 覆盖，可发布公开 tag。 |
 | Planned | 已接受为规划范围，但尚未开始或尚未完成。 |
 | Candidate | 有价值的方向，还需要设计或用户验证。 |
@@ -17,264 +17,147 @@
 
 ## 版本目标
 
-### `v0.1.0` - Ready, 已被取代
-
-目标：MySQL、PostgreSQL、MongoDB、Redis 的首个可用 parser 和 CDC developer
-preview。
-
-状态：该范围已经实现并由 CI 覆盖，但在公开 tag 发布前已被取代。首个公开 tag 集合是
-`v0.2.0`。
-
-### `v0.2.0` - Released
-
-目标：兼容性加固后的 parser 和 CDC developer preview。
-
-退出门禁：
-
-- PR 和 `master` 上的受保护 `ci` 与 `merge-policy` 检查通过；
-- 每个 backend 都记录支持版本、暂不支持输入、异常输入行为和 fixture 来源；
-- 兼容性加固包含 incomplete metadata windows、unsupported binary formats、
-  malformed JSON/update descriptions、RESP limits 和 RDB-prefixed Redis streams
-  的负向测试；
-- 已发布 `v0.2.0`、`mysql/v0.2.0`、`postgres/v0.2.0`、`mongo/v0.2.0`、
-  `redis/v0.2.0` tag。
-
-### `v0.3.0` - Planned
-
-目标：恢复工作流。
-
-退出门禁：只在 source log 带有足够旧状态时扩展闪回；不安全反向操作保持省略或显式
-opt-in。
-
-### `v0.4.0` - Planned
-
-目标：运维成熟度。
-
-退出门禁：CI 发布已测试 backend/version 矩阵，并保留 parser benchmark 历史。
-
-### `v1.0.0` - Candidate
-
-目标：稳定公共 API。
-
-退出门禁：根 API 和 backend package 契约冻结，并有兼容性策略。
-
-## `v0.2.0` 产品范围
-
-### 公共 API
-
-已支持：
-
-- `dblog.Event`、`dblog.Decoder`、`dblog.Registry` 和显式 backend 注册。
-- `WithReader`、`WithPath`、`WithDSN`、`WithSource`、`WithContext`、
-  `WithCheckpoint` open options。
-- 公共 source、position、checkpoint、过滤和闪回辅助函数。
-- backend-neutral 编排，同时保留 backend 原生事件类型。
-
-暂不支持：
-
-- 超出公共事件形态的跨数据库语义归一。
-- 托管服务 connector。
-- 通过 blank import 自动注册 backend。
-
-CI 证据：
-
-- `root_test` 运行 `go test -short -race -count=1 -shuffle=on ./...`。
-- 每个 backend module 都运行 backend 注册和 checkpoint 测试。
-
-### MySQL 族
-
-已支持：
-
-- 来自 `mysql:5.6`、`mysql:5.7`、`mysql:8.0`、`mysql:8.4` fixture 容器的本地
-  MySQL-family binary log 文件。
-- 通过 `dblog.WithDSN` 打开在线 MySQL replication stream。
-- live reader 支持可选 `binlog` 或 `file` 以及 `pos` DSN query 参数。
-- [mysql/README.md](../mysql/README.md) 中列出的 MySQL、MariaDB 和
-  MySQL-compatible binlog events。
-- 原生 typed event body、基于 `TABLE_MAP_EVENT` 元数据的 row event 解码，以及兼容
-  模式中的 metadata-declared future events。
-- 内置 MariaDB plugin 和自定义 event plugin。
-- 通过根 registry 打开时支持 checkpoint resume。
-- 对完整 write、delete、update row image 生成安全闪回。
-- parser fuzz smoke 和 fixture decoder benchmark smoke 门禁。
-
-兼容性行为：
-
-- 缺少前置 `TABLE_MAP_EVENT` 时，row event 仍会返回 header 和 bitmap fields，
-  `DecodeError` 会说明缺失 metadata。
-- malformed 或 undersized event headers 会被拒绝。
-
-暂不支持：
-
-- live reader 的 GTID auto-positioning。
-- TLS-specific DSN 处理。
-- 输入窗口缺少 table-map metadata 时重建已解码 row value。
-- incomplete row image、skipped columns 或 partial update row event 的闪回。
-
-CI 证据：
-
-- `mysql` job 从 `mysql:5.6`、`mysql:5.7`、`mysql:8.0`、`mysql:8.4` 生成真实
-  fixture。
-- `TestLiveReplicationStream` 运行在 `mysql:8.4`。
-- `TestRowsEventWithoutPriorTableMapKeepsDecodeError` 覆盖 incomplete table-map
-  input windows。
-- `FuzzDecodeEventHeader` 和 `BenchmarkDecoder` 作为 CI smoke gate 运行。
-
-### PostgreSQL 族
-
-已支持：
-
-- PostgreSQL logical decoding 文本记录：`BEGIN`、`COMMIT` 和
-  `table schema.table: OPERATION: ...` changes。
-- `test_decoding` 文本格式的 insert、update、delete row changes。
-- 通过 `pg_logical_slot_get_changes` 进行 live SQL logical slot 轮询。
-- 面向 `test_decoding` 的 PostgreSQL wire-level replication protocol reader。
-- 原生 transaction 和 change event body。
-- 面向额外文本行族的 event plugin。
-- 通过根 registry 打开时支持 checkpoint resume。
-- 对 insert、delete 和具备完整 old/new tuple 数据的 update 生成安全 SQL 闪回。
-- parser fuzz smoke 和 line parser benchmark smoke 门禁。
-
-兼容性行为：
-
-- `pgoutput` binary relation 和 tuple messages 会被 text parser 明确拒绝。
-- live reader 只解析 `test_decoding` 文本输出；其他文本 output family 需要通过自定义
-  event plugin 归一化。
-
-暂不支持：
-
-- `pgoutput` binary relation/tuple messages。
-- raw WAL/page 解码。
-- `test_decoding` 以外的 output plugin，除非自定义 text event plugin 处理。
-- old tuple 未覆盖所有 new tuple column 时的 update 闪回。
-
-CI 证据：
-
-- `postgres` job 从 `postgres:16` 生成真实 fixture。
-- `TestLiveLogicalDecoding` 和 `TestWireLogicalReplication` 运行在真实
-  `postgres:16` 容器上。
-- `TestParseLineRejectsPgoutputBinaryMessages` 覆盖 unsupported binary
-  `pgoutput` messages。
-- `FuzzParseLine` 和 `BenchmarkParseLine` 作为 CI smoke gate 运行。
-
-### MongoDB 族
-
-已支持：
-
-- 按行分隔的 MongoDB oplog JSON 记录，包含 `op`、`ns`、`o`、`o2`。
-- 按行分隔的 change stream JSON 记录，包含 `operationType`、`ns`、
-  `documentKey`、`fullDocument`、`fullDocumentBeforeChange`、`updateDescription`。
-- 来自 MongoDB replica set 的 live collection change stream。
-- 原生 typed change events。
-- 面向 MongoDB-compatible event shape 的 event plugin。
-- 通过根 registry 打开时支持 checkpoint resume。
-- 当输入包含 document key 和 before-image 数据时，为 insert、delete、update 生成安全
-  闪回命令。
-- parser fuzz smoke 和 line parser benchmark smoke 门禁。
-
-兼容性行为：
-
-- malformed JSON records 会被拒绝。
-- change stream `updateDescription` 如果存在，必须是 JSON object。
-- live update 闪回要求 `fullDocumentBeforeChange`；用户需要在源 collection 上启用
-  MongoDB change stream pre-images。
-
-暂不支持：
-
-- JSON records 或 change streams 之外的 raw oplog tailing。
-- 自动 replica set 或 sharded cluster discovery。
-- 缺少 `fullDocumentBeforeChange` 的 update 闪回。
-- 缺少完整被删除文档数据的 delete 闪回。
-
-CI 证据：
-
-- `mongo` job 从 `mongo:7.0` 生成真实 fixture。
-- `TestLiveChangeStream` 运行在真实 `mongo:7.0` replica set。
-- `TestParseLineRejectsMalformedInput` 覆盖 malformed JSON 和非法
-  `updateDescription`。
-- `FuzzParseLine` 和 `BenchmarkParseLine` 作为 CI smoke gate 运行。
-
-### Redis 族
-
-已支持：
-
-- Redis AOF RESP array commands。
-- 通过 `dblog.WithDSN` 打开 live Redis PSYNC replication stream。
-- 小写归一化 command name 和原生 typed command event。
-- 面向 Redis-compatible 产品和 module commands 的 command plugin。
-- 通过根 registry 打开时支持 checkpoint resume。
-- 对 `LPUSH`、`RPUSH`、`INCR`、`DECR`、`INCRBY`、`DECRBY` 族操作生成安全闪回命令。
-- RESP parser fuzz smoke 和 command parser benchmark smoke 门禁。
-
-兼容性行为：
-
-- 离线解析只接收 RESP array command frames。
-- RDB preamble 和 mixed RDB/AOF streams 会被离线 parser 拒绝。
-- live PSYNC reader 会跳过最初的 Redis RDB snapshot payload，然后再读取 command
-  frames。
-- invalid lengths、LF-only frames、oversized arrays 和 oversized bulk strings
-  会被拒绝。
-
-暂不支持：
-
-- Redis Cluster 或 Sentinel discovery。
-- TLS-specific DSN 处理。
-- 离线 RDB snapshot 解析。
-- `SET`、`HSET`、`SADD`、`DEL` 等依赖旧值、TTL 或成员状态的命令闪回。
-
-CI 证据：
-
-- `redis` job 从 `redis:7.2` 生成真实 fixture。
-- `TestLiveReplicationStream` 运行在真实 `redis:7.2` 服务上。
-- `TestParseCommandRejectsInvalidRESP` 覆盖 malformed RESP limits 以及 RDB 或
-  mixed stream prefixes。
-- `TestLiveDecoderSkipsSizedRDB` 覆盖 live PSYNC RDB snapshot 跳过。
-- `FuzzParseCommand` 和 `BenchmarkParseCommand` 作为 CI smoke gate 运行。
-
-## 能力矩阵
-
-| 能力 | MySQL | PostgreSQL | MongoDB | Redis |
-|---|---|---|---|---|
-| 离线解析器 | Done | Done | Done | Done |
-| Live reader | Done | Done | Done | Done |
-| 原生 typed events | Done | Done | Done | Done |
-| 公共 `dblog.Event` adapter | Done | Done | Done | Done |
-| 插件入口 | Done | Done | Done | Done |
-| 基础过滤 | Done | Done | Done | Done |
-| Checkpoint/resume | Done | Done | Done | Done |
-| source log 包含足够数据时的安全闪回 | Done | Done | Done | Done |
-| Fixture provenance | Done | Done | Done | Done |
-| Malformed input tests | Done | Done | Done | Done |
-| Unsupported input tests | Done | Done | Done | Done |
-| Fuzz smoke gate | Done | Done | Done | Done |
-| Benchmark smoke gate | Done | Done | Done | Done |
-| 静态门禁：lint、vet、vulnerability scan | Done | Done | Done | Done |
-
-## 后续工作
-
-### `v0.3.0` 恢复工作流
-
-- 只在 source log 包含足够旧状态时扩展闪回。
-- 对 lossy 或 state-dependent reverse operations 保持省略，除非新增显式 opt-in API。
-- checkpoint state 保持可跨进程重启迁移。
-
-### `v0.4.0` 运维成熟度
-
-- 每次发布时公开已测试 database/log version matrix。
-- CI 保留 parser benchmark smoke gate，并记录 release-time baseline。
-- 每个 backend 都要求 `govulncheck`、race test、lint 和 vet。
-
-### `v1.0.0` API 稳定
-
-- 冻结根公共 API 和 backend contracts。
-- 记录兼容性、废弃和 module versioning 策略。
-- 明确定义产品插件的受支持扩展面。
-
-## 版本规则
-
-- 根模块 tag 使用 `vX.Y.Z`。
-- backend module tag 使用 module-prefixed tag：`mysql/vX.Y.Z`、
-  `postgres/vX.Y.Z`、`mongo/vX.Y.Z`、`redis/vX.Y.Z`。
-- `v0.x` 阶段 backend module 跟随根模块版本。
-- GitHub Releases 和 git tags 是公开发布记录。
-- Git history 是详细变更记录；项目不单独维护 release notes 或 changelog 文件。
+| 版本 | 状态 | 目标 | 退出门禁 |
+|---|---|---|---|
+| `v0.1.0` | Ready, 已被取代 | MySQL、PostgreSQL、MongoDB、Redis 的首个可用 parser 和 CDC developer preview。 | 已实现并由 CI 覆盖，但在公开 tag 发布前被取代。 |
+| `v0.2.0` | Released | 兼容性加固后的 parser 和 CDC developer preview。 | 受保护 `ci` 与 `merge-policy` 检查通过；已发布 `v0.2.0`、`mysql/v0.2.0`、`postgres/v0.2.0`、`mongo/v0.2.0`、`redis/v0.2.0` tag。 |
+| `v0.3.0` | Planned | 恢复工作流。 | 只在 source log 包含足够旧状态时扩展闪回；不安全反向操作保持省略或显式 opt-in；合入和打 tag 前全 backend CI 通过。 |
+| `v0.4.0` | Planned | 运维成熟度。 | CI 发布已测试 backend/version 矩阵，并保留 parser benchmark 历史。 |
+| `v1.0.0` | Candidate | 稳定公共 API。 | 根 API 和 backend package 契约冻结，并有兼容性策略。 |
+
+## 当前能力矩阵
+
+| 能力 | 公共 API | MySQL | PostgreSQL | MongoDB | Redis |
+|---|---|---|---|---|---|
+| 离线解析器 | N/A | Done | Done | Done | Done |
+| Live reader | N/A | Done | Done | Done | Done |
+| 原生 typed events | N/A | Done | Done | Done | Done |
+| 公共 `dblog.Event` adapter | Done | Done | Done | Done | Done |
+| 插件入口 | N/A | Done | Done | Done | Done |
+| 基础过滤 | Done | Done | Done | Done | Done |
+| Checkpoint/resume | Done | Done | Done | Done | Done |
+| source log 包含足够数据时的安全闪回 | Done | Done | Done | Done | Done |
+| Fixture provenance | N/A | Done | Done | Done | Done |
+| Malformed 和 unsupported input tests | Done | Done | Done | Done | Done |
+| Fuzz smoke gate | N/A | Done | Done | Done | Done |
+| Benchmark smoke gate | N/A | Done | Done | Done | Done |
+| 静态门禁：lint、vet、vulnerability scan | Done | Done | Done | Done | Done |
+
+## 公共 API
+
+| 能力 | 状态 | 说明 |
+|---|---|---|
+| `dblog.Event`、`dblog.Decoder`、`dblog.Registry` | Done | backend-neutral pipeline 的共享契约。 |
+| `WithReader`、`WithPath`、`WithDSN`、`WithSource`、`WithContext`、`WithCheckpoint` | Done | backend registry adapter 共用的 open options。 |
+| Source、position、checkpoint、filtering 和 flashback helpers | Done | 保持编排层 backend-neutral。 |
+| 超出公共事件形态的跨数据库语义归一 | Unsupported | backend-native event body 会保留产品语义。 |
+| 托管服务 connector | Unsupported | 不属于 `v0.x` 契约。 |
+| 通过 blank import 自动注册 backend | Unsupported | backend 需要显式注册。 |
+| Recovery plan API 和 replay cookbook | Planned for `v0.3.0` | 基于现有 safe flashback 和 checkpoint primitives。 |
+
+CI 证据：`root_test` 运行根 package 测试；每个 backend module 都运行 backend 注册和
+checkpoint 测试。
+
+## MySQL 族
+
+详细用户文档：[功能](../mysql/doc/FEATURES.zh-CN.md) 和
+[示例](../mysql/doc/EXAMPLES.zh-CN.md)。
+
+| 能力 | 状态 | 说明 |
+|---|---|---|
+| 来自 MySQL 5.6、5.7、8.0、8.4 的本地 MySQL-family binlog 文件 | Done | CI 从四个 image 生成真实 fixture。 |
+| 通过 `dblog.WithDSN` 打开在线 MySQL replication stream | Done | `TestLiveReplicationStream` 运行在 `mysql:8.4`。 |
+| MySQL、MariaDB 和 MySQL-compatible binlog event bodies | Done | 事件支持列表见 `mysql/doc/FEATURES.zh-CN.md`。 |
+| 基于 `TABLE_MAP_EVENT` metadata 解码 row events | Done | 缺少 table-map 窗口时保留 header/bitmap fields，并暴露 `DecodeError`。 |
+| 内置 MariaDB plugin 和自定义 event plugins | Done | Plugin hooks 位于 `mysql/decode/decoder`。 |
+| 通过根 registry 打开时支持 checkpoint resume | Done | backend registry tests 覆盖。 |
+| 对完整 write、delete、update row image 生成安全闪回 | Done | 不完整 row image 会被省略。 |
+| live reader 的 GTID auto-positioning | Unsupported | 等 live reader 兼容性策略稳定后再规划。 |
+| TLS-specific DSN 处理 | Unsupported | 不属于 `v0.2.x` 契约。 |
+| skipped columns 或 `PARTIAL_UPDATE_ROWS_EVENT` 的闪回 | Unsupported | source log 不包含完整可逆 row image。 |
+
+`v0.3.0` 恢复工作：
+
+| 事项 | 状态 | 说明 |
+|---|---|---|
+| 保留现有完整 row-image 闪回 | Done | `v0.2.0` 已具备的基线能力。 |
+| 增加 fixture binlog 端到端恢复示例 | Planned | 需要展示 reverse event iteration 和 checkpoint handoff。 |
+| lossy row format 保持省略，除非新增显式 opt-in API | Planned | 退出门禁要求。 |
+
+## PostgreSQL 族
+
+详细用户文档：[功能](../postgres/doc/FEATURES.zh-CN.md) 和
+[示例](../postgres/doc/EXAMPLES.zh-CN.md)。
+
+| 能力 | 状态 | 说明 |
+|---|---|---|
+| logical decoding 文本记录：`BEGIN`、`COMMIT` 和 row changes | Done | 覆盖 `test_decoding` 文本输出。 |
+| `test_decoding` 文本格式的 insert、update、delete | Done | parser 处理 scalar values 和 quoted strings。 |
+| 通过 `pg_logical_slot_get_changes` 进行 live SQL logical slot polling | Done | `TestLiveLogicalDecoding` 运行在 `postgres:16`。 |
+| 面向 `test_decoding` 的 wire-level logical replication reader | Done | `TestWireLogicalReplication` 运行在 `postgres:16`。 |
+| 面向额外文本行族的 event plugins | Done | 内置 parser 不接受时由 plugin 归一化。 |
+| 通过根 registry 打开时支持 checkpoint resume | Done | backend registry tests 覆盖。 |
+| 对 insert、delete 和完整 update 生成安全 SQL 闪回 | Done | update 闪回要求完整 old 和 new tuple 数据。 |
+| `pgoutput` binary relation 和 tuple messages | Unsupported | text parser 会明确拒绝。 |
+| raw WAL/page 解码 | Unsupported | 超出文本 logical decoding 契约。 |
+| partial old tuple data 的 update 闪回 | Unsupported | source log 不包含恢复每个 column 所需的值。 |
+
+`v0.3.0` 恢复工作：
+
+| 事项 | 状态 | 说明 |
+|---|---|---|
+| 保留完整 tuple records 的 SQL 闪回 | Done | `v0.2.0` 已具备的基线能力。 |
+| 增加带 checkpoint state 的反向 SQL 输出恢复示例 | Planned | 需要覆盖 `REPLICA IDENTITY FULL` 预期。 |
+| partial old-key update 保持省略，除非新增显式 opt-in API | Planned | 退出门禁要求。 |
+
+## MongoDB 族
+
+详细用户文档：[功能](../mongo/doc/FEATURES.zh-CN.md) 和
+[示例](../mongo/doc/EXAMPLES.zh-CN.md)。
+
+| 能力 | 状态 | 说明 |
+|---|---|---|
+| 带 `op`、`ns`、`o`、`o2` 的 newline-delimited oplog JSON records | Done | fixture job 从 `mongo:7.0` 生成。 |
+| 带 document keys、full documents、before-images 和 update descriptions 的 change stream JSON records | Done | malformed JSON 和非法 update descriptions 会被拒绝。 |
+| 来自 MongoDB replica set 的 live collection change streams | Done | `TestLiveChangeStream` 运行在 `mongo:7.0`。 |
+| 面向 MongoDB-compatible event shape 的 event plugins | Done | plugin 可归一化 operation 和 metadata。 |
+| 通过根 registry 打开时支持 checkpoint resume | Done | backend registry tests 覆盖。 |
+| 输入包含足够 document data 时，为 insert、delete、update 生成安全闪回 | Done | update 需要 `fullDocumentBeforeChange`；delete 需要完整 deleted document data。 |
+| JSON records 或 change streams 之外的 raw oplog tailing | Unsupported | 超出 `v0.2.x` 输入契约。 |
+| 自动 replica set 或 sharded cluster discovery | Unsupported | 调用方提供 DSN 和 source。 |
+| 缺少 `fullDocumentBeforeChange` 的 update 闪回 | Unsupported | source log 不包含 prior document state。 |
+| 缺少完整 deleted document data 的 delete 闪回 | Unsupported | source log 不包含可重新 insert 的 document。 |
+
+`v0.3.0` 恢复工作：
+
+| 事项 | 状态 | 说明 |
+|---|---|---|
+| 保留具备足够 document data 的 insert/delete/update 闪回 | Done | `v0.2.0` 已具备的基线能力。 |
+| 当 before-image 存在时，为 replace change-stream 增加原生恢复支持 | Planned | 当前可通过 plugin 兼容；原生支持需要测试。 |
+| 增加 live pre-image 恢复示例 | Planned | 需要说明 collection pre-image 要求。 |
+
+## Redis 族
+
+详细用户文档：[功能](../redis/doc/FEATURES.zh-CN.md) 和
+[示例](../redis/doc/EXAMPLES.zh-CN.md)。
+
+| 能力 | 状态 | 说明 |
+|---|---|---|
+| Redis AOF RESP array commands | Done | fixture job 从 `redis:7.2` 生成。 |
+| 通过 `dblog.WithDSN` 打开 live Redis PSYNC replication streams | Done | live reader 会跳过初始 RDB snapshot payload。 |
+| 小写归一化 command name 和原生 typed command events | Done | command parser 保留原始 arguments。 |
+| 面向 Redis-compatible 产品和 module commands 的 command plugins | Done | plugin 在事件输出前归一化 command。 |
+| 通过根 registry 打开时支持 checkpoint resume | Done | backend registry tests 覆盖。 |
+| 对 `LPUSH`、`RPUSH`、`INCR`、`DECR`、`INCRBY`、`DECRBY` 生成安全闪回 | Done | 反向命令无需读取 Redis state。 |
+| Redis Cluster 或 Sentinel discovery | Unsupported | 调用方提供 direct endpoint。 |
+| TLS-specific DSN handling | Unsupported | 不属于 `v0.2.x` 契约。 |
+| 离线 RDB snapshot parsing | Unsupported | 离线 parser 只接收 RESP array command frames。 |
+| `SET`、`HSET`、`SADD`、`DEL` 等 state-dependent command 闪回 | Unsupported | command log 不包含 previous values、TTL 或 membership state。 |
+
+`v0.3.0` 恢复工作：
+
+| 事项 | 状态 | 说明 |
+|---|---|---|
+| 保留确定性的 list 和 counter 闪回 | Done | `v0.2.0` 已具备的基线能力。 |
+| 增加 `HINCRBY`、`HINCRBYFLOAT`、`ZINCRBY` 等确定性 numeric 闪回 | Planned | 可以用相反 delta 构造安全反向命令。 |
+| state-dependent commands 保持省略，除非新增显式 opt-in API | Planned | 退出门禁要求。 |
