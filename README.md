@@ -95,6 +95,7 @@ database-specific event fields.
 |---|---|---|
 | Project overview | This README | [doc/README.zh-CN.md](./doc/README.zh-CN.md) |
 | Recovery cookbook | [doc/RECOVERY.md](./doc/RECOVERY.md) | [doc/RECOVERY.zh-CN.md](./doc/RECOVERY.zh-CN.md) |
+| CI evidence | [doc/CI.md](./doc/CI.md) | [doc/CI.zh-CN.md](./doc/CI.zh-CN.md) |
 | Roadmap and product scope | [doc/ROADMAP.md](./doc/ROADMAP.md) | [doc/ROADMAP.zh-CN.md](./doc/ROADMAP.zh-CN.md) |
 | Development and contribution flow | [doc/DEVELOPMENT.md](./doc/DEVELOPMENT.md) | [doc/DEVELOPMENT.zh-CN.md](./doc/DEVELOPMENT.zh-CN.md) |
 | Security policy | [doc/SECURITY.md](./doc/SECURITY.md) | [doc/SECURITY.zh-CN.md](./doc/SECURITY.zh-CN.md) |

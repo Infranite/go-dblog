@@ -329,16 +329,83 @@ jobs:
           check-latest: true
           cache: false
 
+      - name: Generate MySQL benchmark fixture
+        if: matrix.module == 'mysql'
+        run: ./mysql/test/testdata/generate_mysql_binlog.sh mysql:8.4
+
       - name: Benchmark parser smoke target
         working-directory: ${{ matrix.path }}
         env:
           GOWORK: off
-        run: go test -run '^$' -bench='${{ matrix.target }}' -benchmem -benchtime=100x '${{ matrix.package }}'
+        run: |
+          set -euo pipefail
+          go test -run '^$' -bench='${{ matrix.target }}' -benchmem -benchtime=100x '${{ matrix.package }}' \
+            | tee "${GITHUB_WORKSPACE}/benchmark-${{ matrix.module }}.txt"
+
+      - name: Upload benchmark history
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-${{ matrix.module }}
+          path: benchmark-${{ matrix.module }}.txt
+          if-no-files-found: warn
+          retention-days: 90
+
+  ci_report:
+    name: ci-report
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [lint, vet, vuln, root_test, backend_short, mysql, mongo, postgres, redis, fuzz, bench]
+    if: always()
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+          cache: false
+
+      - name: Download benchmark history
+        uses: actions/download-artifact@v5
+        continue-on-error: true
+        with:
+          pattern: benchmark-*
+          path: .ci-report/benchmarks
+          merge-multiple: false
+
+      - name: Fetch workflow jobs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p .ci-report/benchmarks
+          gh api "repos/${REPOSITORY}/actions/runs/${RUN_ID}/jobs?per_page=100" > .ci-report/jobs.json
+
+      - name: Generate CI report
+        run: |
+          go run ./internal/cmd/cireport \
+            -jobs .ci-report/jobs.json \
+            -bench-dir .ci-report/benchmarks \
+            -out .ci-report/out
+          cat .ci-report/out/ci-report.md >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload CI report
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-report
+          path: .ci-report/out
+          retention-days: 90
 
   ci:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [lint, vet, vuln, root_test, backend_short, mysql, mongo, postgres, redis, fuzz, bench]
+    needs: [lint, vet, vuln, root_test, backend_short, mysql, mongo, postgres, redis, fuzz, bench, ci_report]
     if: always()
     steps:
       - name: Require all CI jobs
@@ -354,3 +421,4 @@ jobs:
           test "${{ needs.redis.result }}" = "success"
           test "${{ needs.fuzz.result }}" = "success"
           test "${{ needs.bench.result }}" = "success"
+          test "${{ needs.ci_report.result }}" = "success"

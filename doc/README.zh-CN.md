@@ -91,6 +91,7 @@ func main() {
 |---|---|---|
 | 项目总览 | [README](../README.md) | 本文档 |
 | 恢复 cookbook | [doc/RECOVERY.md](./RECOVERY.md) | [doc/RECOVERY.zh-CN.md](./RECOVERY.zh-CN.md) |
+| CI evidence | [doc/CI.md](./CI.md) | [doc/CI.zh-CN.md](./CI.zh-CN.md) |
 | Roadmap 和产品范围 | [doc/ROADMAP.md](./ROADMAP.md) | [doc/ROADMAP.zh-CN.md](./ROADMAP.zh-CN.md) |
 | 开发和贡献流程 | [doc/DEVELOPMENT.md](./DEVELOPMENT.md) | [doc/DEVELOPMENT.zh-CN.md](./DEVELOPMENT.zh-CN.md) |
 | 安全策略 | [doc/SECURITY.md](./SECURITY.md) | [doc/SECURITY.zh-CN.md](./SECURITY.zh-CN.md) |

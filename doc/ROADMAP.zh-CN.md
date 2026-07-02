@@ -22,7 +22,7 @@
 | `v0.1.0` | Ready, 已被取代 | MySQL、PostgreSQL、MongoDB、Redis 的首个可用 parser 和 CDC developer preview。 | 已实现并由 CI 覆盖，但在公开 tag 发布前被取代。 |
 | `v0.2.0` | Released | 兼容性加固后的 parser 和 CDC developer preview。 | 受保护 `ci` 与 `merge-policy` 检查通过；已发布 `v0.2.0`、`mysql/v0.2.0`、`postgres/v0.2.0`、`mongo/v0.2.0`、`redis/v0.2.0` tag。 |
 | `v0.3.0` | Released | 恢复工作流。 | 受保护 `ci` 与 `merge-policy` 检查通过；已发布 `v0.3.0`、`mysql/v0.3.0`、`postgres/v0.3.0`、`mongo/v0.3.0`、`redis/v0.3.0` tag。 |
-| `v0.4.0` | Planned | 运维成熟度。 | CI 发布已测试 backend/version 矩阵，并保留 parser benchmark 历史。 |
+| `v0.4.0` | Ready | 运维成熟度。 | CI 发布已测试 backend/version 矩阵、parser benchmark 历史和结构化 report artifact。 |
 | `v1.0.0` | Candidate | 稳定公共 API。 | 根 API 和 backend package 契约冻结，并有兼容性策略。 |
 
 ## 当前能力矩阵
@@ -43,6 +43,7 @@
 | Fuzz smoke gate | N/A | Done | Done | Done | Done |
 | Benchmark smoke gate | N/A | Done | Done | Done | Done |
 | 静态门禁：lint、vet、vulnerability scan | Done | Done | Done | Done | Done |
+| 包含已测试矩阵和 benchmark 历史的 CI evidence artifact | Done | Done | Done | Done | Done |
 
 ## 公共 API
 
@@ -58,6 +59,19 @@
 
 CI 证据：`root_test` 运行根 package 测试；每个 backend module 都运行 backend 注册和
 checkpoint 测试。
+
+## 运维成熟度
+
+详细 CI 文档：[CI evidence](./CI.zh-CN.md)。
+
+`v0.4.0` 运维成熟度工作：
+
+| 事项 | 状态 | 说明 |
+|---|---|---|
+| 在 CI 中发布已测试 backend/version 矩阵 | Done | `ci-report` job 读取 workflow job 列表，并发布 `tested-matrix.md` 和 `tested-matrix.json`。 |
+| 保留 parser benchmark 历史 | Done | 每个 parser benchmark job 上传原始 benchmark 输出；`ci-report` 汇总为 `benchmarks.md` 和 `benchmarks.jsonl`。 |
+| 在 workflow summary 展示 CI 证据 | Done | `ci-report` 通过 GitHub Actions step summary 文件追加 Markdown 摘要。 |
+| 将 CI evidence 生成纳入受保护门禁 | Done | 聚合 `ci` job 同时要求 `ci-report`、lint、vet、vuln、tests、fuzz 和 benchmark jobs 通过。 |
 
 ## MySQL 族
 

@@ -38,6 +38,9 @@ make bench-smoke
 make integration
 ```
 
+CI 还会把已测试 backend/version 矩阵和 parser benchmark 历史发布为 workflow
+artifacts。当前矩阵和 artifact 名称见 [CI.zh-CN.md](./CI.zh-CN.md)。
+
 ## Fixture 调试
 
 需要本地调试 CI 风格 fixture 生成时使用这些命令：
@@ -61,6 +64,7 @@ make integration
 - parser 行为变更必须在对应 backend 中补测试。
 - 用户可见行为变化需要同步更新相关 README 或 `doc/` 页面。
 - 完整 fixture 集成测试、fuzz smoke、benchmark smoke、lint、vet 和漏洞扫描由 CI 运行。
+- CI 会发布已测试矩阵和 benchmark history artifacts，作为 release evidence。
 - Pull request 通过受保护的 `ci` 和 `merge-policy` 检查后合入。
 
 ## 版本
