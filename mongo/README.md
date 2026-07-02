@@ -4,7 +4,8 @@
 
 This module is the MongoDB-family backend for `go-dblog`. It decodes newline
 delimited JSON records from MongoDB oplog exports or change stream captures and
-keeps MongoDB-specific fields in typed events.
+keeps MongoDB-specific fields in typed events. It can also stream live
+collection change events from a MongoDB replica set.
 
 Use the root [`go-dblog`](../README.md) module when you need multi-source
 orchestration. Use this module directly when you only need MongoDB-family log
@@ -22,6 +23,7 @@ Requirements:
 
 - Go 1.25 or later.
 - One JSON record per line from an oplog export or change stream capture.
+- A MongoDB replica set when opening a live change stream through a DSN.
 
 ## Quick Start
 
@@ -74,6 +76,8 @@ func main() {
 - Oplog JSON records with `op`, `ns`, `o`, and `o2` fields.
 - Change stream JSON records with `operationType`, `ns`, `documentKey`,
   `fullDocument`, `fullDocumentBeforeChange`, and `updateDescription`.
+- Live collection change streams opened with `dblog.WithDSN` and
+  `dblog.WithSource(dblog.Source{Name: "db.collection"})`.
 - Streaming line decoder with bounded scanner buffers.
 - Root registry integration through `mongo/backend`.
 - Checkpoint resume through `dblog.WithCheckpoint` when opened through the root
@@ -89,9 +93,9 @@ func main() {
 |---|---|---|
 | MongoDB oplog JSON records with `op`, `ns`, `o`, and `o2` | Supported | `mongo` fixture job generated from `mongo:7.0`; `FuzzParseLine` smoke target. |
 | MongoDB change stream JSON records with `operationType`, `ns`, `documentKey`, `fullDocument`, `fullDocumentBeforeChange`, and `updateDescription` | Supported | Unit tests and `FuzzParseLine` seeds cover valid and malformed records. |
+| Live collection change streams from MongoDB replica sets | Supported | `mongo` CI job starts `mongo:7.0`, opens a live stream, writes insert/update/delete operations, and reads them through `dblog.WithDSN` plus `dblog.WithContext`. |
 | Empty operation names | Rejected | Parser tests and fuzz smoke target. |
 | Unknown non-empty operation names | Emitted as backend event kinds unless a decoder plugin normalizes them | Plugin tests and parser tests. |
-| Live change streams | Planned | Not part of the offline parser release line. |
 
 ## Flashback Scope
 

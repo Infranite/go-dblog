@@ -24,6 +24,7 @@ integration: integration-mysql integration-mongo integration-postgres integratio
 
 integration-mongo:
 	./mongo/testdata/generate_mongo_oplog.sh mongo:7.0
+	./mongo/testdata/run_mongo_live.sh mongo:7.0
 	cd mongo && GOWORK=off $(GO) test ./...
 
 integration-postgres:
