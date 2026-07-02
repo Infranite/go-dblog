@@ -18,6 +18,7 @@ test-mysql:
 
 integration-mysql:
 	./mysql/test/testdata/generate_mysql_binlog.sh mysql:8.4
+	./mysql/test/testdata/run_mysql_live.sh mysql:8.4
 	cd mysql && GOWORK=off $(GO) test ./...
 
 integration: integration-mysql integration-mongo integration-postgres integration-redis

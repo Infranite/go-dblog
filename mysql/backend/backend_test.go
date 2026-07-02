@@ -48,6 +48,27 @@ func TestRegisterOpensMySQLDecoder(t *testing.T) {
 	t.Fatal("no events")
 }
 
+func TestIsMySQLDSN(t *testing.T) {
+	if !isMySQLDSN("mysql://root@127.0.0.1:3306/") {
+		t.Fatal("mysql URL was not detected")
+	}
+	if isMySQLDSN("testdata/mysql-bin.000004") {
+		t.Fatal("file path was detected as mysql DSN")
+	}
+}
+
+func TestDSNWithStartFile(t *testing.T) {
+	got := dsnWithStartFile("mysql://root@127.0.0.1:3306/?server_id=7", "mysql-bin.000001")
+	want := "mysql://root@127.0.0.1:3306/?file=mysql-bin.000001&server_id=7"
+	if got != want {
+		t.Fatalf("dsn = %q, want %q", got, want)
+	}
+	got = dsnWithStartFile("mysql://root@127.0.0.1:3306/?binlog=mysql-bin.000002", "mysql-bin.000001")
+	if got != "mysql://root@127.0.0.1:3306/?binlog=mysql-bin.000002" {
+		t.Fatalf("dsn with explicit file = %q", got)
+	}
+}
+
 func TestRegisterResumesAfterCheckpoint(t *testing.T) {
 	var registry dblog.Registry
 	if err := Register(&registry); err != nil {

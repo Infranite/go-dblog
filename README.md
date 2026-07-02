@@ -19,7 +19,7 @@ Install only the backend you use.
 | Module | Scope | Status |
 |---|---|---|
 | [`github.com/Infranite/go-dblog`](https://pkg.go.dev/github.com/Infranite/go-dblog) | Common API for multi-source orchestration | Supported |
-| [`github.com/Infranite/go-dblog/mysql`](./mysql) | MySQL-family binlog parser: MySQL, MariaDB, MySQL-compatible dialects | Supported |
+| [`github.com/Infranite/go-dblog/mysql`](./mysql) | MySQL-family binlog parser and replication stream reader: MySQL, MariaDB, MySQL-compatible dialects | Supported |
 | [`github.com/Infranite/go-dblog/postgres`](./postgres) | PostgreSQL-family logical decoding parser and SQL slot reader | Supported |
 | [`github.com/Infranite/go-dblog/mongo`](./mongo) | MongoDB-family oplog / change stream JSON parser and live change stream reader | Supported |
 | [`github.com/Infranite/go-dblog/redis`](./redis) | Redis-family AOF RESP parser and replication stream reader | Supported |
@@ -52,7 +52,7 @@ and pending backend behavior.
 
 | Backend | Supported input for `v0.1.0` | Not included yet |
 |---|---|---|
-| MySQL | Local MySQL-family binlog files | Online replication connection reader |
+| MySQL | Local MySQL-family binlog files; online replication streams | GTID auto-positioning and TLS DSNs |
 | PostgreSQL | Logical decoding text records; SQL logical slot polling with `test_decoding` | Wire-level logical replication protocol reader |
 | MongoDB | Newline-delimited oplog or change stream JSON records; live collection change streams from replica sets | Raw oplog tailing outside JSON records or change streams |
 | Redis | Redis AOF RESP array commands; PSYNC replication streams | Cluster/Sentinel discovery and TLS DSNs |
@@ -225,6 +225,17 @@ not drift.
 
 Current public target: `v0.1.0`, the first usable developer preview tag set.
 
+## Releases and Versioning
+
+GitHub Releases and git tags are the public release record. Git history is the
+detailed change log, so this repository does not maintain separate release
+notes or changelog files.
+
+- Root module tags use `vX.Y.Z`.
+- Backend module tags use `mysql/vX.Y.Z`, `mongo/vX.Y.Z`,
+  `postgres/vX.Y.Z`, and `redis/vX.Y.Z`.
+- Backend modules track the root module version for `v0.x` tags.
+
 ## Development
 
 Requirements:
@@ -270,6 +281,7 @@ Fixture generation can be debugged locally when Docker is available:
 
 ```bash
 ./mysql/test/testdata/generate_mysql_binlog.sh mysql:8.4
+./mysql/test/testdata/run_mysql_live.sh mysql:8.4
 ./mongo/testdata/generate_mongo_oplog.sh mongo:7.0
 ./mongo/testdata/run_mongo_live.sh mongo:7.0
 ./postgres/testdata/generate_postgres_logical.sh postgres:16
@@ -280,8 +292,8 @@ Fixture generation can be debugged locally when Docker is available:
 
 ### Contributing
 
-Pull requests are the contribution path. A standalone `CONTRIBUTING.md` is not
-maintained; this section is the project-level contribution guide.
+Pull requests are the contribution path. This section is the project-level
+contribution guide; a standalone `CONTRIBUTING.md` is not maintained.
 
 - Run `make test` and the affected module tests locally before opening a pull
   request.

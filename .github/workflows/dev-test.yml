@@ -183,6 +183,10 @@ jobs:
       - name: Generate MySQL binlog fixture
         run: ./mysql/test/testdata/generate_mysql_binlog.sh "${{ matrix.mysql-image }}"
 
+      - name: Test MySQL live replication stream
+        if: matrix.mysql-image == 'mysql:8.4'
+        run: ./mysql/test/testdata/run_mysql_live.sh "${{ matrix.mysql-image }}"
+
       - name: Test MySQL module
         run: cd mysql && GOWORK=off go test -race -count=1 -shuffle=on ./...
 

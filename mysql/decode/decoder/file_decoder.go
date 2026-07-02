@@ -199,6 +199,57 @@ func (decoder *BinFileDecoder) DecodeEvent() (*events.Event, error) {
 	return event, nil
 }
 
+// DecodeRawEvent decodes one raw binlog event containing header, body, and
+// optional checksum bytes.
+func (decoder *BinFileDecoder) DecodeRawEvent(raw []byte) (*events.Event, error) {
+	if decoder.EventContext == nil {
+		decoder.EventContext = types.NewEventContext()
+	}
+	headerLength := decoder.GetEventHeaderLength()
+	if int64(len(raw)) < headerLength {
+		return nil, io.ErrUnexpectedEOF
+	}
+	event := events.NewEvent()
+	var err error
+	event.Header, err = events.DecodeEventHeader(raw[:headerLength], headerLength)
+	if err != nil {
+		return nil, err
+	}
+	if !decoder.knowsEventType(event.Header.EventType) {
+		return nil, fmt.Errorf("got unknown event type {%x}", event.Header.EventType)
+	}
+	if event.Header.EventSize < headerLength || int64(len(raw)) < event.Header.EventSize {
+		return nil, io.ErrUnexpectedEOF
+	}
+	if decoder.checkSkip(event.Header) {
+		return nil, nil
+	}
+	data := raw[headerLength:event.Header.EventSize]
+	data, err = event.ValidateData(data, decoder.HasCheckSum())
+	if err != nil {
+		return event, err
+	}
+	bodyDecoder := decoder.Registry.GetEventBodyDecoder(event.Header.EventType)
+	if bodyDecoder == nil {
+		return nil, fmt.Errorf("can't find decoder for event type %s[%x], may not suppoted event",
+			decoder.Registry.EventTypeName(event.Header.EventType), event.Header.EventType)
+	}
+	event.Body, err = bodyDecoder.Decode(
+		types.WithData(data),
+		types.WithContext(decoder.EventContext),
+		types.WithEventType(event.Header.EventType),
+	)
+	if err != nil {
+		return event, err
+	}
+	if fde, ok := event.Body.(*types.FmtDescEvent); ok {
+		if err := decoder.applyEventPlugins(fde); err != nil {
+			return event, err
+		}
+	}
+	return event, nil
+}
+
 // Events returns decoded binlog events as a Go iterator.
 func (decoder *BinFileDecoder) Events() iter.Seq2[*events.Event, error] {
 	return func(yield func(*events.Event, error) bool) {
@@ -273,19 +324,31 @@ func (decoder *BinFileDecoder) Close() error {
 // NewBinFileDecoder return a BinFileDecoder with binary log file path
 func NewBinFileDecoder(path string, opts ...BinFileDecodeOptFunc) (*BinFileDecoder, error) {
 	decoder := &BinFileDecoder{
-		Path: path,
-		Option: &BinFileDecodeOption{
-			EventPlugins: []types.EventPlugin{
-				mariadb.Plugin(),
-			},
-		},
-	}
-
-	// set options
-	for _, o := range opts {
-		o(decoder.Option)
+		Path:   path,
+		Option: newBinFileDecodeOption(opts...),
 	}
 
 	// decoder init
 	return decoder, decoder.init()
+}
+
+func newRawDecoder(opts ...BinFileDecodeOptFunc) *BinFileDecoder {
+	return &BinFileDecoder{
+		Option:       newBinFileDecodeOption(opts...),
+		EventContext: types.NewEventContext(),
+	}
+}
+
+func newBinFileDecodeOption(opts ...BinFileDecodeOptFunc) *BinFileDecodeOption {
+	option := &BinFileDecodeOption{
+		EventPlugins: []types.EventPlugin{
+			mariadb.Plugin(),
+		},
+	}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(option)
+		}
+	}
+	return option
 }

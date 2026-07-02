@@ -7,7 +7,8 @@ adapting them to a shared event API.
 
 - `github.com/Infranite/go-dblog`: common registry, event, checkpoint, filter,
   and flashback contracts.
-- `github.com/Infranite/go-dblog/mysql`: MySQL-family binlog parser.
+- `github.com/Infranite/go-dblog/mysql`: MySQL-family binlog parser and
+  replication stream reader.
 - `github.com/Infranite/go-dblog/postgres`: PostgreSQL logical decoding text
   parser and SQL slot reader.
 - `github.com/Infranite/go-dblog/mongo`: MongoDB oplog/change stream JSON
@@ -18,13 +19,17 @@ adapting them to a shared event API.
 ## Key Files
 
 - `README.md`: feature overview, examples, backend package layout, inline
-  contribution notes, and roadmap pointer.
+  contribution notes, release policy, and roadmap pointer.
 - `ROADMAP.md`: version targets, capability matrix, workstreams, and versioning
   rules.
 - `doc/doc_zh.md`: Chinese project documentation.
 - GitHub Releases and Git tags: public release record; git history is the
   detailed change log.
 - `SECURITY.md`: vulnerability reporting policy.
+
+There are no standalone `CONTRIBUTING.md`, `RELEASE.md`, or `CHANGELOG.md`
+files; those topics are handled by `README.md`, GitHub Releases, and git
+history.
 
 ## Checks
 
