@@ -16,20 +16,24 @@ adapting them to a shared event API.
 - `github.com/Infranite/go-dblog/redis`: Redis AOF RESP parser and replication
   stream reader.
 
-## Key Files
+## Documentation
 
-- `README.md`: feature overview, examples, backend package layout, inline pull
-  request guidance, versioning policy, and roadmap pointer.
-- `ROADMAP.md`: version targets, capability matrix, workstreams, and versioning
-  rules.
-- `doc/doc_zh.md`: Chinese project documentation.
-- GitHub Releases and Git tags: public release record; git history is the
-  detailed change log.
-- `SECURITY.md`: vulnerability reporting policy.
+- `README.md`: project overview and product index.
+- `doc/README.zh-CN.md`: Chinese project overview and product index.
+- `doc/ROADMAP.md` and `doc/ROADMAP.zh-CN.md`: release targets, per-product
+  supported and unsupported scope, CI evidence, and next work.
+- `doc/DEVELOPMENT.md` and `doc/DEVELOPMENT.zh-CN.md`: local checks, fixture
+  debugging, pull request flow, and versioning rules.
+- `doc/SECURITY.md` and `doc/SECURITY.zh-CN.md`: vulnerability reporting policy.
+- `mysql/README.md` and `mysql/README.zh-CN.md`: MySQL-family backend docs.
+- `postgres/README.md` and `postgres/README.zh-CN.md`: PostgreSQL-family
+  backend docs.
+- `mongo/README.md` and `mongo/README.zh-CN.md`: MongoDB-family backend docs.
+- `redis/README.md` and `redis/README.zh-CN.md`: Redis-family backend docs.
 
 There are no standalone `CONTRIBUTING.md`, `RELEASE.md`, or `CHANGELOG.md`
-files; those topics are handled by `README.md`, GitHub Releases, and git
-history.
+files. Contribution flow is documented in `doc/DEVELOPMENT.md`; public releases
+use GitHub Releases and git tags; git history is the detailed change log.
 
 No public tags have been published yet. The current public target is the
 `v0.1.0` tag set with root tag `v0.1.0` and backend tags `mysql/v0.1.0`,

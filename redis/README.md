@@ -5,6 +5,8 @@
 This module is the Redis-family backend for `go-dblog`. It decodes Redis AOF
 RESP array commands and can stream live Redis replication commands.
 
+[中文](./README.zh-CN.md)
+
 Use the root [`go-dblog`](../README.md) module when you need multi-source
 orchestration. Use this module directly when you only need Redis-family AOF RESP
 parsing.

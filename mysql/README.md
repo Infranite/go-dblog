@@ -6,6 +6,8 @@ This module is the MySQL-family backend for `go-dblog`. It decodes MySQL binary
 log files, streams MySQL replication events, and keeps MySQL, MariaDB, and
 MySQL-compatible dialect details in backend-native typed events.
 
+[中文](./README.zh-CN.md)
+
 Use the root [`go-dblog`](../README.md) module when you need multi-source
 orchestration. Use this module directly when you only need MySQL-family binlog
 parsing or replication stream reading.

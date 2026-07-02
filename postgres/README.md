@@ -7,6 +7,8 @@ logical decoding records, can read live `test_decoding` output through SQL slot
 polling or PostgreSQL replication protocol, and exposes transaction and row
 changes as typed events.
 
+[中文](./README.zh-CN.md)
+
 Use the root [`go-dblog`](../README.md) module when you need multi-source
 orchestration. Use this module directly when you only need PostgreSQL-family
 logical decoding text parsing.

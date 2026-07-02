@@ -7,6 +7,8 @@ delimited JSON records from MongoDB oplog exports or change stream captures and
 keeps MongoDB-specific fields in typed events. It can also stream live
 collection change events from a MongoDB replica set.
 
+[中文](./README.zh-CN.md)
+
 Use the root [`go-dblog`](../README.md) module when you need multi-source
 orchestration. Use this module directly when you only need MongoDB-family log
 parsing.
