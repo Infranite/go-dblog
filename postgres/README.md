@@ -3,8 +3,8 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/Infranite/go-dblog/postgres.svg)](https://pkg.go.dev/github.com/Infranite/go-dblog/postgres)
 
 This module is the PostgreSQL-family backend for `go-dblog`. It decodes text
-logical decoding records and exposes transaction and row changes as typed
-events.
+logical decoding records, can poll a live SQL logical decoding slot, and exposes
+transaction and row changes as typed events.
 
 Use the root [`go-dblog`](../README.md) module when you need multi-source
 orchestration. Use this module directly when you only need PostgreSQL-family
@@ -23,6 +23,7 @@ Requirements:
 - Go 1.23 or later.
 - Logical decoding text records such as `BEGIN`, `COMMIT`, and
   `table schema.table: INSERT: col[type]:value`.
+- For live reading, a PostgreSQL DSN and a `test_decoding` logical slot name.
 
 ## Quick Start
 
@@ -77,6 +78,7 @@ func main() {
 - Row changes in PostgreSQL logical decoding text form.
 - Scalar parsing for `null`, booleans, integers, floats, and quoted strings.
 - Streaming line decoder with bounded scanner buffers.
+- Live SQL logical slot reader for PostgreSQL `test_decoding` output.
 - Root registry integration through `postgres/backend`.
 - Checkpoint resume through `dblog.WithCheckpoint` when opened through the root
   registry.
@@ -93,8 +95,29 @@ The backend driver name is `pg`, while the module path remains `postgres`.
 | `BEGIN` and `COMMIT` records from logical decoding text output | Supported | Unit tests and PostgreSQL fixture job generated from `postgres:16`. |
 | Row changes in `table schema.table: OPERATION: col[type]:value` form | Supported | Unit tests, fixture job, and `FuzzParseLine` smoke target. |
 | `UPDATE: old-key: ... new-tuple: ...` records with complete old tuple data | Supported | Unit tests, `FuzzParseLine` seed, and PostgreSQL fixture job with `REPLICA IDENTITY FULL`. |
+| Live SQL logical slot polling with `test_decoding` | Supported | `TestLiveLogicalDecoding` runs against a real `postgres:16` container in CI. |
 | Empty table or operation names | Rejected | Parser tests and fuzz smoke target. |
-| Logical replication protocol messages | Planned | Not part of the offline parser release line. |
+| Wire-level logical replication protocol messages | Planned | SQL slot polling is the shipped live path. |
+
+## Live SQL Slot Reader
+
+Register the backend and open it with a PostgreSQL DSN, a context, and a source
+name matching the logical slot.
+
+```go
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
+
+decoder, err := registry.Open(postgres.Driver,
+	dblog.WithContext(ctx),
+	dblog.WithDSN("postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable"),
+	dblog.WithSource(dblog.Source{Name: "dblog_slot"}),
+)
+```
+
+The live reader polls `pg_logical_slot_get_changes` and parses the returned
+`test_decoding` text with the same parser as offline records. Cancel the context
+to stop polling.
 
 ## Flashback Scope
 

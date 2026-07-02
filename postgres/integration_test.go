@@ -1,15 +1,18 @@
 package postgres
 
 import (
+	"context"
 	"errors"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Infranite/go-dblog"
 )
 
 const postgresFixturePath = "testdata/test_decoding.log"
+const postgresLiveTimeout = 15 * time.Second
 
 func TestFixtureBackedLogicalDecoding(t *testing.T) {
 	if testing.Short() {
@@ -73,6 +76,55 @@ func TestFixtureBackedLogicalDecoding(t *testing.T) {
 	}
 	if updateFlashbacks == 0 {
 		t.Fatal("fixture produced no update flashback SQL")
+	}
+}
+
+func TestLiveLogicalDecoding(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping live integration test in short mode")
+	}
+	dsn := os.Getenv("DBLOG_POSTGRES_LIVE_DSN")
+	slot := os.Getenv("DBLOG_POSTGRES_LIVE_SLOT")
+	if dsn == "" || slot == "" {
+		t.Skip("set DBLOG_POSTGRES_LIVE_DSN and DBLOG_POSTGRES_LIVE_SLOT to run live test")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), postgresLiveTimeout)
+	defer cancel()
+
+	var registry dblog.Registry
+	if err := Register(&registry); err != nil {
+		t.Fatal(err)
+	}
+	decoder, err := registry.Open(Driver,
+		dblog.WithContext(ctx),
+		dblog.WithDSN(dsn),
+		dblog.WithSource(dblog.Source{Name: slot}),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := decoder.Close(); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	counts := map[string]int{}
+	for event, err := range decoder.Events() {
+		if err != nil {
+			t.Fatal(err)
+		}
+		counts[event.Kind()]++
+		if counts[OperationInsert] > 0 && counts[OperationUpdate] > 0 && counts[OperationDelete] > 0 {
+			cancel()
+		}
+	}
+
+	for _, kind := range []string{KindBegin, OperationInsert, OperationUpdate, OperationDelete, KindCommit} {
+		if counts[kind] == 0 {
+			t.Fatalf("live reader has no %s events: %v", kind, counts)
+		}
 	}
 }
 

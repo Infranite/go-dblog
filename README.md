@@ -20,7 +20,7 @@ Install only the backend you use.
 |---|---|---|
 | [`github.com/Infranite/go-dblog`](https://pkg.go.dev/github.com/Infranite/go-dblog) | Common API for multi-source orchestration | Supported |
 | [`github.com/Infranite/go-dblog/mysql`](./mysql) | MySQL-family binlog parser: MySQL, MariaDB, MySQL-compatible dialects | Supported |
-| [`github.com/Infranite/go-dblog/postgres`](./postgres) | PostgreSQL-family logical replication text parser | Supported |
+| [`github.com/Infranite/go-dblog/postgres`](./postgres) | PostgreSQL-family logical decoding parser and SQL slot reader | Supported |
 | [`github.com/Infranite/go-dblog/mongo`](./mongo) | MongoDB-family oplog / change stream JSON parser | Supported |
 | [`github.com/Infranite/go-dblog/redis`](./redis) | Redis-family AOF RESP parser | Supported |
 
@@ -43,16 +43,16 @@ compatibility layers.
 
 ## Current Scope
 
-The first public tag target is `v0.1.0`: an offline parser release for users
-who already have database log files, exported records, or captured streams. The
-roadmap may mark this target as ready before tags are published; until the first
-tags exist, use a checked-out branch for evaluation. Live replication readers
-are planned, but not part of this release line.
+The first public tag target is `v0.1.0`: a parser release for users who already
+have database log files, exported records, captured streams, or PostgreSQL
+`test_decoding` logical slots. The roadmap may mark this target as ready before
+tags are published; until the first tags exist, use a checked-out branch for
+evaluation. Most live replication readers are planned for later release lines.
 
 | Backend | Supported input for `v0.1.0` | Not included yet |
 |---|---|---|
 | MySQL | Local MySQL-family binlog files | Online replication connection reader |
-| PostgreSQL | Logical decoding text records | Logical replication protocol reader |
+| PostgreSQL | Logical decoding text records; SQL logical slot polling with `test_decoding` | Wire-level logical replication protocol reader |
 | MongoDB | Newline-delimited oplog or change stream JSON records | Live change stream reader |
 | Redis | Redis AOF RESP array commands | Redis replication stream reader |
 
@@ -223,7 +223,7 @@ Keep release planning there so version status, shipped capability, and CI
 evidence have one source of truth.
 
 Current public target: `v0.1.0`, the first GitHub Release and tag set for the
-offline parser developer preview.
+parser developer preview.
 
 ## Development
 
@@ -272,6 +272,7 @@ Fixture generation can be debugged locally when Docker is available:
 ./mysql/test/testdata/generate_mysql_binlog.sh mysql:8.4
 ./mongo/testdata/generate_mongo_oplog.sh mongo:7.0
 ./postgres/testdata/generate_postgres_logical.sh postgres:16
+./postgres/testdata/run_postgres_live.sh postgres:16
 ./redis/testdata/generate_redis_aof.sh redis:7.2
 ```
 
