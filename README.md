@@ -41,11 +41,9 @@ Current supported and unsupported source details live in
 
 ## Install
 
-No public tags have been published yet. Until the first `v0.2.0` tag set
-exists, evaluate the project from a checked-out branch or commit.
+The current public tag set is `v0.2.0`.
 
 ```bash
-# After the v0.2.0 tag set is published:
 go get github.com/Infranite/go-dblog@v0.2.0
 go get github.com/Infranite/go-dblog/mysql@v0.2.0
 go get github.com/Infranite/go-dblog/postgres@v0.2.0

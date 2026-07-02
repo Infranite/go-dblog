@@ -13,8 +13,7 @@ parsing.
 
 ## Installation
 
-No public tags have been published yet. After the first `v0.2.0` tag set is
-published:
+Current release:
 
 ```bash
 go get github.com/Infranite/go-dblog/redis@v0.2.0

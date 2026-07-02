@@ -4,9 +4,9 @@
 
 ## Supported Versions
 
-Before the first `v0.2.0` tag set is published, security fixes target the
-default branch only. After public tags exist, supported version windows are
-documented in GitHub Releases.
+Security fixes target the current public tag set `v0.2.0` and the default
+branch. Supported version windows for later releases are documented in GitHub
+Releases.
 
 ## Reporting a Vulnerability
 

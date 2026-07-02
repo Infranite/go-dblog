@@ -13,7 +13,7 @@ logical decoding 文本解析时可直接使用本 module。
 
 ## 安装
 
-当前还没有发布公开 tag。首个 `v0.2.0` tag 集合发布后：
+当前 release：
 
 ```bash
 go get github.com/Infranite/go-dblog/postgres@v0.2.0
