@@ -35,6 +35,15 @@ func TestRegisterOpensRedisDecoder(t *testing.T) {
 	t.Fatal("no events")
 }
 
+func TestIsRedisDSN(t *testing.T) {
+	if !isRedisDSN("redis://127.0.0.1:6379/0") {
+		t.Fatal("redis URL was not detected")
+	}
+	if isRedisDSN("testdata/appendonly.aof") {
+		t.Fatal("file path was detected as redis DSN")
+	}
+}
+
 func TestRegisterResumesAfterCheckpoint(t *testing.T) {
 	var registry dblog.Registry
 	if err := Register(&registry); err != nil {

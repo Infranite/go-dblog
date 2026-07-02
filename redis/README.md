@@ -3,7 +3,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/Infranite/go-dblog/redis.svg)](https://pkg.go.dev/github.com/Infranite/go-dblog/redis)
 
 This module is the Redis-family backend for `go-dblog`. It decodes Redis AOF
-RESP array commands and exposes each command as a typed event.
+RESP array commands and can stream live Redis replication commands.
 
 Use the root [`go-dblog`](../README.md) module when you need multi-source
 orchestration. Use this module directly when you only need Redis-family AOF RESP
@@ -20,7 +20,8 @@ go get github.com/Infranite/go-dblog/redis
 Requirements:
 
 - Go 1.25 or later.
-- Redis AOF command frames encoded as RESP arrays.
+- Redis AOF command frames encoded as RESP arrays, or a Redis server reachable
+  by TCP when opening a live replication stream.
 
 ## Quick Start
 
@@ -72,6 +73,7 @@ func main() {
 ## Features
 
 - RESP array command parsing for Redis AOF records.
+- Live replication streams opened with `dblog.WithDSN`.
 - Lowercase normalized command names.
 - Streaming RESP decoder.
 - Root registry integration through `redis/backend`.
@@ -86,9 +88,9 @@ func main() {
 | Input | Status | CI evidence |
 |---|---|---|
 | Redis AOF RESP array commands | Supported | `redis` fixture job generated from `redis:7.2`; `FuzzParseCommand` smoke target. |
+| Redis replication streams | Supported | `redis` CI job starts `redis:7.2`, opens a PSYNC stream, writes SET/INCR/LPUSH, and reads them through `dblog.WithDSN` plus `dblog.WithContext`. |
 | RESP frames with LF-only line endings, empty command names, invalid lengths, or oversized arrays/bulk strings | Rejected | Parser tests and fuzz smoke target. |
 | Commands up to 8,192 RESP array elements and 8 MiB per bulk string | Supported | Parser limits are covered by fuzz smoke. |
-| Redis replication streams | Planned | Not part of the offline parser release line. |
 
 ## Flashback Scope
 

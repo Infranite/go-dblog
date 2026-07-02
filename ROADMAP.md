@@ -1,6 +1,6 @@
 # Roadmap
 
-This roadmap tracks user-visible capability, release readiness, and engineering
+This roadmap tracks user-visible capability, version scope, and engineering
 gates for `go-dblog`. It is not a commitment to dates.
 
 ## Status
@@ -8,21 +8,25 @@ gates for `go-dblog`. It is not a commitment to dates.
 | Status | Meaning |
 |---|---|
 | Done | Implemented, documented, and covered by CI. |
-| Ready | Implemented and covered by CI; ready for tag and GitHub Release. |
+| Ready | Implemented and covered by CI; ready for a public tag. |
 | Partial | A safe documented subset is implemented and covered by CI. |
 | In progress | Actively being built on the main development branch. |
 | Planned | Accepted scope, not yet started. |
 | Candidate | Useful direction, still needs design or user validation. |
-| Unsupported | Explicitly not emitted or accepted in this release line. |
-| Deferred | Explicitly out of the current release line. |
+| Unsupported | Explicitly not emitted or accepted in this version line. |
+| Deferred | Explicitly out of the current version line. |
 
-## Release Targets
+## Version Targets
 
-| Release | Status | Theme | Deliverables | Exit gates |
+GitHub Releases and Git tags are the public release record. Git history remains
+the detailed change log; this file only tracks user-visible scope and exit
+gates.
+
+| Version | Status | Theme | Deliverables | Exit gates |
 |---|---|---|---|---|
-| `v0.1.0` | In progress | Parser developer preview | Root common API, MySQL binlog file parser, PostgreSQL logical decoding text parser and SQL slot reader, MongoDB JSON line parser, Redis RESP AOF parser, plugin hooks, filtering, checkpoint resume, and safe flashback helpers where the log contains enough data. | Protected PR `ci` and `merge-policy` checks pass: lint, vet, vulnerability scan, unit tests, and real fixture-backed MySQL, MongoDB, PostgreSQL, and Redis integration tests. README documents shipped scope and module tags. |
+| `v0.1.0` | In progress | Parser and CDC developer preview | Root common API, MySQL binlog file parser, PostgreSQL logical decoding text parser and SQL slot reader, MongoDB JSON parser plus live change stream reader, Redis RESP AOF parser plus PSYNC replication stream reader, plugin hooks, filtering, checkpoint resume, and safe flashback helpers where the log contains enough data. | Protected PR `ci` and `merge-policy` checks pass: lint, vet, vulnerability scan, unit tests, and real fixture-backed MySQL, MongoDB, PostgreSQL, and Redis integration tests. README documents shipped scope and module tags. |
 | `v0.2.0` | Planned | Compatibility hardening | Compatibility fixtures and negative cases for each backend; documented supported inputs and known gaps per backend. | Backend README files include supported versions/formats, unsupported cases, fixture source, and parser behavior for unknown events. |
-| `v0.3.0` | Planned | Live readers | MySQL replication reader, PostgreSQL logical replication reader, MongoDB change stream reader, Redis replication stream reader. | Live readers implement `dblog.Decoder`, support context cancellation, and have integration tests isolated from unit tests. |
+| `v0.3.0` | Planned | Remaining live readers | MySQL replication reader and PostgreSQL wire-level logical replication protocol reader. | Live readers implement `dblog.Decoder`, support context cancellation, and have integration tests isolated from unit tests. |
 | `v0.4.0` | Planned | Recovery workflows | Expanded flashback operations and unsafe-operation guardrails. | Recovery APIs are backend-neutral; lossy or state-dependent reverse operations are documented and opt-in. |
 | `v0.5.0` | Planned | Operational maturity | Tested backend/version matrix and long-running benchmark history. | CI runs fuzz smoke tests, benchmark smoke tests, and publishes the tested backend/version matrix. |
 | `v1.0.0` | Candidate | Stable public API | Frozen root API, stable backend package contracts, migration notes from `v0.x`. | No known API blockers; compatibility policy and deprecation policy are documented. |
@@ -44,7 +48,7 @@ merge queue runs, and `master` pushes.
 | Fixture provenance | Done: generated from MySQL 5.6, 5.7, 8.0, and 8.4 containers | Done: generated from PostgreSQL 16 | Done: generated from MongoDB 7.0 | Done: generated from Redis 7.2 | Workflow fixture generation steps run before integration tests. |
 | Static quality gates | Done | Done | Done | Done | `lint`, `vet`, and `vuln` matrix jobs run with `GOWORK=off` for every module. |
 | Compatibility matrix | Done | Done | Done | Done | Backend README files publish supported inputs, limits, and tested fixture versions; CI fixture jobs and fuzz seeds prove those claims. |
-| Live reader | Planned for `v0.3.0` | Partial: SQL logical slot polling for `test_decoding` output | Done: collection change streams from replica sets | Planned for `v0.3.0` | `postgres.TestLiveLogicalDecoding` starts a real `postgres:16` container, creates a logical slot, writes rows, and reads them through `dblog.WithDSN` plus `dblog.WithContext`; `mongo.TestLiveChangeStream` starts a real `mongo:7.0` replica set, writes insert/update/delete operations, and reads them through `dblog.WithDSN` plus `dblog.WithContext`; PostgreSQL wire-level replication protocol remains planned. |
+| Live reader | Planned for `v0.3.0` | Partial: SQL logical slot polling for `test_decoding` output | Done: collection change streams from replica sets | Done: PSYNC replication stream | `postgres.TestLiveLogicalDecoding` starts a real `postgres:16` container, creates a logical slot, writes rows, and reads them through `dblog.WithDSN` plus `dblog.WithContext`; `mongo.TestLiveChangeStream` starts a real `mongo:7.0` replica set, writes insert/update/delete operations, and reads them through `dblog.WithDSN` plus `dblog.WithContext`; `redis.TestLiveReplicationStream` starts a real `redis:7.2`, writes SET/INCR/LPUSH, and reads them through `dblog.WithDSN` plus `dblog.WithContext`; PostgreSQL wire-level replication protocol remains planned. |
 | Checkpoint/resume | Done | Done | Done | Done | `dblog.TestCheckpointOfAndOpenOptions` and backend `TestRegisterResumesAfterCheckpoint` tests prove `dblog.WithCheckpoint` resumes after the stored event position; fixture-backed CI covers MySQL binlog checkpoints with generated binlogs. |
 | Fuzz coverage | Done: event header parser | Done: logical decoding line parser | Done: JSON line parser | Done: RESP command parser | `fuzz` matrix job runs parser fuzz smoke targets for every backend. |
 | Throughput baseline | Done: fixture decoder benchmark | Done: line parser benchmark | Done: line parser benchmark | Done: RESP command benchmark | `bench` matrix job runs parser benchmark smoke targets for every backend. |
@@ -104,7 +108,7 @@ Done when:
 
 ### 4. Operations
 
-Goal: make releases measurable and safe to adopt.
+Goal: make published versions measurable and safe to adopt.
 
 Required work:
 
@@ -115,7 +119,7 @@ Required work:
 
 Done when:
 
-- the tested database/log versions are recorded with the release;
+- the tested database/log versions are recorded with the tag or GitHub Release;
 - benchmark smoke checks run in CI;
 - `govulncheck` and race tests are required checks.
 
@@ -124,18 +128,18 @@ Done when:
 - Root module tags use `vX.Y.Z`.
 - Backend module tags use module-prefixed tags: `mysql/vX.Y.Z`,
   `mongo/vX.Y.Z`, `postgres/vX.Y.Z`, and `redis/vX.Y.Z`.
-- Backend modules track the root module version for `v0.x` releases.
+- Backend modules track the root module version for `v0.x` tags.
 - Breaking API changes are allowed before `v1.0.0`, but must be visible in the
-  GitHub release entry or commit history when a tag is published.
+  GitHub Release entry or commit history when a tag is published.
 
 ## Maintenance Rules
 
-- Move an item to Done only when its exit gates are satisfied in CI or release
+- Move an item to Done only when its exit gates are satisfied in CI or tag
   evidence.
-- Add new work to an existing workstream before creating a new release line.
-- Keep release scope user-visible; internal refactors belong in issues or PRs,
+- Add new work to an existing workstream before creating a new version line.
+- Keep version scope user-visible; internal refactors belong in issues or PRs,
   not the roadmap.
-- For published tags, keep GitHub release entries aligned with shipped behavior.
+- For published tags, keep GitHub Release entries aligned with shipped behavior.
 
 ## Non-Goals Before `v1.0.0`
 

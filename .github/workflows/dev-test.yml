@@ -247,6 +247,9 @@ jobs:
       - name: Generate Redis AOF fixture
         run: ./redis/testdata/generate_redis_aof.sh redis:7.2
 
+      - name: Test Redis live replication stream
+        run: ./redis/testdata/run_redis_live.sh redis:7.2
+
       - name: Test Redis module
         run: cd redis && GOWORK=off go test -race -count=1 -shuffle=on ./...
 
@@ -287,7 +290,7 @@ jobs:
         working-directory: ${{ matrix.path }}
         env:
           GOWORK: off
-        run: go test -run '^$' -fuzz='${{ matrix.target }}' -fuzztime=5s -parallel=2 '${{ matrix.package }}'
+        run: go test -run '^$' -fuzz='${{ matrix.target }}' -fuzztime=100000x -parallel=2 '${{ matrix.package }}'
 
   bench:
     name: bench (${{ matrix.module }})

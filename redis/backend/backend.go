@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/Infranite/go-dblog"
 	"github.com/Infranite/go-dblog/redis/decode/decoder"
@@ -22,8 +23,20 @@ func (Backend) Open(options dblog.OpenOptions) (dblog.Decoder[dblog.Event], erro
 	reader := options.Reader()
 	source := options.Source()
 	var close func() error
+	start, err := startPosition(options)
+	if err != nil {
+		return nil, err
+	}
 	if reader == nil {
 		path := options.Path()
+		if path == "" && isRedisDSN(options.DSN()) {
+			return decoder.NewLiveDecoder(
+				dblog.ContextOf(options),
+				source,
+				options.DSN(),
+				decoder.WithStartPosition(start),
+			)
+		}
 		if path == "" {
 			path = options.DSN()
 		}
@@ -43,11 +56,7 @@ func (Backend) Open(options dblog.OpenOptions) (dblog.Decoder[dblog.Event], erro
 	if source.Driver == "" {
 		source.Driver = Driver
 	}
-	startPosition, err := startPosition(options)
-	if err != nil {
-		return nil, err
-	}
-	return decoder.NewDecoder(source, reader, close, decoder.WithStartPosition(startPosition)), nil
+	return decoder.NewDecoder(source, reader, close, decoder.WithStartPosition(start)), nil
 }
 
 // Register adds Backend to a registry, or to dblog.DefaultRegistry when nil.
@@ -71,4 +80,8 @@ func startPosition(options dblog.OpenOptions) (int, error) {
 		return 0, fmt.Errorf("redis: invalid checkpoint position %q", position.Value)
 	}
 	return value, nil
+}
+
+func isRedisDSN(dsn string) bool {
+	return strings.HasPrefix(strings.TrimSpace(dsn), "redis://")
 }

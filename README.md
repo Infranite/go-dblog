@@ -21,8 +21,8 @@ Install only the backend you use.
 | [`github.com/Infranite/go-dblog`](https://pkg.go.dev/github.com/Infranite/go-dblog) | Common API for multi-source orchestration | Supported |
 | [`github.com/Infranite/go-dblog/mysql`](./mysql) | MySQL-family binlog parser: MySQL, MariaDB, MySQL-compatible dialects | Supported |
 | [`github.com/Infranite/go-dblog/postgres`](./postgres) | PostgreSQL-family logical decoding parser and SQL slot reader | Supported |
-| [`github.com/Infranite/go-dblog/mongo`](./mongo) | MongoDB-family oplog / change stream JSON parser | Supported |
-| [`github.com/Infranite/go-dblog/redis`](./redis) | Redis-family AOF RESP parser | Supported |
+| [`github.com/Infranite/go-dblog/mongo`](./mongo) | MongoDB-family oplog / change stream JSON parser and live change stream reader | Supported |
+| [`github.com/Infranite/go-dblog/redis`](./redis) | Redis-family AOF RESP parser and replication stream reader | Supported |
 
 Backend modules are split by database family instead of log format names. That
 keeps imports predictable as each ecosystem grows its own dialects and
@@ -43,18 +43,19 @@ compatibility layers.
 
 ## Current Scope
 
-The current public target is `v0.1.0`: a parser release for users who already
-have database log files, exported records, captured streams, or PostgreSQL
-`test_decoding` logical slots. Until the first tags exist, use a checked-out
-branch for evaluation. Most live replication readers are planned for later
-release lines.
+The current public target is `v0.1.0`: a first usable tag set for users who
+already have database log files, exported records, captured streams, or the
+documented live source for a backend. Until the first tags exist, use a
+checked-out branch for evaluation. The capability matrix in
+[ROADMAP.md](./ROADMAP.md#capability-matrix) is the source of truth for shipped
+and pending backend behavior.
 
 | Backend | Supported input for `v0.1.0` | Not included yet |
 |---|---|---|
 | MySQL | Local MySQL-family binlog files | Online replication connection reader |
 | PostgreSQL | Logical decoding text records; SQL logical slot polling with `test_decoding` | Wire-level logical replication protocol reader |
-| MongoDB | Newline-delimited oplog or change stream JSON records | Live change stream reader |
-| Redis | Redis AOF RESP array commands | Redis replication stream reader |
+| MongoDB | Newline-delimited oplog or change stream JSON records; live collection change streams from replica sets | Raw oplog tailing outside JSON records or change streams |
+| Redis | Redis AOF RESP array commands; PSYNC replication streams | Cluster/Sentinel discovery and TLS DSNs |
 
 ## Common API
 
@@ -219,10 +220,10 @@ event types, or compatibility behavior without changing the common API.
 ## Roadmap
 
 The detailed roadmap and capability matrix live in [ROADMAP.md](./ROADMAP.md).
-Keep release planning there so version status, shipped capability, and CI
-evidence have one source of truth.
+Keep version scope, shipped capability, and CI evidence there so README files do
+not drift.
 
-Current public target: `v0.1.0`, the first parser developer preview tag set.
+Current public target: `v0.1.0`, the first usable developer preview tag set.
 
 ## Development
 
@@ -270,12 +271,17 @@ Fixture generation can be debugged locally when Docker is available:
 ```bash
 ./mysql/test/testdata/generate_mysql_binlog.sh mysql:8.4
 ./mongo/testdata/generate_mongo_oplog.sh mongo:7.0
+./mongo/testdata/run_mongo_live.sh mongo:7.0
 ./postgres/testdata/generate_postgres_logical.sh postgres:16
 ./postgres/testdata/run_postgres_live.sh postgres:16
 ./redis/testdata/generate_redis_aof.sh redis:7.2
+./redis/testdata/run_redis_live.sh redis:7.2
 ```
 
-Pull requests are the contribution path:
+### Contributing
+
+Pull requests are the contribution path. A standalone `CONTRIBUTING.md` is not
+maintained; this section is the project-level contribution guide.
 
 - Run `make test` and the affected module tests locally before opening a pull
   request.
