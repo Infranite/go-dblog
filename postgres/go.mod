@@ -2,7 +2,7 @@ module github.com/Infranite/go-dblog/postgres
 
 go 1.25.0
 
-require github.com/Infranite/go-dblog v0.3.0
+require github.com/Infranite/go-dblog v0.4.0
 
 require github.com/jackc/pgx/v5 v5.9.2
 

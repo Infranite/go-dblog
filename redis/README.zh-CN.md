@@ -15,10 +15,10 @@ RESP parsing 时可直接使用本 module。
 当前 release：
 
 ```bash
-go get github.com/Infranite/go-dblog/redis@v0.3.0
+go get github.com/Infranite/go-dblog/redis@v0.4.0
 ```
 
-该 module 的仓库 tag 是 `redis/v0.3.0`；调用方使用上面的 semantic version query。
+该 module 的仓库 tag 是 `redis/v0.4.0`；调用方使用上面的 semantic version query。
 
 要求：
 
