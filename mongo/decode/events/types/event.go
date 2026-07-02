@@ -58,7 +58,7 @@ func (e Event) Reverse() (any, bool) {
 			Collection: e.change.Collection,
 			Filter:     cloneMap(e.change.DocumentKey),
 		}, true
-	case OperationUpdate:
+	case OperationUpdate, OperationReplace:
 		if len(e.change.DocumentKey) == 0 || len(e.change.BeforeDocument) == 0 {
 			return nil, false
 		}

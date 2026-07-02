@@ -122,10 +122,10 @@ checkpoint 测试。
 | 来自 MongoDB replica set 的 live collection change streams | Done | `TestLiveChangeStream` 运行在 `mongo:7.0`。 |
 | 面向 MongoDB-compatible event shape 的 event plugins | Done | plugin 可归一化 operation 和 metadata。 |
 | 通过根 registry 打开时支持 checkpoint resume | Done | backend registry tests 覆盖。 |
-| 输入包含足够 document data 时，为 insert、delete、update 生成安全闪回 | Done | update 需要 `fullDocumentBeforeChange`；delete 需要完整 deleted document data。 |
+| 输入包含足够 document data 时，为 insert、delete、update、replace 生成安全闪回 | Done | update 和 replace 需要 `fullDocumentBeforeChange`；delete 需要完整 deleted document data。 |
 | JSON records 或 change streams 之外的 raw oplog tailing | Unsupported | 超出 `v0.2.x` 输入契约。 |
 | 自动 replica set 或 sharded cluster discovery | Unsupported | 调用方提供 DSN 和 source。 |
-| 缺少 `fullDocumentBeforeChange` 的 update 闪回 | Unsupported | source log 不包含 prior document state。 |
+| 缺少 `fullDocumentBeforeChange` 的 update 或 replace 闪回 | Unsupported | source log 不包含 prior document state。 |
 | 缺少完整 deleted document data 的 delete 闪回 | Unsupported | source log 不包含可重新 insert 的 document。 |
 
 `v0.3.0` 恢复工作：
@@ -133,7 +133,7 @@ checkpoint 测试。
 | 事项 | 状态 | 说明 |
 |---|---|---|
 | 保留具备足够 document data 的 insert/delete/update 闪回 | Done | `v0.2.0` 已具备的基线能力。 |
-| 当 before-image 存在时，为 replace change-stream 增加原生恢复支持 | Planned | 当前可通过 plugin 兼容；原生支持需要测试。 |
+| 当 before-image 存在时，为 replace change-stream 增加原生恢复支持 | Done | 已由单元测试覆盖；无需 plugin。 |
 | 增加 live pre-image 恢复示例 | Planned | 需要说明 collection pre-image 要求。 |
 
 ## Redis 族
@@ -148,7 +148,7 @@ checkpoint 测试。
 | 小写归一化 command name 和原生 typed command events | Done | command parser 保留原始 arguments。 |
 | 面向 Redis-compatible 产品和 module commands 的 command plugins | Done | plugin 在事件输出前归一化 command。 |
 | 通过根 registry 打开时支持 checkpoint resume | Done | backend registry tests 覆盖。 |
-| 对 `LPUSH`、`RPUSH`、`INCR`、`DECR`、`INCRBY`、`DECRBY` 生成安全闪回 | Done | 反向命令无需读取 Redis state。 |
+| 对 `LPUSH`、`RPUSH`、`INCR`、`DECR`、`INCRBY`、`DECRBY`、`HINCRBY`、`HINCRBYFLOAT`、`ZINCRBY` 生成安全闪回 | Done | 反向命令无需读取 Redis state。 |
 | Redis Cluster 或 Sentinel discovery | Unsupported | 调用方提供 direct endpoint。 |
 | TLS-specific DSN handling | Unsupported | 不属于 `v0.2.x` 契约。 |
 | 离线 RDB snapshot parsing | Unsupported | 离线 parser 只接收 RESP array command frames。 |
@@ -159,5 +159,5 @@ checkpoint 测试。
 | 事项 | 状态 | 说明 |
 |---|---|---|
 | 保留确定性的 list 和 counter 闪回 | Done | `v0.2.0` 已具备的基线能力。 |
-| 增加 `HINCRBY`、`HINCRBYFLOAT`、`ZINCRBY` 等确定性 numeric 闪回 | Planned | 可以用相反 delta 构造安全反向命令。 |
+| 增加 `HINCRBY`、`HINCRBYFLOAT`、`ZINCRBY` 等确定性 numeric 闪回 | Done | 使用相反 delta 构造安全反向命令；Redis 7.2 fixture/live CI 覆盖 `HINCRBY` 和 `ZINCRBY`，`HINCRBYFLOAT` 因 Redis 会传播为 `HSET`，由单元测试覆盖。 |
 | state-dependent commands 保持省略，除非新增显式 opt-in API | Planned | 退出门禁要求。 |

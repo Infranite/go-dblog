@@ -10,6 +10,8 @@ const (
 	OperationInsert = types.OperationInsert
 	// OperationUpdate is a MongoDB update event.
 	OperationUpdate = types.OperationUpdate
+	// OperationReplace is a MongoDB replacement event.
+	OperationReplace = types.OperationReplace
 	// OperationDelete is a MongoDB delete event.
 	OperationDelete = types.OperationDelete
 	// OperationCommand is a MongoDB command event.

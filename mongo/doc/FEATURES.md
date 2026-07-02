@@ -25,8 +25,8 @@ MongoDB-family backend.
 - Root registry integration through `mongo/backend`.
 - Checkpoint resume through `dblog.WithCheckpoint` when opened through the root
   registry.
-- Flashback commands for inserts, deletes, and updates when the input contains
-  enough document or key data.
+- Flashback commands for inserts, deletes, updates, and replacements when the
+  input contains enough document or key data.
 - Event plugins for MongoDB-compatible products that emit different operation
   names or metadata.
 
@@ -34,7 +34,7 @@ MongoDB-family backend.
 
 - Raw oplog tailing outside JSON records or change streams.
 - Automatic replica set or sharded cluster discovery.
-- Update flashback without `fullDocumentBeforeChange`.
+- Update or replace flashback without `fullDocumentBeforeChange`.
 - Delete flashback without full deleted document data.
 
 ## Supported Inputs
@@ -64,13 +64,14 @@ commands are required. Without a pre-image, update events are still decoded, but
 | Event | Flashback output |
 |---|---|
 | `insert` with `documentKey` | `mongo.Command{Operation: "delete", Filter: documentKey}` |
-| `update` with `documentKey` and `fullDocumentBeforeChange` | `mongo.Command{Operation: "replace", Filter: documentKey, Document: fullDocumentBeforeChange}` |
+| `update` or `replace` with `documentKey` and `fullDocumentBeforeChange` | `mongo.Command{Operation: "replace", Filter: documentKey, Document: fullDocumentBeforeChange}` |
 | `delete` with full document data | `mongo.Command{Operation: "insert", Document: document}` |
-| `update` without before-image, `command`, `noop` | No flashback output. |
+| `update` or `replace` without before-image, `command`, `noop` | No flashback output. |
 
-Update flashback uses the full before-image as a replacement document. Updates
-without before-image data do not emit flashback output. Malformed JSON input and
-non-object `updateDescription` values are rejected before an event is emitted.
+Update and replace flashbacks use the full before-image as a replacement
+document. Events without before-image data do not emit flashback output.
+Malformed JSON input and non-object `updateDescription` values are rejected
+before an event is emitted.
 
 ## Plugin Support
 

@@ -123,10 +123,10 @@ Detailed user docs: [features](../mongo/doc/FEATURES.md) and
 | Live collection change streams from a MongoDB replica set | Done | `TestLiveChangeStream` runs against `mongo:7.0`. |
 | Event plugins for MongoDB-compatible event shapes | Done | Plugins can normalize operations and metadata. |
 | Checkpoint resume through the root registry | Done | Covered by backend registry tests. |
-| Safe flashback for inserts, deletes, and updates with enough document data | Done | Updates require `fullDocumentBeforeChange`; deletes require full deleted document data. |
+| Safe flashback for inserts, deletes, updates, and replacements with enough document data | Done | Updates and replacements require `fullDocumentBeforeChange`; deletes require full deleted document data. |
 | Raw oplog tailing outside JSON records or change streams | Unsupported | Outside the `v0.2.x` input contract. |
 | Automatic replica set or sharded cluster discovery | Unsupported | Caller supplies the DSN and source. |
-| Update flashback without `fullDocumentBeforeChange` | Unsupported | Source log does not contain the prior document state. |
+| Update or replace flashback without `fullDocumentBeforeChange` | Unsupported | Source log does not contain the prior document state. |
 | Delete flashback without full deleted document data | Unsupported | Source log does not contain the document to reinsert. |
 
 `v0.3.0` recovery work:
@@ -134,7 +134,7 @@ Detailed user docs: [features](../mongo/doc/FEATURES.md) and
 | Item | Status | Notes |
 |---|---|---|
 | Keep insert/delete/update flashbacks with enough document data | Done | Baseline from `v0.2.0`. |
-| Add native replace change-stream recovery when a before-image is present | Planned | Current compatibility can be handled with plugins; native support needs tests. |
+| Add native replace change-stream recovery when a before-image is present | Done | Covered by unit tests; no plugin is required. |
 | Add live pre-image recovery examples | Planned | Should document collection pre-image requirements. |
 
 ## Redis Family
@@ -149,7 +149,7 @@ Detailed user docs: [features](../redis/doc/FEATURES.md) and
 | Lowercase normalized command names and native typed command events | Done | Command parser keeps original arguments. |
 | Command plugins for Redis-compatible products and module commands | Done | Plugins normalize parsed commands before emission. |
 | Checkpoint resume through the root registry | Done | Covered by backend registry tests. |
-| Safe flashback for `LPUSH`, `RPUSH`, `INCR`, `DECR`, `INCRBY`, and `DECRBY` | Done | Reverse commands do not require reading Redis state. |
+| Safe flashback for `LPUSH`, `RPUSH`, `INCR`, `DECR`, `INCRBY`, `DECRBY`, `HINCRBY`, `HINCRBYFLOAT`, and `ZINCRBY` | Done | Reverse commands do not require reading Redis state. |
 | Redis Cluster or Sentinel discovery | Unsupported | Caller supplies a direct endpoint. |
 | TLS-specific DSN handling | Unsupported | Not part of the `v0.2.x` contract. |
 | Offline RDB snapshot parsing | Unsupported | Offline parser accepts RESP array command frames only. |
@@ -160,5 +160,5 @@ Detailed user docs: [features](../redis/doc/FEATURES.md) and
 | Item | Status | Notes |
 |---|---|---|
 | Keep deterministic list and counter flashbacks | Done | Baseline from `v0.2.0`. |
-| Add deterministic numeric flashbacks such as `HINCRBY`, `HINCRBYFLOAT`, and `ZINCRBY` | Planned | Safe because the reverse command can use the negated delta. |
+| Add deterministic numeric flashbacks such as `HINCRBY`, `HINCRBYFLOAT`, and `ZINCRBY` | Done | Safe because the reverse command uses the negated delta; Redis 7.2 fixture/live CI covers `HINCRBY` and `ZINCRBY`, while `HINCRBYFLOAT` is unit-tested because Redis propagates it as `HSET`. |
 | Keep state-dependent commands omitted unless explicit opt-in exists | Planned | Required exit-gate guardrail. |

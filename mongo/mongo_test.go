@@ -135,6 +135,58 @@ func TestParseLineFlashbackRestoresUpdateBeforeImage(t *testing.T) {
 	}
 }
 
+func TestParseLineFlashbackRestoresReplaceBeforeImage(t *testing.T) {
+	line := strings.Join([]string{
+		`{"operationType":"replace","ns":{"db":"app","coll":"users"},`,
+		`"documentKey":{"_id":1},`,
+		`"fullDocument":{"_id":1,"name":"Grace","role":"admin"},`,
+		`"fullDocumentBeforeChange":{"_id":1,"name":"Ada","role":"reader"}}`,
+	}, "")
+	event, err := ParseLine(dblog.Source{Name: "changes"}, 1, line)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if event.Kind() != OperationReplace {
+		t.Fatalf("kind = %q, want %s", event.Kind(), OperationReplace)
+	}
+
+	got, ok := event.Reverse()
+	if !ok {
+		t.Fatal("expected flashback command")
+	}
+	want := Command{
+		Operation:  CommandReplace,
+		Database:   "app",
+		Collection: "users",
+		Filter:     map[string]any{"_id": json.Number("1")},
+		Document: map[string]any{
+			"_id":  json.Number("1"),
+			"name": "Ada",
+			"role": "reader",
+		},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("flashback = %#v, want %#v", got, want)
+	}
+}
+
+func TestParseLineSkipsReplaceFlashbackWithoutBeforeImage(t *testing.T) {
+	line := strings.Join([]string{
+		`{"operationType":"replace","ns":{"db":"app","coll":"users"},`,
+		`"documentKey":{"_id":1},`,
+		`"fullDocument":{"_id":1,"name":"Grace"}}`,
+	}, "")
+	event, err := ParseLine(dblog.Source{Name: "changes"}, 1, line)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, ok := event.Reverse()
+	if ok {
+		t.Fatalf("flashback = %#v, want none", got)
+	}
+}
+
 func TestParseLineFlashbackCopiesMutableMaps(t *testing.T) {
 	line := strings.Join([]string{
 		`{"operationType":"update","ns":{"db":"app","coll":"users"},`,

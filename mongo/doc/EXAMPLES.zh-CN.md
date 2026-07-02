@@ -72,7 +72,8 @@ if err != nil {
 defer decoder.Close()
 ```
 
-如果需要从 live change stream 生成 update 闪回，需要在 collection 上启用 pre-images。
+如果需要从 live change stream 生成 update 或 replace 闪回，需要在 collection 上启用
+pre-images。
 
 ## 遍历闪回命令
 
@@ -99,13 +100,13 @@ import (
 	"github.com/Infranite/go-dblog/mongo/decode/events/types"
 )
 
-type replacePlugin struct{}
+type upsertPlugin struct{}
 
-func (replacePlugin) Name() string { return "replace" }
-func (replacePlugin) Match(raw map[string]any) bool {
-	return raw["operationType"] == "replace"
+func (upsertPlugin) Name() string { return "upsert" }
+func (upsertPlugin) Match(raw map[string]any) bool {
+	return raw["operationType"] == "upsert"
 }
-func (replacePlugin) Apply(change *types.Change) error {
+func (upsertPlugin) Apply(change *types.Change) error {
 	change.Operation = types.OperationUpdate
 	return nil
 }
@@ -113,9 +114,9 @@ func (replacePlugin) Apply(change *types.Change) error {
 func main() {
 	_ = decoder.NewDecoder(
 		dblog.Source{Name: "changes"},
-		strings.NewReader(`{"operationType":"replace","ns":{"db":"app","coll":"users"}}`+"\n"),
+		strings.NewReader(`{"operationType":"upsert","ns":{"db":"app","coll":"users"}}`+"\n"),
 		nil,
-		decoder.WithEventPlugins(replacePlugin{}),
+		decoder.WithEventPlugins(upsertPlugin{}),
 	)
 }
 ```
