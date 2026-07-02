@@ -13,13 +13,13 @@ binlog 解析或 replication stream 读取时可直接使用本 module。
 
 ## 安装
 
-当前还没有发布公开 tag。首个 `v0.1.0` tag 集合发布后：
+当前还没有发布公开 tag。首个 `v0.2.0` tag 集合发布后：
 
 ```bash
-go get github.com/Infranite/go-dblog/mysql@v0.1.0
+go get github.com/Infranite/go-dblog/mysql@v0.2.0
 ```
 
-该 module 的仓库 tag 是 `mysql/v0.1.0`；调用方使用上面的 semantic version query。
+该 module 的仓库 tag 是 `mysql/v0.2.0`；调用方使用上面的 semantic version query。
 
 要求：
 
@@ -96,6 +96,7 @@ func main() {
 | MySQL、MariaDB 和 MySQL-compatible binlog event body | 支持 | Unit tests 覆盖 event decoders 和 MariaDB plugin。 |
 | `FORMAT_DESCRIPTION_EVENT` metadata 声明的 unknown events | auto/loose compatibility mode 中作为 metadata events 保留 | Compatibility mode tests 和 fixture tests。 |
 | malformed 或 undersized event headers | 拒绝 | `FuzzDecodeEventHeader` smoke target。 |
+| 缺少前置 `TABLE_MAP_EVENT` 时解码 row events | 返回 event，并在 `DecodeError` 中记录原因，不重建 row value | `TestRowsEventWithoutPriorTableMapKeepsDecodeError`。 |
 | 完整 `WRITE_ROWS_EVENT`、`UPDATE_ROWS_EVENT`、`DELETE_ROWS_EVENT` row image 的闪回 | 支持 typed reverse row events | Decoder tests 和 MySQL fixture CI。 |
 | 在线 replication connection | 支持 | `TestLiveReplicationStream` 在 CI 中运行真实 `mysql:8.4` 容器。 |
 
@@ -114,8 +115,8 @@ decoder, err := registry.Open(mysql.Driver,
 ```
 
 DSN 支持可选 `binlog` 或 `file` 以及 `pos` query 参数。省略时从 server 当前 binary
-log position 开始。取消 context 可停止 stream。Row details 需要 row-based binary
-logging。
+log position 开始。GTID auto-positioning 和 TLS-specific DSN 处理不属于 `v0.2.0`
+契约。取消 context 可停止 stream。Row details 需要 row-based binary logging。
 
 ## 闪回范围
 
@@ -129,6 +130,8 @@ logging。
 | `UPDATE_ROWS_EVENTv0/v1/v2` | before/after rows 交换后的同版本 `UPDATE_ROWS_EVENT` |
 
 缺少 table-map metadata、skipped columns 或 `PARTIAL_UPDATE_ROWS_EVENT` 不输出闪回。
+如果输入窗口缺少前置 `TABLE_MAP_EVENT`，decoder 不猜测 column value，只在
+`DecodeError` 中说明缺失 metadata。
 
 ## 插件
 

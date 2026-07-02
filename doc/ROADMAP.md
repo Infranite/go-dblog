@@ -1,6 +1,7 @@
 # Roadmap
 
-This roadmap tracks product scope for `go-dblog`. It is not a date commitment.
+This roadmap tracks product scope for `go-dblog`. It is a release-quality
+checklist, not a date commitment.
 
 [中文](./ROADMAP.zh-CN.md)
 
@@ -9,30 +10,36 @@ This roadmap tracks product scope for `go-dblog`. It is not a date commitment.
 | Status | Meaning |
 |---|---|
 | Done | Implemented, documented, and covered by CI. |
-| Ready | Implemented and covered by CI; ready for a public tag. |
+| Ready | Implemented and covered by CI; ready for public tags. |
 | Planned | Accepted scope, not started or not complete. |
 | Candidate | Useful direction, still needs design or user validation. |
 | Unsupported | Explicitly not emitted or accepted in this version line. |
 
 ## Release Targets
 
-### `v0.1.0` - Ready
+### `v0.1.0` - Ready, superseded
 
 Goal: first usable parser and CDC developer preview for MySQL, PostgreSQL,
 MongoDB, and Redis.
 
+Status: the scope is implemented and CI-covered, but the project has no public
+tags yet. The first public tag set should use the `v0.2.0` target below instead
+of publishing this superseded target.
+
+### `v0.2.0` - Ready
+
+Goal: compatibility-hardened parser and CDC developer preview.
+
 Exit gate:
 
 - protected `ci` and `merge-policy` checks pass on a PR and on `master`;
-- release tags are published as `v0.1.0`, `mysql/v0.1.0`,
-  `postgres/v0.1.0`, `mongo/v0.1.0`, and `redis/v0.1.0`.
-
-### `v0.2.0` - Planned
-
-Goal: compatibility hardening.
-
-Exit gate: each backend documents supported versions, unsupported inputs,
-malformed-input behavior, and fixture provenance.
+- each backend documents supported versions, unsupported inputs,
+  malformed-input behavior, and fixture provenance;
+- compatibility hardening has negative tests for incomplete metadata windows,
+  unsupported binary formats, malformed JSON/update descriptions, RESP limits,
+  and RDB-prefixed Redis streams;
+- release tags can be published as `v0.2.0`, `mysql/v0.2.0`,
+  `postgres/v0.2.0`, `mongo/v0.2.0`, and `redis/v0.2.0`.
 
 ### `v0.3.0` - Planned
 
@@ -55,11 +62,11 @@ Goal: stable public API.
 Exit gate: root API and backend package contracts are frozen with a documented
 compatibility policy.
 
-## Product Scope For `v0.1.0`
+## Product Scope For `v0.2.0`
 
 ### Common API
 
-Supported now:
+Supported:
 
 - `dblog.Event`, `dblog.Decoder`, `dblog.Registry`, and explicit backend
   registration.
@@ -68,7 +75,7 @@ Supported now:
 - Shared source, position, checkpoint, filtering, and flashback helpers.
 - Backend-neutral orchestration without hiding backend-native event types.
 
-Not supported now:
+Unsupported:
 
 - Cross-database semantic normalization beyond the common event shape.
 - Managed service connectors.
@@ -81,11 +88,12 @@ CI evidence:
 
 ### MySQL Family
 
-Supported now:
+Supported:
 
 - Local MySQL-family binary log files from MySQL `5.6`, `5.7`, `8.0`, and
   `8.4` fixture containers.
 - Online MySQL replication streams through `dblog.WithDSN`.
+- Optional live-reader `binlog` or `file` and `pos` DSN query parameters.
 - MySQL, MariaDB, and MySQL-compatible binlog events listed in
   [mysql/README.md](../mysql/README.md).
 - Native typed event bodies, row event decoding through `TABLE_MAP_EVENT`
@@ -95,7 +103,14 @@ Supported now:
 - Safe flashback for complete write, delete, and update row images.
 - Parser fuzz smoke and fixture decoder benchmark smoke gates.
 
-Not supported now:
+Compatibility behavior:
+
+- A row event that is decoded without the required prior `TABLE_MAP_EVENT` is
+  still returned with header and bitmap fields, and its `DecodeError` describes
+  the missing metadata.
+- Malformed or undersized event headers are rejected.
+
+Unsupported:
 
 - GTID auto-positioning for live readers.
 - TLS-specific DSN handling.
@@ -109,11 +124,13 @@ CI evidence:
 - The `mysql` job generates real fixtures from `mysql:5.6`, `mysql:5.7`,
   `mysql:8.0`, and `mysql:8.4`.
 - `TestLiveReplicationStream` runs against `mysql:8.4`.
+- `TestRowsEventWithoutPriorTableMapKeepsDecodeError` covers incomplete
+  table-map input windows.
 - `FuzzDecodeEventHeader` and `BenchmarkDecoder` run as CI smoke gates.
 
 ### PostgreSQL Family
 
-Supported now:
+Supported:
 
 - PostgreSQL logical decoding text records: `BEGIN`, `COMMIT`, and
   `table schema.table: OPERATION: ...` changes.
@@ -127,7 +144,14 @@ Supported now:
   new tuple data.
 - Parser fuzz smoke and line parser benchmark smoke gates.
 
-Not supported now:
+Compatibility behavior:
+
+- `pgoutput` binary relation and tuple messages are explicitly rejected by the
+  text parser.
+- Live readers parse `test_decoding` text output only; other text output
+  families must be normalized by custom event plugins.
+
+Unsupported:
 
 - `pgoutput` binary relation/tuple messages.
 - Raw WAL/page decoding.
@@ -140,11 +164,13 @@ CI evidence:
 - The `postgres` job generates a real fixture from `postgres:16`.
 - `TestLiveLogicalDecoding` and `TestWireLogicalReplication` run against a real
   `postgres:16` container.
+- `TestParseLineRejectsPgoutputBinaryMessages` covers unsupported binary
+  `pgoutput` messages.
 - `FuzzParseLine` and `BenchmarkParseLine` run as CI smoke gates.
 
 ### MongoDB Family
 
-Supported now:
+Supported:
 
 - Newline-delimited MongoDB oplog JSON records with `op`, `ns`, `o`, and `o2`.
 - Newline-delimited change stream JSON records with `operationType`, `ns`,
@@ -158,7 +184,14 @@ Supported now:
   document key and before-image data.
 - Parser fuzz smoke and line parser benchmark smoke gates.
 
-Not supported now:
+Compatibility behavior:
+
+- Malformed JSON records are rejected.
+- Change stream `updateDescription`, when present, must be a JSON object.
+- Live update flashback requires `fullDocumentBeforeChange`; users must enable
+  MongoDB change stream pre-images on the source collection.
+
+Unsupported:
 
 - Raw oplog tailing outside JSON records or change streams.
 - Automatic replica set or sharded cluster discovery.
@@ -169,11 +202,13 @@ CI evidence:
 
 - The `mongo` job generates a real fixture from `mongo:7.0`.
 - `TestLiveChangeStream` runs against a real `mongo:7.0` replica set.
+- `TestParseLineRejectsMalformedInput` covers malformed JSON and invalid
+  `updateDescription` values.
 - `FuzzParseLine` and `BenchmarkParseLine` run as CI smoke gates.
 
 ### Redis Family
 
-Supported now:
+Supported:
 
 - Redis AOF RESP array commands.
 - Live Redis PSYNC replication streams through `dblog.WithDSN`.
@@ -184,11 +219,20 @@ Supported now:
   `DECRBY`-family operations.
 - RESP parser fuzz smoke and command parser benchmark smoke gates.
 
-Not supported now:
+Compatibility behavior:
+
+- Offline parsing accepts RESP array command frames only.
+- RDB preambles and mixed RDB/AOF streams are rejected by the offline parser.
+- The live PSYNC reader skips the initial Redis RDB snapshot payload before
+  command frames.
+- Invalid lengths, LF-only frames, oversized arrays, and oversized bulk strings
+  are rejected.
+
+Unsupported:
 
 - Redis Cluster or Sentinel discovery.
 - TLS-specific DSN handling.
-- RDB snapshot parsing.
+- Offline RDB snapshot parsing.
 - Flashback for state-dependent commands such as `SET`, `HSET`, `SADD`, `DEL`,
   or commands that need previous values, TTLs, or membership state.
 
@@ -196,6 +240,9 @@ CI evidence:
 
 - The `redis` job generates a real fixture from `redis:7.2`.
 - `TestLiveReplicationStream` runs against a real `redis:7.2` server.
+- `TestParseCommandRejectsInvalidRESP` covers malformed RESP limits and RDB or
+  mixed stream prefixes.
+- `TestLiveDecoderSkipsSizedRDB` covers live PSYNC RDB snapshot skipping.
 - `FuzzParseCommand` and `BenchmarkParseCommand` run as CI smoke gates.
 
 ## Capability Matrix
@@ -211,23 +258,13 @@ CI evidence:
 | Checkpoint/resume | Done | Done | Done | Done |
 | Safe flashback where the log has enough data | Done | Done | Done | Done |
 | Fixture provenance | Done | Done | Done | Done |
+| Malformed input tests | Done | Done | Done | Done |
+| Unsupported input tests | Done | Done | Done | Done |
 | Fuzz smoke gate | Done | Done | Done | Done |
 | Benchmark smoke gate | Done | Done | Done | Done |
 | Static gates: lint, vet, vulnerability scan | Done | Done | Done | Done |
 
 ## Next Work
-
-### `v0.2.0` Compatibility Hardening
-
-- MySQL: document live reader DSN limits, add negative fixtures for incomplete
-  table-map windows, and decide whether GTID auto-positioning belongs in this
-  version line.
-- PostgreSQL: add explicit unsupported tests for `pgoutput` binary messages and
-  document text plugin extension points.
-- MongoDB: document live change stream pre-image requirements and add malformed
-  JSON/update-description negative cases.
-- Redis: expand malformed RESP limit tests and document behavior around RDB
-  preambles and mixed AOF streams.
 
 ### `v0.3.0` Recovery Workflows
 
@@ -241,6 +278,12 @@ CI evidence:
 - Publish the tested database/log version matrix with each release.
 - Keep parser benchmark smoke gates in CI and record release-time baselines.
 - Keep `govulncheck`, race tests, lint, and vet required for every backend.
+
+### `v1.0.0` API Stability
+
+- Freeze public root API and backend contracts.
+- Document compatibility, deprecation, and module-versioning policy.
+- Define supported extension surfaces for product plugins.
 
 ## Versioning Rules
 

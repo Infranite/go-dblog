@@ -13,13 +13,13 @@ logical decoding 文本解析时可直接使用本 module。
 
 ## 安装
 
-当前还没有发布公开 tag。首个 `v0.1.0` tag 集合发布后：
+当前还没有发布公开 tag。首个 `v0.2.0` tag 集合发布后：
 
 ```bash
-go get github.com/Infranite/go-dblog/postgres@v0.1.0
+go get github.com/Infranite/go-dblog/postgres@v0.2.0
 ```
 
-该 module 的仓库 tag 是 `postgres/v0.1.0`；调用方使用上面的 semantic version query。
+该 module 的仓库 tag 是 `postgres/v0.2.0`；调用方使用上面的 semantic version query。
 
 要求：
 
@@ -108,7 +108,7 @@ backend driver name 是 `pg`，module path 保持 `postgres`。
 | `test_decoding` live SQL logical slot polling | 支持 | `TestLiveLogicalDecoding` 在真实 `postgres:16` 容器中运行。 |
 | `test_decoding` wire-level logical replication | 支持 | `TestWireLogicalReplication` 在真实 `postgres:16` 容器中运行。 |
 | empty table 或 operation names | 拒绝 | Parser tests 和 fuzz smoke target。 |
-| `pgoutput` binary relation/tuple messages | Planned | 当前 live reader 解析 `test_decoding` 文本输出。 |
+| `pgoutput` binary relation/tuple messages | 不支持，并由 text parser 拒绝 | `TestParseLineRejectsPgoutputBinaryMessages`。 |
 
 ## Live Readers
 
@@ -132,7 +132,10 @@ decoder, err := registry.Open(postgres.Driver,
 )
 ```
 
-两种 live reader 都解析同一个 `test_decoding` 文本格式。取消 context 可停止读取。
+两种 live reader 都解析同一个 `test_decoding` 文本格式。`v0.2.0` 的 live reader 是
+text-oriented：请使用 `test_decoding`，或通过 `decoder.WithEventPlugins` 归一化自定义
+文本 output plugin；binary `pgoutput` relation 和 tuple messages 不会被解码。取消
+context 可停止读取。
 
 ## 闪回范围
 
@@ -146,7 +149,9 @@ decoder, err := registry.Open(postgres.Driver,
 ## 插件
 
 使用 `decoder.WithEventPlugins` 处理内置 logical decoding 文本记录以外的 line family。
-示例见 [English README](./README.md#event-plugins)。
+内置 parser 不接受某行后，plugin 会收到原始 line；plugin 应输出 backend-native
+`types.Event`，这样 root adapter 能保留 source、position 和 checkpoint 行为。示例见
+[English README](./README.md#event-plugins)。
 
 ## 开发
 

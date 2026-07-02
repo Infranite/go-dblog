@@ -12,13 +12,13 @@ RESP parsing 时可直接使用本 module。
 
 ## 安装
 
-当前还没有发布公开 tag。首个 `v0.1.0` tag 集合发布后：
+当前还没有发布公开 tag。首个 `v0.2.0` tag 集合发布后：
 
 ```bash
-go get github.com/Infranite/go-dblog/redis@v0.1.0
+go get github.com/Infranite/go-dblog/redis@v0.2.0
 ```
 
-该 module 的仓库 tag 是 `redis/v0.1.0`；调用方使用上面的 semantic version query。
+该 module 的仓库 tag 是 `redis/v0.2.0`；调用方使用上面的 semantic version query。
 
 要求：
 
@@ -98,7 +98,17 @@ func main() {
 | Redis AOF RESP array commands | 支持 | `redis` fixture job 从 `redis:7.2` 生成；`FuzzParseCommand` smoke target。 |
 | Redis replication streams | 支持 | `redis` CI job 启动 `redis:7.2`，写入 SET/INCR/LPUSH，并通过 `dblog.WithDSN` 加 `dblog.WithContext` 读取。 |
 | LF-only line endings、empty command names、invalid lengths、oversized arrays/bulk strings | 拒绝 | Parser tests 和 fuzz smoke target。 |
+| 离线输入中的 RDB preamble 或 mixed RDB/AOF streams | 拒绝 | `TestParseCommandRejectsInvalidRESP`。 |
+| live PSYNC stream 初始 RDB snapshot payload | 读取 command 前跳过 | `TestLiveDecoderSkipsSizedRDB` 和 live Redis CI。 |
 | 最多 8,192 个 RESP array elements 和 8 MiB per bulk string 的 commands | 支持 | Parser limits 由 fuzz smoke 覆盖。 |
+
+## RDB 与混合流
+
+离线 parser 只接收 RESP array command frames。遇到 RDB preamble 或 mixed RDB/AOF
+streams 时会拒绝输入，而不是猜测 frame boundary。
+
+live PSYNC stream 不同：Redis 会先发送一个 RDB snapshot，再发送 command stream。
+live reader 会消费 snapshot payload，然后从后续 RESP command frames 开始输出事件。
 
 ## 闪回范围
 
@@ -109,6 +119,7 @@ func main() {
 | `INCR`、`DECR`、`INCRBY`、`DECRBY` | 相反的 increment command |
 
 需要 Redis 先前 state、TTL、overwritten value 或成员是否已存在的信息时，不输出闪回。
+例如 `SET`、`HSET`、`SADD`、`DEL` 会被解码为 command，但不会生成闪回命令。
 
 ## 插件
 

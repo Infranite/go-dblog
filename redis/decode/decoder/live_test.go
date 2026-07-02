@@ -85,6 +85,29 @@ func TestLiveDecoderSkipsDisklessRDB(t *testing.T) {
 	t.Fatal("no events")
 }
 
+func TestLiveDecoderSkipsSizedRDB(t *testing.T) {
+	conn := newFakeConn(strings.Join([]string{
+		"+OK\r\n",
+		"+OK\r\n",
+		"+FULLRESYNC replid 0\r\n",
+		"$5\r\n",
+		"abcde",
+		"*1\r\n$4\r\nPING\r\n",
+	}, ""))
+	decoder := newLiveDecoder(context.Background(), dblog.Source{Name: "redis"}, conn, nil)
+
+	for event, err := range decoder.Events() {
+		if err != nil {
+			t.Fatal(err)
+		}
+		if event.Kind() != "ping" {
+			t.Fatalf("event kind = %s, want ping", event.Kind())
+		}
+		return
+	}
+	t.Fatal("no events")
+}
+
 func TestRedisAddressAddsDefaultPort(t *testing.T) {
 	address, username, password, err := redisAddress("redis://user:pass@[::1]/0")
 	if err != nil {

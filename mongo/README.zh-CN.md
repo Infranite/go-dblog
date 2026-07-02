@@ -14,13 +14,13 @@ change events。
 
 ## 安装
 
-当前还没有发布公开 tag。首个 `v0.1.0` tag 集合发布后：
+当前还没有发布公开 tag。首个 `v0.2.0` tag 集合发布后：
 
 ```bash
-go get github.com/Infranite/go-dblog/mongo@v0.1.0
+go get github.com/Infranite/go-dblog/mongo@v0.2.0
 ```
 
-该 module 的仓库 tag 是 `mongo/v0.1.0`；调用方使用上面的 semantic version query。
+该 module 的仓库 tag 是 `mongo/v0.2.0`；调用方使用上面的 semantic version query。
 
 要求：
 
@@ -101,8 +101,18 @@ func main() {
 | 带 `op`、`ns`、`o`、`o2` 的 MongoDB oplog JSON records | 支持 | `mongo` fixture job 从 `mongo:7.0` 生成；`FuzzParseLine` smoke target。 |
 | 带 change stream fields 的 MongoDB change stream JSON records | 支持 | Unit tests 和 `FuzzParseLine` seeds 覆盖有效和 malformed records。 |
 | 来自 MongoDB replica set 的 live collection change streams | 支持 | `mongo` CI job 启动 `mongo:7.0`，写入 insert/update/delete，并通过 `dblog.WithDSN` 加 `dblog.WithContext` 读取。 |
+| malformed JSON records 或非 object 的 `updateDescription` | 拒绝 | `TestParseLineRejectsMalformedInput` 和 `FuzzParseLine`。 |
 | empty operation names | 拒绝 | Parser tests 和 fuzz smoke target。 |
 | unknown non-empty operation names | 作为 backend event kinds 输出，除非 decoder plugin 归一化 | Plugin tests 和 parser tests。 |
+
+## Live Change Streams
+
+使用 `dblog.WithDSN` 和 `db.collection` 形式的 source name 打开 live reader。
+MongoDB 必须以 replica set 运行，因为 standalone server 不支持 change streams。
+
+live change stream 的 update 闪回需要 `fullDocumentBeforeChange`。如果业务需要反向
+update command，需要在源 collection 上启用 change stream pre-images。没有 pre-image
+时 update event 仍会解码，但 `dblog.Flashbacks` 不输出反向命令。
 
 ## 闪回范围
 
@@ -112,6 +122,8 @@ func main() {
 | 带 `documentKey` 和 `fullDocumentBeforeChange` 的 `update` | `mongo.Command{Operation: "replace", Filter: documentKey, Document: fullDocumentBeforeChange}` |
 | 带 full document data 的 `delete` | `mongo.Command{Operation: "insert", Document: document}` |
 | 缺少 before-image 的 `update`、`command`、`noop` | 不输出闪回。 |
+
+malformed JSON input 和非 object 的 `updateDescription` 会在事件输出前被拒绝。
 
 ## 插件
 

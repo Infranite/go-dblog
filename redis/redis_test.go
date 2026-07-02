@@ -128,7 +128,12 @@ func TestParseCommandRejectsInvalidRESP(t *testing.T) {
 		input string
 	}{
 		{name: "inline command", input: "SET key value\r\n"},
+		{name: "rdb preamble", input: "REDIS0009\r\n"},
+		{name: "mixed rdb and resp stream", input: "REDIS0009\r\n*1\r\n$4\r\nPING\r\n"},
 		{name: "empty array", input: "*0\r\n"},
+		{name: "oversized array", input: "*8193\r\n"},
+		{name: "negative bulk length", input: "*1\r\n$-1\r\n"},
+		{name: "oversized bulk length", input: "*1\r\n$8388609\r\n"},
 		{name: "bad bulk terminator", input: "*1\r\n$3\r\nSET\n"},
 	}
 

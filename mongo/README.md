@@ -15,14 +15,14 @@ parsing.
 
 ## Installation
 
-No public tags have been published yet. After the first `v0.1.0` tag set is
+No public tags have been published yet. After the first `v0.2.0` tag set is
 published:
 
 ```bash
-go get github.com/Infranite/go-dblog/mongo@v0.1.0
+go get github.com/Infranite/go-dblog/mongo@v0.2.0
 ```
 
-The repository tag for this module is `mongo/v0.1.0`; callers use the semantic
+The repository tag for this module is `mongo/v0.2.0`; callers use the semantic
 version query above with `go get`.
 
 Requirements:
@@ -100,8 +100,20 @@ func main() {
 | MongoDB oplog JSON records with `op`, `ns`, `o`, and `o2` | Supported | `mongo` fixture job generated from `mongo:7.0`; `FuzzParseLine` smoke target. |
 | MongoDB change stream JSON records with `operationType`, `ns`, `documentKey`, `fullDocument`, `fullDocumentBeforeChange`, and `updateDescription` | Supported | Unit tests and `FuzzParseLine` seeds cover valid and malformed records. |
 | Live collection change streams from MongoDB replica sets | Supported | `mongo` CI job starts `mongo:7.0`, opens a live stream, writes insert/update/delete operations, and reads them through `dblog.WithDSN` plus `dblog.WithContext`. |
+| Malformed JSON records or non-object `updateDescription` values | Rejected | `TestParseLineRejectsMalformedInput` and `FuzzParseLine`. |
 | Empty operation names | Rejected | Parser tests and fuzz smoke target. |
 | Unknown non-empty operation names | Emitted as backend event kinds unless a decoder plugin normalizes them | Plugin tests and parser tests. |
+
+## Live Change Streams
+
+Open a live reader with `dblog.WithDSN` and a source name in `db.collection`
+form. MongoDB must be running as a replica set because standalone servers do not
+support change streams.
+
+Update flashback for live change streams requires `fullDocumentBeforeChange`.
+Enable change stream pre-images on the source collection when reverse update
+commands are required. Without a pre-image, update events are still decoded, but
+`dblog.Flashbacks` intentionally emits no reverse command.
 
 ## Flashback Scope
 
@@ -113,7 +125,8 @@ func main() {
 | `update` without before-image, `command`, `noop` | No flashback output. |
 
 Update flashback uses the full before-image as a replacement document. Updates
-without before-image data do not emit flashback output.
+without before-image data do not emit flashback output. Malformed JSON input and
+non-object `updateDescription` values are rejected before an event is emitted.
 
 ## Event Plugins
 

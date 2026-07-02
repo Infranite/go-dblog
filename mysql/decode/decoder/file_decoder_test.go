@@ -129,6 +129,30 @@ func TestRowsEventDecodesHeaderAndBitmaps(t *testing.T) {
 	}
 }
 
+func TestRowsEventWithoutPriorTableMapKeepsDecodeError(t *testing.T) {
+	t.Parallel()
+
+	fileDecoder, err := NewBinFileDecoder(requireTestBinlog(t), WithStartPos(firstRowsEventStartPos(t)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer closeDecoder(t, fileDecoder)
+
+	for rowsEvent, err := range EventBodies[*types.BinRowsEvent](fileDecoder.Events()) {
+		if err != nil {
+			t.Fatal(err)
+		}
+		if rowsEvent.DecodeError == "" {
+			t.Fatalf("decode error is empty for rows event without prior table map: %#v", rowsEvent)
+		}
+		if rowsEvent.Schema != "" || rowsEvent.Table != "" {
+			t.Fatalf("schema/table = %q.%q, want empty without prior table map", rowsEvent.Schema, rowsEvent.Table)
+		}
+		return
+	}
+	t.Fatal("rows event not found")
+}
+
 func TestEventsIteratorStopsAfterCallbackFalse(t *testing.T) {
 	t.Parallel()
 

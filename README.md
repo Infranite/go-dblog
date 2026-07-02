@@ -41,16 +41,16 @@ Current supported and unsupported source details live in
 
 ## Install
 
-No public tags have been published yet. Until the first `v0.1.0` tag set
+No public tags have been published yet. Until the first `v0.2.0` tag set
 exists, evaluate the project from a checked-out branch or commit.
 
 ```bash
-# After the v0.1.0 tag set is published:
-go get github.com/Infranite/go-dblog@v0.1.0
-go get github.com/Infranite/go-dblog/mysql@v0.1.0
-go get github.com/Infranite/go-dblog/postgres@v0.1.0
-go get github.com/Infranite/go-dblog/mongo@v0.1.0
-go get github.com/Infranite/go-dblog/redis@v0.1.0
+# After the v0.2.0 tag set is published:
+go get github.com/Infranite/go-dblog@v0.2.0
+go get github.com/Infranite/go-dblog/mysql@v0.2.0
+go get github.com/Infranite/go-dblog/postgres@v0.2.0
+go get github.com/Infranite/go-dblog/mongo@v0.2.0
+go get github.com/Infranite/go-dblog/redis@v0.2.0
 ```
 
 ## Minimal Example

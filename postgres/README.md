@@ -15,14 +15,14 @@ logical decoding text parsing.
 
 ## Installation
 
-No public tags have been published yet. After the first `v0.1.0` tag set is
+No public tags have been published yet. After the first `v0.2.0` tag set is
 published:
 
 ```bash
-go get github.com/Infranite/go-dblog/postgres@v0.1.0
+go get github.com/Infranite/go-dblog/postgres@v0.2.0
 ```
 
-The repository tag for this module is `postgres/v0.1.0`; callers use the
+The repository tag for this module is `postgres/v0.2.0`; callers use the
 semantic version query above with `go get`.
 
 Requirements:
@@ -107,7 +107,7 @@ The backend driver name is `pg`, while the module path remains `postgres`.
 | Live SQL logical slot polling with `test_decoding` | Supported | `TestLiveLogicalDecoding` runs against a real `postgres:16` container in CI. |
 | Wire-level logical replication with `test_decoding` | Supported | `TestWireLogicalReplication` runs against a real `postgres:16` container in CI. |
 | Empty table or operation names | Rejected | Parser tests and fuzz smoke target. |
-| `pgoutput` binary relation/tuple messages | Planned | Current live readers parse `test_decoding` text output. |
+| `pgoutput` binary relation/tuple messages | Unsupported and rejected by the text parser | `TestParseLineRejectsPgoutputBinaryMessages`. |
 
 ## Live SQL Slot Reader
 
@@ -142,6 +142,11 @@ decoder, err := registry.Open(postgres.Driver,
 The wire reader sends `START_REPLICATION` for the slot, reads CopyData messages,
 and parses the embedded `test_decoding` text with the same parser.
 
+Both live readers are intentionally text-oriented in `v0.2.0`. Use
+`test_decoding` or a custom text output plugin that can be normalized through
+`decoder.WithEventPlugins`; binary `pgoutput` relation and tuple messages are
+not decoded by this backend.
+
 ## Flashback Scope
 
 | Event | Flashback output |
@@ -157,7 +162,10 @@ the old tuple only contains key columns, the backend leaves the event out.
 ## Event Plugins
 
 Use `decoder.WithEventPlugins` to handle line families outside the built-in
-logical decoding text records.
+logical decoding text records. Plugins receive the original line after the
+built-in parser declines it; keep plugin output in the backend-native
+`types.Event` shape so the root adapter can preserve source, position, and
+checkpoint behavior.
 
 ```go
 package main
