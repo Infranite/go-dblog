@@ -141,6 +141,27 @@ func TestParseLineRejectsInvalidLogicalLine(t *testing.T) {
 	}
 }
 
+func TestParseLineRejectsPgoutputBinaryMessages(t *testing.T) {
+	tests := []struct {
+		name string
+		line string
+	}{
+		{name: "relation message", line: "R\x00\x00\x00\x00public\x00users\x00"},
+		{name: "insert message", line: "I\x00\x00\x00\x01N"},
+		{name: "update message", line: "U\x00\x00\x00\x01N"},
+		{name: "delete message", line: "D\x00\x00\x00\x01K"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := ParseLine(dblog.Source{}, 1, tt.line)
+			if !errors.Is(err, ErrInvalidLine) {
+				t.Fatalf("err = %v, want %v", err, ErrInvalidLine)
+			}
+		})
+	}
+}
+
 func TestBackendRequiresInput(t *testing.T) {
 	_, err := Backend{}.Open(nilOptions{})
 	if !errors.Is(err, ErrReaderRequired) {

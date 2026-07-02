@@ -70,7 +70,11 @@ func parseChange(raw map[string]any) (types.Change, error) {
 			change.Document = change.BeforeDocument
 		}
 		change.DocumentKey = asMap(raw[fieldDocumentKey])
-		change.Update = asMap(raw[fieldUpdateDescription])
+		if update, err := optionalMap(raw, fieldUpdateDescription); err != nil {
+			return types.Change{}, err
+		} else {
+			change.Update = update
+		}
 		return change, nil
 	}
 
@@ -148,6 +152,23 @@ func asMap(v any) map[string]any {
 	}
 }
 
+func optionalMap(raw map[string]any, field string) (map[string]any, error) {
+	value, ok := raw[field]
+	if !ok || value == nil {
+		return nil, nil
+	}
+	switch x := value.(type) {
+	case map[string]any:
+		return normalizeMapKeepEmpty(x), nil
+	case bson.M:
+		return normalizeMapKeepEmpty(map[string]any(x)), nil
+	case bson.D:
+		return normalizeDKeepEmpty(x), nil
+	default:
+		return nil, fmt.Errorf("%w: %s must be an object", types.ErrInvalidJSON, field)
+	}
+}
+
 func normalizeMap(in map[string]any) map[string]any {
 	if len(in) == 0 {
 		return nil
@@ -159,10 +180,26 @@ func normalizeMap(in map[string]any) map[string]any {
 	return out
 }
 
+func normalizeMapKeepEmpty(in map[string]any) map[string]any {
+	out := make(map[string]any, len(in))
+	for k, v := range in {
+		out[k] = normalizeValue(v)
+	}
+	return out
+}
+
 func normalizeD(in bson.D) map[string]any {
 	if len(in) == 0 {
 		return nil
 	}
+	out := make(map[string]any, len(in))
+	for _, elem := range in {
+		out[elem.Key] = normalizeValue(elem.Value)
+	}
+	return out
+}
+
+func normalizeDKeepEmpty(in bson.D) map[string]any {
 	out := make(map[string]any, len(in))
 	for _, elem := range in {
 		out[elem.Key] = normalizeValue(elem.Value)

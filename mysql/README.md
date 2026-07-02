@@ -14,14 +14,14 @@ parsing or replication stream reading.
 
 ## Installation
 
-No public tags have been published yet. After the first `v0.1.0` tag set is
+No public tags have been published yet. After the first `v0.2.0` tag set is
 published:
 
 ```bash
-go get github.com/Infranite/go-dblog/mysql@v0.1.0
+go get github.com/Infranite/go-dblog/mysql@v0.2.0
 ```
 
-The repository tag for this module is `mysql/v0.1.0`; callers use the semantic
+The repository tag for this module is `mysql/v0.2.0`; callers use the semantic
 version query above with `go get`.
 
 Requirements:
@@ -109,6 +109,7 @@ Got QUERY_EVENT:
 | MySQL, MariaDB, and MySQL-compatible binlog event bodies listed below | Supported | Unit tests cover event decoders and the MariaDB plugin. |
 | Unknown events declared by `FORMAT_DESCRIPTION_EVENT` metadata | Supported as metadata events in auto/loose compatibility modes | Compatibility mode tests and fixture tests. |
 | Malformed or undersized event headers | Rejected | `FuzzDecodeEventHeader` smoke target. |
+| Row events decoded without the required prior `TABLE_MAP_EVENT` | Returned with `DecodeError` and without reconstructed row values | `TestRowsEventWithoutPriorTableMapKeepsDecodeError`. |
 | Flashback for complete `WRITE_ROWS_EVENT`, `UPDATE_ROWS_EVENT`, and `DELETE_ROWS_EVENT` row images | Supported as typed reverse row events | Decoder tests and MySQL fixture CI assert emitted operations. |
 | Online replication connections | Supported | `TestLiveReplicationStream` runs against a real `mysql:8.4` container in CI. |
 
@@ -128,8 +129,9 @@ decoder, err := registry.Open(mysql.Driver,
 
 The DSN supports optional `binlog` or `file` and `pos` query parameters. When
 they are omitted, the reader starts from the server's current binary log
-position. Cancel the context to stop the stream. Row details require row-based
-binary logging.
+position. GTID auto-positioning and TLS-specific DSN handling are outside the
+`v0.2.0` contract. Cancel the context to stop the stream. Row details require
+row-based binary logging.
 
 ### Typed Event Filtering
 
@@ -184,7 +186,8 @@ fileDecoder, err := decoder.NewBinFileDecoder(
 Row events decode column values from the latest `TABLE_MAP_EVENT` for the table
 id. If decoding starts after the required table map, the row event is still
 returned with header and bitmap fields populated, and `BinRowsEvent.DecodeError`
-describes the missing metadata.
+describes the missing metadata. The decoder does not guess column values from an
+incomplete input window.
 
 Decoded row columns are exposed as `types.ColumnValue`. The rows event also
 carries the schema and table name from the matching table map. Variable-width

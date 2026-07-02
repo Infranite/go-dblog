@@ -174,6 +174,26 @@ func TestParseLineRejectsUnsupportedOplogOperation(t *testing.T) {
 	}
 }
 
+func TestParseLineRejectsMalformedInput(t *testing.T) {
+	tests := []struct {
+		name string
+		line string
+	}{
+		{name: "invalid json", line: `{"op":"i","ns":"app.users","o":`},
+		{name: "update description string", line: `{"operationType":"update","ns":{"db":"app","coll":"users"},"updateDescription":"bad"}`},
+		{name: "update description array", line: `{"operationType":"update","ns":{"db":"app","coll":"users"},"updateDescription":[]}`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := ParseLine(dblog.Source{}, 1, tt.line)
+			if !errors.Is(err, ErrInvalidJSON) {
+				t.Fatalf("err = %v, want %v", err, ErrInvalidJSON)
+			}
+		})
+	}
+}
+
 func TestBackendRequiresInput(t *testing.T) {
 	_, err := Backend{}.Open(nilOptions{})
 	if !errors.Is(err, ErrReaderRequired) {
