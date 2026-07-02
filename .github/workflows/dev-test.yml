@@ -205,6 +205,9 @@ jobs:
       - name: Generate MongoDB oplog fixture
         run: ./mongo/testdata/generate_mongo_oplog.sh mongo:7.0
 
+      - name: Test MongoDB live change stream
+        run: ./mongo/testdata/run_mongo_live.sh mongo:7.0
+
       - name: Test MongoDB module
         run: cd mongo && GOWORK=off go test -race -count=1 -shuffle=on ./...
 

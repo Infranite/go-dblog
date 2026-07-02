@@ -1,10 +1,12 @@
 package backend
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
 	"github.com/Infranite/go-dblog"
+	"github.com/Infranite/go-dblog/mongo/decode/events/types"
 )
 
 func TestRegisterOpensMongoDecoder(t *testing.T) {
@@ -33,6 +35,30 @@ func TestRegisterOpensMongoDecoder(t *testing.T) {
 		return
 	}
 	t.Fatal("no events")
+}
+
+func TestOpenLiveDSNRequiresCollection(t *testing.T) {
+	var registry dblog.Registry
+	if err := Register(&registry); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := registry.Open(Driver, dblog.WithDSN("mongodb://127.0.0.1:27017"))
+	if !errors.Is(err, types.ErrCollectionRequired) {
+		t.Fatalf("err = %v, want %v", err, types.ErrCollectionRequired)
+	}
+}
+
+func TestIsMongoDSN(t *testing.T) {
+	if !isMongoDSN("mongodb://127.0.0.1:27017") {
+		t.Fatal("mongo URL was not detected")
+	}
+	if !isMongoDSN("mongodb+srv://cluster.example.net") {
+		t.Fatal("mongo SRV URL was not detected")
+	}
+	if isMongoDSN("testdata/oplog.jsonl") {
+		t.Fatal("file path was detected as mongo DSN")
+	}
 }
 
 func TestRegisterResumesAfterCheckpoint(t *testing.T) {

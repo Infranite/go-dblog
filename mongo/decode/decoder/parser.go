@@ -7,6 +7,7 @@ import (
 
 	"github.com/Infranite/go-dblog"
 	"github.com/Infranite/go-dblog/mongo/decode/events/types"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 // ParseLine parses one MongoDB oplog or change stream JSON line.
@@ -20,14 +21,24 @@ func parseLine(
 	line string,
 	plugins []types.EventPlugin,
 ) (types.Event, error) {
-	if source.Driver == "" {
-		source.Driver = types.Driver
-	}
 	var raw map[string]any
 	decoder := json.NewDecoder(strings.NewReader(line))
 	decoder.UseNumber()
 	if err := decoder.Decode(&raw); err != nil {
 		return types.Event{}, fmt.Errorf("%w: %v", types.ErrInvalidJSON, err)
+	}
+	return parseRaw(source, position, []byte(line), raw, plugins)
+}
+
+func parseRaw(
+	source dblog.Source,
+	position int,
+	rawBytes []byte,
+	raw map[string]any,
+	plugins []types.EventPlugin,
+) (types.Event, error) {
+	if source.Driver == "" {
+		source.Driver = types.Driver
 	}
 	change, err := parseChange(raw)
 	if err != nil {
@@ -36,7 +47,10 @@ func parseLine(
 	if err := applyEventPlugins(raw, &change, plugins); err != nil {
 		return types.Event{}, err
 	}
-	return types.NewEvent(source, position, []byte(line), change), nil
+	if rawBytes == nil {
+		rawBytes, _ = json.Marshal(raw)
+	}
+	return types.NewEvent(source, position, rawBytes, change), nil
 }
 
 func parseChange(raw map[string]any) (types.Change, error) {
@@ -119,11 +133,66 @@ func splitNamespace(ns string) (string, string) {
 }
 
 func asMap(v any) map[string]any {
-	m, ok := v.(map[string]any)
-	if !ok || len(m) == 0 {
+	switch x := v.(type) {
+	case map[string]any:
+		if len(x) == 0 {
+			return nil
+		}
+		return x
+	case bson.M:
+		return normalizeMap(map[string]any(x))
+	case bson.D:
+		return normalizeD(x)
+	default:
 		return nil
 	}
-	return m
+}
+
+func normalizeMap(in map[string]any) map[string]any {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make(map[string]any, len(in))
+	for k, v := range in {
+		out[k] = normalizeValue(v)
+	}
+	return out
+}
+
+func normalizeD(in bson.D) map[string]any {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make(map[string]any, len(in))
+	for _, elem := range in {
+		out[elem.Key] = normalizeValue(elem.Value)
+	}
+	return out
+}
+
+func normalizeValue(v any) any {
+	switch x := v.(type) {
+	case map[string]any:
+		return x
+	case bson.M:
+		return normalizeMap(map[string]any(x))
+	case bson.D:
+		return normalizeD(x)
+	case bson.A:
+		out := make([]any, len(x))
+		for i, elem := range x {
+			out[i] = normalizeValue(elem)
+		}
+		return out
+	case []any:
+		out := make([]any, len(x))
+		for i, elem := range x {
+			out[i] = normalizeValue(elem)
+		}
+		return out
+	default:
+		return v
+	}
 }
 
 func stringValue(v any) string {
