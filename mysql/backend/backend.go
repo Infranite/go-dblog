@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"iter"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -24,20 +25,34 @@ func (Backend) Driver() string { return Driver }
 
 func (Backend) Open(options dblog.OpenOptions) (dblog.Decoder[dblog.Event], error) {
 	path := options.Path()
+	source := options.Source()
+	startPos, err := startPosition(options)
+	if err != nil {
+		return nil, err
+	}
+	if path == "" && isMySQLDSN(options.DSN()) {
+		liveDSN := dsnWithStartFile(options.DSN(), startFile(options))
+		liveDecoder, err := decoder.NewLiveDecoder(
+			dblog.ContextOf(options),
+			decoder.Source{Driver: source.Driver, Name: source.Name},
+			liveDSN,
+			decoder.WithStartPos(startPos),
+		)
+		if err != nil {
+			return nil, err
+		}
+		return dblog.NewSeqDecoder(dblog.Events(liveDecoder), liveDecoder.Close), nil
+	}
 	if path == "" {
 		path = options.DSN()
 	}
 	if path == "" {
-		path = options.Source().Name
+		path = source.Name
 	}
 	if path == "" {
 		return nil, errPathRequired
 	}
 
-	startPos, err := startPosition(options)
-	if err != nil {
-		return nil, err
-	}
 	var opts []decoder.BinFileDecodeOptFunc
 	if startPos > 0 {
 		opts = append(opts, decoder.WithStartPos(startPos))
@@ -47,14 +62,14 @@ func (Backend) Open(options dblog.OpenOptions) (dblog.Decoder[dblog.Event], erro
 		return nil, err
 	}
 
-	source := decoder.Source{Driver: Driver, Name: path}
-	if options.Source().Driver != "" {
-		source.Driver = options.Source().Driver
+	decoderSource := decoder.Source{Driver: Driver, Name: path}
+	if source.Driver != "" {
+		decoderSource.Driver = source.Driver
 	}
-	if options.Source().Name != "" {
-		source.Name = options.Source().Name
+	if source.Name != "" {
+		decoderSource.Name = source.Name
 	}
-	d := decoder.WrapDblogDecoder(source, fileDecoder)
+	d := decoder.WrapDblogDecoder(decoderSource, fileDecoder)
 	events := dblog.Events(d)
 	if startPos > 0 {
 		events = eventsAfterPosition(events, startPos)
@@ -108,4 +123,32 @@ func parsePosition(position string) (int64, error) {
 		position = position[index+1:]
 	}
 	return strconv.ParseInt(position, 10, 64)
+}
+
+func startFile(options dblog.OpenOptions) string {
+	position := dblog.StartPositionOf(options)
+	if index := strings.LastIndex(position.Value, ":"); index >= 0 {
+		return position.Value[:index]
+	}
+	return ""
+}
+
+func isMySQLDSN(dsn string) bool {
+	return strings.HasPrefix(strings.TrimSpace(dsn), "mysql://")
+}
+
+func dsnWithStartFile(dsn, file string) string {
+	if file == "" {
+		return dsn
+	}
+	parsed, err := url.Parse(dsn)
+	if err != nil {
+		return dsn
+	}
+	query := parsed.Query()
+	if query.Get("file") == "" && query.Get("binlog") == "" {
+		query.Set("file", file)
+		parsed.RawQuery = query.Encode()
+	}
+	return parsed.String()
 }

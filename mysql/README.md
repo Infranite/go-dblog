@@ -3,12 +3,12 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/Infranite/go-dblog/mysql.svg)](https://pkg.go.dev/github.com/Infranite/go-dblog/mysql)
 
 This module is the MySQL-family backend for `go-dblog`. It decodes MySQL binary
-log files and keeps MySQL, MariaDB, and MySQL-compatible dialect details in
-backend-native typed events.
+log files, streams MySQL replication events, and keeps MySQL, MariaDB, and
+MySQL-compatible dialect details in backend-native typed events.
 
 Use the root [`go-dblog`](../README.md) module when you need multi-source
 orchestration. Use this module directly when you only need MySQL-family binlog
-parsing.
+parsing or replication stream reading.
 
 ## Installation
 
@@ -21,7 +21,8 @@ go get github.com/Infranite/go-dblog/mysql
 Requirements:
 
 - Go 1.25 or later.
-- A MySQL-family binary log file for the current backend.
+- A MySQL-family binary log file, or a MySQL server with binary logging enabled
+  and a user allowed to read replication streams.
 
 ## Quick Start
 
@@ -71,6 +72,15 @@ Got QUERY_EVENT:
 ====================================================================================================
 ```
 
+## Packages
+
+| Package | Purpose |
+|---|---|
+| `github.com/Infranite/go-dblog/mysql` | Compatibility facade for common imports. |
+| `github.com/Infranite/go-dblog/mysql/backend` | Explicit registration with `dblog.Registry`. |
+| `github.com/Infranite/go-dblog/mysql/decode/decoder` | Native file decoder, live replication reader, and parser options. |
+| `github.com/Infranite/go-dblog/mysql/decode/events/types` | Native binlog event and plugin types. |
+
 ## Features
 
 - MySQL 5.1+ binlog event parsing.
@@ -79,6 +89,7 @@ Got QUERY_EVENT:
 - Row event decoding using `TABLE_MAP_EVENT` metadata.
 - Future metadata-declared events preserved as `*types.MetadataEvent`.
 - Go iterator support for streaming and type filtering.
+- Live replication streams opened with `dblog.WithDSN`.
 - Copy-aware row value decoding for variable-width payloads.
 - Checkpoint resume through `dblog.WithCheckpoint` when opened through the root
   registry.
@@ -93,7 +104,26 @@ Got QUERY_EVENT:
 | Unknown events declared by `FORMAT_DESCRIPTION_EVENT` metadata | Supported as metadata events in auto/loose compatibility modes | Compatibility mode tests and fixture tests. |
 | Malformed or undersized event headers | Rejected | `FuzzDecodeEventHeader` smoke target. |
 | Flashback for complete `WRITE_ROWS_EVENT`, `UPDATE_ROWS_EVENT`, and `DELETE_ROWS_EVENT` row images | Supported as typed reverse row events | Decoder tests and MySQL fixture CI assert emitted operations. |
-| Online replication connections | Planned | Not part of the offline parser scope. |
+| Online replication connections | Supported | `TestLiveReplicationStream` runs against a real `mysql:8.4` container in CI. |
+
+### Live Replication Reader
+
+Register the backend and open it with a MySQL DSN and a context.
+
+```go
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
+
+decoder, err := registry.Open(mysql.Driver,
+	dblog.WithContext(ctx),
+	dblog.WithDSN("mysql://dblog:dblog@127.0.0.1:3306/?server_id=1002"),
+)
+```
+
+The DSN supports optional `binlog` or `file` and `pos` query parameters. When
+they are omitted, the reader starts from the server's current binary log
+position. Cancel the context to stop the stream. Row details require row-based
+binary logging.
 
 ### Typed Event Filtering
 
