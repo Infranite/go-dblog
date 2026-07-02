@@ -4,6 +4,7 @@ set -euo pipefail
 image="${1:-postgres:16}"
 name="go-dblog-postgres-live-${image//[^a-zA-Z0-9]/-}-$$"
 slot="dblog_live_slot"
+wire_slot="dblog_wire_slot"
 
 cleanup() {
 	status=$?
@@ -78,6 +79,9 @@ docker exec "$name" psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c \
 docker exec "$name" psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c \
 	"SELECT pg_create_logical_replication_slot('$slot', 'test_decoding');" >/dev/null
 
+docker exec "$name" psql -U postgres -d postgres -v ON_ERROR_STOP=1 -c \
+	"SELECT pg_create_logical_replication_slot('$wire_slot', 'test_decoding');" >/dev/null
+
 docker exec -i "$name" psql -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL' >/dev/null
 BEGIN;
 INSERT INTO public.users(id, name, active) VALUES (1, 'Ada', true);
@@ -89,6 +93,8 @@ SQL
 module_dir="$(cd "$(dirname "$0")/.." && pwd)"
 export DBLOG_POSTGRES_LIVE_DSN="postgres://postgres:postgres@127.0.0.1:$port/postgres?sslmode=disable"
 export DBLOG_POSTGRES_LIVE_SLOT="$slot"
+export DBLOG_POSTGRES_WIRE_DSN="postgres://postgres:postgres@127.0.0.1:$port/postgres?sslmode=disable&replication=database"
+export DBLOG_POSTGRES_WIRE_SLOT="$wire_slot"
 
 cd "$module_dir"
-GOWORK=off go test -race -count=1 -run TestLiveLogicalDecoding .
+GOWORK=off go test -race -count=1 -run 'Test(LiveLogicalDecoding|WireLogicalReplication)' .

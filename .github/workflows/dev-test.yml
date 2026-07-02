@@ -230,7 +230,7 @@ jobs:
       - name: Generate PostgreSQL logical decoding fixture
         run: ./postgres/testdata/generate_postgres_logical.sh postgres:16
 
-      - name: Test PostgreSQL live logical decoding
+      - name: Test PostgreSQL live readers
         run: ./postgres/testdata/run_postgres_live.sh postgres:16
 
       - name: Test PostgreSQL module

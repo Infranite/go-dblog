@@ -10,7 +10,7 @@ adapting them to a shared event API.
 - `github.com/Infranite/go-dblog/mysql`: MySQL-family binlog parser and
   replication stream reader.
 - `github.com/Infranite/go-dblog/postgres`: PostgreSQL logical decoding text
-  parser and SQL slot reader.
+  parser, SQL slot reader, and wire-level replication reader for `test_decoding`.
 - `github.com/Infranite/go-dblog/mongo`: MongoDB oplog/change stream JSON
   parser and live change stream reader.
 - `github.com/Infranite/go-dblog/redis`: Redis AOF RESP parser and replication
@@ -18,8 +18,8 @@ adapting them to a shared event API.
 
 ## Key Files
 
-- `README.md`: feature overview, examples, backend package layout, inline
-  contribution notes, release policy, and roadmap pointer.
+- `README.md`: feature overview, examples, backend package layout, inline pull
+  request guidance, versioning policy, and roadmap pointer.
 - `ROADMAP.md`: version targets, capability matrix, workstreams, and versioning
   rules.
 - `doc/doc_zh.md`: Chinese project documentation.
@@ -30,6 +30,10 @@ adapting them to a shared event API.
 There are no standalone `CONTRIBUTING.md`, `RELEASE.md`, or `CHANGELOG.md`
 files; those topics are handled by `README.md`, GitHub Releases, and git
 history.
+
+No public tags have been published yet. The current public target is the
+`v0.1.0` tag set with root tag `v0.1.0` and backend tags `mysql/v0.1.0`,
+`postgres/v0.1.0`, `mongo/v0.1.0`, and `redis/v0.1.0`.
 
 ## Checks
 

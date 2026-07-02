@@ -12,11 +12,15 @@ parsing or replication stream reading.
 
 ## Installation
 
-After the first `mysql/v0.1.0` tag is published:
+No public tags have been published yet. After the first `v0.1.0` tag set is
+published:
 
 ```bash
-go get github.com/Infranite/go-dblog/mysql
+go get github.com/Infranite/go-dblog/mysql@v0.1.0
 ```
+
+The repository tag for this module is `mysql/v0.1.0`; callers use the semantic
+version query above with `go get`.
 
 Requirements:
 

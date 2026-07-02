@@ -11,11 +11,15 @@ parsing.
 
 ## Installation
 
-After the first `redis/v0.1.0` tag is published:
+No public tags have been published yet. After the first `v0.1.0` tag set is
+published:
 
 ```bash
-go get github.com/Infranite/go-dblog/redis
+go get github.com/Infranite/go-dblog/redis@v0.1.0
 ```
+
+The repository tag for this module is `redis/v0.1.0`; callers use the semantic
+version query above with `go get`.
 
 Requirements:
 

@@ -30,6 +30,15 @@ func (Backend) Open(options dblog.OpenOptions) (dblog.Decoder[dblog.Event], erro
 	if reader == nil {
 		path := options.Path()
 		if path == "" && isPostgresDSN(options.DSN()) {
+			if decoder.IsWireReplicationDSN(options.DSN()) {
+				return decoder.NewWireLiveDecoder(
+					dblog.ContextOf(options),
+					source,
+					options.DSN(),
+					source.Name,
+					decoder.WithStartPosition(startPosition),
+				)
+			}
 			return decoder.NewLiveDecoder(
 				dblog.ContextOf(options),
 				source,
