@@ -10,6 +10,7 @@ checklist, not a date commitment.
 | Status | Meaning |
 |---|---|
 | Done | Implemented, documented, and covered by CI. |
+| Released | Published through GitHub Releases and git tags. |
 | Ready | Implemented and covered by CI; ready for public tags. |
 | Planned | Accepted scope, not started or not complete. |
 | Candidate | Useful direction, still needs design or user validation. |
@@ -22,11 +23,10 @@ checklist, not a date commitment.
 Goal: first usable parser and CDC developer preview for MySQL, PostgreSQL,
 MongoDB, and Redis.
 
-Status: the scope is implemented and CI-covered, but the project has no public
-tags yet. The first public tag set should use the `v0.2.0` target below instead
-of publishing this superseded target.
+Status: the scope is implemented and CI-covered, but it was superseded before a
+public tag. The first public tag set is `v0.2.0`.
 
-### `v0.2.0` - Ready
+### `v0.2.0` - Released
 
 Goal: compatibility-hardened parser and CDC developer preview.
 
@@ -38,7 +38,7 @@ Exit gate:
 - compatibility hardening has negative tests for incomplete metadata windows,
   unsupported binary formats, malformed JSON/update descriptions, RESP limits,
   and RDB-prefixed Redis streams;
-- release tags can be published as `v0.2.0`, `mysql/v0.2.0`,
+- release tags are published as `v0.2.0`, `mysql/v0.2.0`,
   `postgres/v0.2.0`, `mongo/v0.2.0`, and `redis/v0.2.0`.
 
 ### `v0.3.0` - Planned

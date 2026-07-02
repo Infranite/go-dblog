@@ -9,6 +9,7 @@
 | 状态 | 含义 |
 |---|---|
 | Done | 已实现、已文档化，并由 CI 覆盖。 |
+| Released | 已通过 GitHub Releases 和 git tags 发布。 |
 | Ready | 已实现且由 CI 覆盖，可发布公开 tag。 |
 | Planned | 已接受为规划范围，但尚未开始或尚未完成。 |
 | Candidate | 有价值的方向，还需要设计或用户验证。 |
@@ -21,10 +22,10 @@
 目标：MySQL、PostgreSQL、MongoDB、Redis 的首个可用 parser 和 CDC developer
 preview。
 
-状态：该范围已经实现并由 CI 覆盖，但项目还没有公开 tag。首个公开 tag 集合应使用下方
-`v0.2.0` 目标，而不是发布这个已被取代的目标。
+状态：该范围已经实现并由 CI 覆盖，但在公开 tag 发布前已被取代。首个公开 tag 集合是
+`v0.2.0`。
 
-### `v0.2.0` - Ready
+### `v0.2.0` - Released
 
 目标：兼容性加固后的 parser 和 CDC developer preview。
 
@@ -35,7 +36,7 @@ preview。
 - 兼容性加固包含 incomplete metadata windows、unsupported binary formats、
   malformed JSON/update descriptions、RESP limits 和 RDB-prefixed Redis streams
   的负向测试；
-- 可发布 `v0.2.0`、`mysql/v0.2.0`、`postgres/v0.2.0`、`mongo/v0.2.0`、
+- 已发布 `v0.2.0`、`mysql/v0.2.0`、`postgres/v0.2.0`、`mongo/v0.2.0`、
   `redis/v0.2.0` tag。
 
 ### `v0.3.0` - Planned
