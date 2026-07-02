@@ -9,7 +9,6 @@ gates for `go-dblog`. It is not a commitment to dates.
 |---|---|
 | Done | Implemented, documented, and covered by CI. |
 | Ready | Implemented and covered by CI; ready for a public tag. |
-| Partial | A safe documented subset is implemented and covered by CI. |
 | In progress | Actively being built on the main development branch. |
 | Planned | Accepted scope, not yet started. |
 | Candidate | Useful direction, still needs design or user validation. |
@@ -25,7 +24,7 @@ changelog files.
 
 | Version | Status | Theme | Deliverables | Exit gates |
 |---|---|---|---|---|
-| `v0.1.0` | In progress | Parser and CDC developer preview | Root common API, MySQL binlog file parser plus replication stream reader, PostgreSQL logical decoding text parser plus SQL and wire-level slot readers, MongoDB JSON parser plus live change stream reader, Redis RESP AOF parser plus PSYNC replication stream reader, plugin hooks, filtering, checkpoint resume, and safe flashback helpers where the log contains enough data. | Protected PR `ci` and `merge-policy` checks pass: lint, vet, vulnerability scan, unit tests, and real fixture-backed MySQL, MongoDB, PostgreSQL, and Redis integration tests. README documents shipped scope and module tags. |
+| `v0.1.0` | Ready | Parser and CDC developer preview | Root common API, MySQL binlog file parser plus replication stream reader, PostgreSQL logical decoding text parser plus SQL and wire-level slot readers, MongoDB JSON parser plus live change stream reader, Redis RESP AOF parser plus PSYNC replication stream reader, plugin hooks, filtering, checkpoint resume, and safe flashback helpers where the log contains enough data. | Protected PR `ci` and `merge-policy` checks pass: lint, vet, vulnerability scan, unit tests, and real fixture-backed MySQL, MongoDB, PostgreSQL, and Redis integration tests. README documents shipped scope and module tags. |
 | `v0.2.0` | Planned | Compatibility hardening | Compatibility fixtures and negative cases for each backend; documented supported inputs and known gaps per backend. | Backend README files include supported versions/formats, unsupported cases, fixture source, and parser behavior for unknown events. |
 | `v0.3.0` | Planned | Recovery workflows | Expanded flashback operations and unsafe-operation guardrails. | Recovery APIs are backend-neutral; lossy or state-dependent reverse operations are documented and opt-in. |
 | `v0.4.0` | Planned | Operational maturity | Tested backend/version matrix and long-running benchmark history. | CI runs fuzz smoke tests, benchmark smoke tests, and publishes the tested backend/version matrix. |
@@ -33,7 +32,7 @@ changelog files.
 
 ## Capability Matrix
 
-Rows marked Done, Partial, or Unsupported are protected by the `ci` workflow.
+Rows marked Done or Unsupported are protected by the `ci` workflow.
 The final `ci` job requires every referenced job below to pass on pull requests,
 merge queue runs, and `master` pushes.
 
@@ -44,7 +43,7 @@ merge queue runs, and `master` pushes.
 | Common `dblog.Event` adapter | Done | Done | Done | Done | `root_test`, backend registration tests, and MySQL `TestDblogDecoderEvents`. |
 | Plugin hooks | Done: event plugins plus built-in MariaDB plugin | Done: event plugins | Done: event plugins | Done: command plugins | `mysql/plugin/mariadb`, `postgres/decode/decoder`, `mongo/decode/decoder`, and `redis/decode/decoder` plugin tests. |
 | Basic filtering | Done | Done | Done | Done | `dblog.TestFilterAppliesPredicates`; fixture-backed backend tests filter real decoded events. |
-| Safe flashback | Partial: typed reverse row events for complete write/delete/update row images | Partial: insert/delete SQL plus update SQL with complete old/new tuple data | Partial: insert/delete/update-with-before-image commands | Partial: LPUSH/RPUSH and INCR-family commands | `dblog.TestFlashbacksYieldsReverseOperations`; fixture-backed backend tests assert emitted operations; `mysql/decode/decoder.TestDblogEventReverseRowsEvents` asserts MySQL row flashback output and `TestDblogEventReverseSkipsUnsafeRowsEvents` rejects incomplete row images; `postgres.TestParseLineFlashbackRestoresUpdateOldKey` asserts complete old tuple update restore and PostgreSQL fixture CI uses `REPLICA IDENTITY FULL`; `mongo.TestParseLineFlashbackRestoresUpdateBeforeImage` asserts update restore uses `fullDocumentBeforeChange`; Redis fixture CI rejects state-dependent HDEL/SREM flashback output. |
+| Safe flashback | Done: typed reverse row events for complete write/delete/update row images; incomplete row images are unsupported | Done: insert/delete SQL plus update SQL with complete old/new tuple data; incomplete update images are unsupported | Done: insert/delete/update-with-before-image commands; missing document keys or before-images are unsupported | Done: LPUSH/RPUSH and INCR-family commands; state-dependent commands are unsupported | `dblog.TestFlashbacksYieldsReverseOperations`; fixture-backed backend tests assert emitted operations; `mysql/decode/decoder.TestDblogEventReverseRowsEvents` asserts MySQL row flashback output and `TestDblogEventReverseSkipsUnsafeRowsEvents` rejects incomplete row images; `postgres.TestParseLineFlashbackRestoresUpdateOldKey` asserts complete old tuple update restore and `TestParseLineSkipsUpdateFlashbackWithPartialOldKey` rejects incomplete old tuples; PostgreSQL fixture CI uses `REPLICA IDENTITY FULL`; `mongo.TestParseLineFlashbackRestoresUpdateBeforeImage` asserts update restore uses `fullDocumentBeforeChange`; Redis fixture CI rejects state-dependent HDEL/SREM flashback output. |
 | Fixture provenance | Done: generated from MySQL 5.6, 5.7, 8.0, and 8.4 containers | Done: generated from PostgreSQL 16 | Done: generated from MongoDB 7.0 | Done: generated from Redis 7.2 | Workflow fixture generation steps run before integration tests. |
 | Static quality gates | Done | Done | Done | Done | `lint`, `vet`, and `vuln` matrix jobs run with `GOWORK=off` for every module. |
 | Compatibility matrix | Done | Done | Done | Done | Backend README files publish supported inputs, limits, and tested fixture versions; CI fixture jobs and fuzz seeds prove those claims. |
