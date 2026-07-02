@@ -135,6 +135,38 @@ func TestParseLineFlashbackRestoresUpdateBeforeImage(t *testing.T) {
 	}
 }
 
+func TestParseLineFlashbackCopiesMutableMaps(t *testing.T) {
+	line := strings.Join([]string{
+		`{"operationType":"update","ns":{"db":"app","coll":"users"},`,
+		`"documentKey":{"_id":1},`,
+		`"fullDocumentBeforeChange":{"_id":1,"name":"Ada","profile":{"tier":"free"}}}`,
+	}, "")
+	event, err := ParseLine(dblog.Source{Name: "changes"}, 1, line)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	first, ok := event.Reverse()
+	if !ok {
+		t.Fatal("expected flashback command")
+	}
+	firstCommand := first.(Command)
+	firstCommand.Filter["_id"] = json.Number("2")
+	firstCommand.Document["name"] = "Grace"
+	firstCommand.Document["profile"].(map[string]any)["tier"] = "paid"
+
+	second, ok := event.Reverse()
+	if !ok {
+		t.Fatal("expected flashback command")
+	}
+	secondCommand := second.(Command)
+	if secondCommand.Filter["_id"] != json.Number("1") ||
+		secondCommand.Document["name"] != "Ada" ||
+		secondCommand.Document["profile"].(map[string]any)["tier"] != "free" {
+		t.Fatalf("flashback reused mutable maps: %#v", secondCommand)
+	}
+}
+
 func TestParseLineRejectsUnsupportedOplogOperation(t *testing.T) {
 	_, err := ParseLine(dblog.Source{}, 1, `{"op":"x","ns":"app.users"}`)
 	if !errors.Is(err, ErrUnsupportedOperation) {

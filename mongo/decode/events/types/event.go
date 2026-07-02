@@ -56,7 +56,7 @@ func (e Event) Reverse() (any, bool) {
 			Operation:  CommandDelete,
 			Database:   e.change.Database,
 			Collection: e.change.Collection,
-			Filter:     e.change.DocumentKey,
+			Filter:     cloneMap(e.change.DocumentKey),
 		}, true
 	case OperationUpdate:
 		if len(e.change.DocumentKey) == 0 || len(e.change.BeforeDocument) == 0 {
@@ -66,8 +66,8 @@ func (e Event) Reverse() (any, bool) {
 			Operation:  CommandReplace,
 			Database:   e.change.Database,
 			Collection: e.change.Collection,
-			Filter:     e.change.DocumentKey,
-			Document:   e.change.BeforeDocument,
+			Filter:     cloneMap(e.change.DocumentKey),
+			Document:   cloneMap(e.change.BeforeDocument),
 		}, true
 	case OperationDelete:
 		if len(e.change.Document) == 0 {
@@ -77,7 +77,7 @@ func (e Event) Reverse() (any, bool) {
 			Operation:  CommandInsert,
 			Database:   e.change.Database,
 			Collection: e.change.Collection,
-			Document:   e.change.Document,
+			Document:   cloneMap(e.change.Document),
 		}, true
 	default:
 		return nil, false
@@ -85,3 +85,26 @@ func (e Event) Reverse() (any, bool) {
 }
 
 var _ dblog.Event = Event{}
+
+func cloneMap(in map[string]any) map[string]any {
+	out := make(map[string]any, len(in))
+	for k, v := range in {
+		out[k] = cloneValue(v)
+	}
+	return out
+}
+
+func cloneValue(v any) any {
+	switch x := v.(type) {
+	case map[string]any:
+		return cloneMap(x)
+	case []any:
+		out := make([]any, len(x))
+		for i := range x {
+			out[i] = cloneValue(x[i])
+		}
+		return out
+	default:
+		return v
+	}
+}
