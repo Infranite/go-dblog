@@ -3,6 +3,7 @@
 package dblog
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -67,6 +68,7 @@ type openOptions struct {
 	path          string
 	dsn           string
 	reader        io.Reader
+	context       context.Context
 	startPosition Position
 }
 
@@ -74,6 +76,12 @@ func (o openOptions) Source() Source    { return o.source }
 func (o openOptions) Path() string      { return o.path }
 func (o openOptions) DSN() string       { return o.dsn }
 func (o openOptions) Reader() io.Reader { return o.reader }
+func (o openOptions) Context() context.Context {
+	if o.context == nil {
+		return context.Background()
+	}
+	return o.context
+}
 func (o openOptions) StartPosition() Position {
 	return o.startPosition
 }
@@ -106,6 +114,13 @@ func WithDSN(dsn string) OpenOption {
 func WithReader(reader io.Reader) OpenOption {
 	return func(options *openOptions) {
 		options.reader = reader
+	}
+}
+
+// WithContext sets the cancellation context used by context-aware backends.
+func WithContext(ctx context.Context) OpenOption {
+	return func(options *openOptions) {
+		options.context = ctx
 	}
 }
 
@@ -238,6 +253,25 @@ func StartPositionOf(options OpenOptions) Position {
 		return Position{}
 	}
 	return startOptions.StartPosition()
+}
+
+// ContextOf returns the context carried by open options, or context.Background.
+func ContextOf(options OpenOptions) context.Context {
+	type contextOptions interface {
+		Context() context.Context
+	}
+	if options == nil {
+		return context.Background()
+	}
+	ctxOptions, ok := options.(contextOptions)
+	if !ok {
+		return context.Background()
+	}
+	ctx := ctxOptions.Context()
+	if ctx == nil {
+		return context.Background()
+	}
+	return ctx
 }
 
 // Bodies filters an event iterator by decoded body type.
