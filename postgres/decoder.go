@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"io"
 
 	"github.com/Infranite/go-dblog"
@@ -17,6 +18,11 @@ type Decoder = decoder.Decoder
 // NewDecoder creates a decoder over PostgreSQL logical decoding text.
 func NewDecoder(source dblog.Source, reader io.Reader, close func() error, opts ...Option) *Decoder {
 	return decoder.NewDecoder(source, reader, close, opts...)
+}
+
+// NewLiveDecoder creates a decoder over a live PostgreSQL logical decoding slot.
+func NewLiveDecoder(ctx context.Context, source dblog.Source, dsn, slot string, opts ...Option) (*decoder.LiveDecoder, error) {
+	return decoder.NewLiveDecoder(ctx, source, dsn, slot, opts...)
 }
 
 // WithEventPlugins installs event plugins for PostgreSQL logical decoding extensions.

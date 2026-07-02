@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 env:
-  GO_VERSION: "1.23"
+  GO_VERSION: "1.25.x"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -45,6 +45,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
+          check-latest: true
           cache: false
 
       - name: Install golangci-lint
@@ -80,6 +81,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
+          check-latest: true
           cache: false
 
       - name: Vet module
@@ -112,6 +114,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
+          check-latest: true
           cache: false
 
       - name: Install govulncheck
@@ -132,6 +135,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
+          check-latest: true
           cache: false
 
       - name: Test root module
@@ -150,6 +154,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
+          check-latest: true
           cache: false
 
       - name: Test backend module
@@ -172,6 +177,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
+          check-latest: true
           cache: false
 
       - name: Generate MySQL binlog fixture
@@ -193,6 +199,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
+          check-latest: true
           cache: false
 
       - name: Generate MongoDB oplog fixture
@@ -210,10 +217,14 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
+          check-latest: true
           cache: false
 
       - name: Generate PostgreSQL logical decoding fixture
         run: ./postgres/testdata/generate_postgres_logical.sh postgres:16
+
+      - name: Test PostgreSQL live logical decoding
+        run: ./postgres/testdata/run_postgres_live.sh postgres:16
 
       - name: Test PostgreSQL module
         run: cd postgres && GOWORK=off go test -race -count=1 -shuffle=on ./...
@@ -227,6 +238,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
+          check-latest: true
           cache: false
 
       - name: Generate Redis AOF fixture
@@ -265,6 +277,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
+          check-latest: true
           cache: false
 
       - name: Fuzz parser smoke target
@@ -303,6 +316,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
+          check-latest: true
           cache: false
 
       - name: Benchmark parser smoke target

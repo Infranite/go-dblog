@@ -20,11 +20,11 @@ gates for `go-dblog`. It is not a commitment to dates.
 
 | Release | Status | Theme | Deliverables | Exit gates |
 |---|---|---|---|---|
-| `v0.1.0` | Ready | Offline parser developer preview | Root common API, MySQL binlog file parser, PostgreSQL logical decoding text parser, MongoDB JSON line parser, Redis RESP AOF parser, plugin hooks, filtering, checkpoint resume, and safe flashback helpers where the log contains enough data. | Protected PR `ci` and `merge-policy` checks pass: lint, vet, vulnerability scan, unit tests, and real fixture-backed MySQL, MongoDB, PostgreSQL, and Redis integration tests. README documents offline scope and module tags. |
+| `v0.1.0` | In progress | Parser developer preview | Root common API, MySQL binlog file parser, PostgreSQL logical decoding text parser and SQL slot reader, MongoDB JSON line parser, Redis RESP AOF parser, plugin hooks, filtering, checkpoint resume, and safe flashback helpers where the log contains enough data. | Protected PR `ci` and `merge-policy` checks pass: lint, vet, vulnerability scan, unit tests, and real fixture-backed MySQL, MongoDB, PostgreSQL, and Redis integration tests. README documents shipped scope and module tags. |
 | `v0.2.0` | Planned | Compatibility hardening | Compatibility fixtures and negative cases for each backend; documented supported inputs and known gaps per backend. | Backend README files include supported versions/formats, unsupported cases, fixture source, and parser behavior for unknown events. |
 | `v0.3.0` | Planned | Live readers | MySQL replication reader, PostgreSQL logical replication reader, MongoDB change stream reader, Redis replication stream reader. | Live readers implement `dblog.Decoder`, support context cancellation, and have integration tests isolated from unit tests. |
 | `v0.4.0` | Planned | Recovery workflows | Expanded flashback operations and unsafe-operation guardrails. | Recovery APIs are backend-neutral; lossy or state-dependent reverse operations are documented and opt-in. |
-| `v0.5.0` | Planned | Operational maturity | Release notes with tested versions and long-running benchmark history. | CI runs fuzz smoke tests, benchmark smoke tests, and publishes the tested backend/version matrix. |
+| `v0.5.0` | Planned | Operational maturity | Tested backend/version matrix and long-running benchmark history. | CI runs fuzz smoke tests, benchmark smoke tests, and publishes the tested backend/version matrix. |
 | `v1.0.0` | Candidate | Stable public API | Frozen root API, stable backend package contracts, migration notes from `v0.x`. | No known API blockers; compatibility policy and deprecation policy are documented. |
 
 ## Capability Matrix
@@ -44,7 +44,7 @@ merge queue runs, and `master` pushes.
 | Fixture provenance | Done: generated from MySQL 5.6, 5.7, 8.0, and 8.4 containers | Done: generated from PostgreSQL 16 | Done: generated from MongoDB 7.0 | Done: generated from Redis 7.2 | Workflow fixture generation steps run before integration tests. |
 | Static quality gates | Done | Done | Done | Done | `lint`, `vet`, and `vuln` matrix jobs run with `GOWORK=off` for every module. |
 | Compatibility matrix | Done | Done | Done | Done | Backend README files publish supported inputs, limits, and tested fixture versions; CI fixture jobs and fuzz seeds prove those claims. |
-| Live reader | Planned for `v0.3.0` | Planned for `v0.3.0` | Planned for `v0.3.0` | Planned for `v0.3.0` | Not a shipped `v0.1.0` capability. |
+| Live reader | Planned for `v0.3.0` | Partial: SQL logical slot polling for `test_decoding` output | Planned for `v0.3.0` | Planned for `v0.3.0` | `postgres.TestLiveLogicalDecoding` starts a real `postgres:16` container, creates a logical slot, writes rows, and reads them through `dblog.WithDSN` plus `dblog.WithContext`; wire-level replication protocol remains planned. |
 | Checkpoint/resume | Done | Done | Done | Done | `dblog.TestCheckpointOfAndOpenOptions` and backend `TestRegisterResumesAfterCheckpoint` tests prove `dblog.WithCheckpoint` resumes after the stored event position; fixture-backed CI covers MySQL binlog checkpoints with generated binlogs. |
 | Fuzz coverage | Done: event header parser | Done: logical decoding line parser | Done: JSON line parser | Done: RESP command parser | `fuzz` matrix job runs parser fuzz smoke targets for every backend. |
 | Throughput baseline | Done: fixture decoder benchmark | Done: line parser benchmark | Done: line parser benchmark | Done: RESP command benchmark | `bench` matrix job runs parser benchmark smoke targets for every backend. |
@@ -115,7 +115,7 @@ Required work:
 
 Done when:
 
-- GitHub Release notes include tested database/log versions;
+- the tested database/log versions are recorded with the release;
 - benchmark smoke checks run in CI;
 - `govulncheck` and race tests are required checks.
 
@@ -125,8 +125,8 @@ Done when:
 - Backend module tags use module-prefixed tags: `mysql/vX.Y.Z`,
   `mongo/vX.Y.Z`, `postgres/vX.Y.Z`, and `redis/vX.Y.Z`.
 - Backend modules track the root module version for `v0.x` releases.
-- Breaking API changes are allowed before `v1.0.0`, but must be documented in
-  GitHub Release notes when a tag is published.
+- Breaking API changes are allowed before `v1.0.0`, but must be visible in the
+  GitHub release entry or commit history when a tag is published.
 
 ## Maintenance Rules
 
@@ -135,8 +135,7 @@ Done when:
 - Add new work to an existing workstream before creating a new release line.
 - Keep release scope user-visible; internal refactors belong in issues or PRs,
   not the roadmap.
-- For published tags, update GitHub Release notes when a roadmap item changes
-  shipped behavior.
+- For published tags, keep GitHub release entries aligned with shipped behavior.
 
 ## Non-Goals Before `v1.0.0`
 

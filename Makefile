@@ -28,6 +28,7 @@ integration-mongo:
 
 integration-postgres:
 	./postgres/testdata/generate_postgres_logical.sh postgres:16
+	./postgres/testdata/run_postgres_live.sh postgres:16
 	cd postgres && GOWORK=off $(GO) test ./...
 
 integration-redis:

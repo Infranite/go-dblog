@@ -20,7 +20,7 @@ Install only the backend you use.
 |---|---|---|
 | [`github.com/Infranite/go-dblog`](https://pkg.go.dev/github.com/Infranite/go-dblog) | Common API for multi-source orchestration | Supported |
 | [`github.com/Infranite/go-dblog/mysql`](./mysql) | MySQL-family binlog parser: MySQL, MariaDB, MySQL-compatible dialects | Supported |
-| [`github.com/Infranite/go-dblog/postgres`](./postgres) | PostgreSQL-family logical replication text parser | Supported |
+| [`github.com/Infranite/go-dblog/postgres`](./postgres) | PostgreSQL-family logical decoding parser and SQL slot reader | Supported |
 | [`github.com/Infranite/go-dblog/mongo`](./mongo) | MongoDB-family oplog / change stream JSON parser | Supported |
 | [`github.com/Infranite/go-dblog/redis`](./redis) | Redis-family AOF RESP parser | Supported |
 
@@ -33,7 +33,7 @@ compatibility layers.
 - One common event shape for MySQL, PostgreSQL, MongoDB, and Redis log streams.
 - Explicit backend registration through `dblog.Registry`; no hidden imports or
   automatic global registration.
-- Streaming decoders based on Go 1.23 iterators.
+- Streaming decoders built on Go iterator APIs.
 - Shared event helpers for source, position, checkpoint resume, filtering, and
   flashback output.
 - Backend-native typed events for database-specific details.
@@ -43,16 +43,16 @@ compatibility layers.
 
 ## Current Scope
 
-The first public tag target is `v0.1.0`: an offline parser release for users
-who already have database log files, exported records, or captured streams. The
-roadmap may mark this target as ready before tags are published; until the first
-tags exist, use a checked-out branch for evaluation. Live replication readers
-are planned, but not part of this release line.
+The current public target is `v0.1.0`: a parser release for users who already
+have database log files, exported records, captured streams, or PostgreSQL
+`test_decoding` logical slots. Until the first tags exist, use a checked-out
+branch for evaluation. Most live replication readers are planned for later
+release lines.
 
 | Backend | Supported input for `v0.1.0` | Not included yet |
 |---|---|---|
 | MySQL | Local MySQL-family binlog files | Online replication connection reader |
-| PostgreSQL | Logical decoding text records | Logical replication protocol reader |
+| PostgreSQL | Logical decoding text records; SQL logical slot polling with `test_decoding` | Wire-level logical replication protocol reader |
 | MongoDB | Newline-delimited oplog or change stream JSON records | Live change stream reader |
 | Redis | Redis AOF RESP array commands | Redis replication stream reader |
 
@@ -63,7 +63,7 @@ by orchestration code and leaves backend-specific parsing details inside each
 backend module.
 
 ```bash
-# These installs are intended for published v0.1.0 tags.
+# These installs are intended for published tags.
 go get github.com/Infranite/go-dblog
 go get github.com/Infranite/go-dblog/mysql
 go get github.com/Infranite/go-dblog/postgres
@@ -222,14 +222,13 @@ The detailed roadmap and capability matrix live in [ROADMAP.md](./ROADMAP.md).
 Keep release planning there so version status, shipped capability, and CI
 evidence have one source of truth.
 
-Current public target: `v0.1.0`, the first GitHub Release and tag set for the
-offline parser developer preview.
+Current public target: `v0.1.0`, the first parser developer preview tag set.
 
 ## Development
 
 Requirements:
 
-- Go 1.23 or later.
+- Go 1.25 or later.
 - `golangci-lint` for local lint checks.
 - Docker only when debugging fixture generation locally.
 
@@ -272,6 +271,7 @@ Fixture generation can be debugged locally when Docker is available:
 ./mysql/test/testdata/generate_mysql_binlog.sh mysql:8.4
 ./mongo/testdata/generate_mongo_oplog.sh mongo:7.0
 ./postgres/testdata/generate_postgres_logical.sh postgres:16
+./postgres/testdata/run_postgres_live.sh postgres:16
 ./redis/testdata/generate_redis_aof.sh redis:7.2
 ```
 
@@ -283,14 +283,6 @@ Pull requests are the contribution path:
 - Update the relevant README when user-visible behavior changes.
 - Full fixture-backed integration, fuzz smoke, benchmark smoke, lint, vet, and
   vulnerability checks run in CI.
-
-## Releases
-
-GitHub Releases and Git tags are the release record. The root module uses
-`vX.Y.Z`; backend modules use module-prefixed tags such as `mysql/vX.Y.Z`,
-`mongo/vX.Y.Z`, `postgres/vX.Y.Z`, and `redis/vX.Y.Z`. The repository does not
-maintain standalone release or changelog documents; GitHub Releases are the
-public release notes, and git history is the detailed change log.
 
 ## License
 

@@ -1,11 +1,24 @@
 package backend
 
 import (
+	"errors"
+	"io"
 	"strings"
 	"testing"
 
 	"github.com/Infranite/go-dblog"
+	"github.com/Infranite/go-dblog/postgres/decode/events/types"
 )
+
+type testOptions struct {
+	source dblog.Source
+	dsn    string
+}
+
+func (o testOptions) Source() dblog.Source { return o.source }
+func (o testOptions) Path() string         { return "" }
+func (o testOptions) DSN() string          { return o.dsn }
+func (o testOptions) Reader() io.Reader    { return nil }
 
 func TestRegisterOpensPostgresDecoder(t *testing.T) {
 	var registry dblog.Registry
@@ -33,6 +46,22 @@ func TestRegisterOpensPostgresDecoder(t *testing.T) {
 		return
 	}
 	t.Fatal("no events")
+}
+
+func TestOpenLiveDSNRequiresSlot(t *testing.T) {
+	_, err := Backend{}.Open(testOptions{dsn: "postgres://postgres:postgres@127.0.0.1/postgres?sslmode=disable"})
+	if !errors.Is(err, types.ErrSlotRequired) {
+		t.Fatalf("err = %v, want %v", err, types.ErrSlotRequired)
+	}
+}
+
+func TestIsPostgresDSN(t *testing.T) {
+	if !isPostgresDSN("postgres://postgres@127.0.0.1/postgres") {
+		t.Fatal("postgres URL was not detected")
+	}
+	if isPostgresDSN("testdata/test_decoding.log") {
+		t.Fatal("file path was detected as postgres DSN")
+	}
 }
 
 func TestRegisterResumesAfterCheckpoint(t *testing.T) {

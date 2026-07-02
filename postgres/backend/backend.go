@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/Infranite/go-dblog"
 	"github.com/Infranite/go-dblog/postgres/decode/decoder"
@@ -22,8 +23,21 @@ func (Backend) Open(options dblog.OpenOptions) (dblog.Decoder[dblog.Event], erro
 	reader := options.Reader()
 	source := options.Source()
 	var close func() error
+	startPosition, err := startPosition(options)
+	if err != nil {
+		return nil, err
+	}
 	if reader == nil {
 		path := options.Path()
+		if path == "" && isPostgresDSN(options.DSN()) {
+			return decoder.NewLiveDecoder(
+				dblog.ContextOf(options),
+				source,
+				options.DSN(),
+				source.Name,
+				decoder.WithStartPosition(startPosition),
+			)
+		}
 		if path == "" {
 			path = options.DSN()
 		}
@@ -42,10 +56,6 @@ func (Backend) Open(options dblog.OpenOptions) (dblog.Decoder[dblog.Event], erro
 	}
 	if source.Driver == "" {
 		source.Driver = Driver
-	}
-	startPosition, err := startPosition(options)
-	if err != nil {
-		return nil, err
 	}
 	return decoder.NewDecoder(source, reader, close, decoder.WithStartPosition(startPosition)), nil
 }
@@ -71,4 +81,13 @@ func startPosition(options dblog.OpenOptions) (int, error) {
 		return 0, fmt.Errorf("postgres: invalid checkpoint position %q", position.Value)
 	}
 	return value, nil
+}
+
+func isPostgresDSN(dsn string) bool {
+	dsn = strings.TrimSpace(dsn)
+	return strings.HasPrefix(dsn, "postgres://") ||
+		strings.HasPrefix(dsn, "postgresql://") ||
+		strings.Contains(dsn, "host=") ||
+		strings.Contains(dsn, "user=") ||
+		strings.Contains(dsn, "dbname=")
 }
