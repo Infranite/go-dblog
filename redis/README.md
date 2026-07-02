@@ -94,14 +94,14 @@ func main() {
 
 | Command | Flashback output |
 |---|---|
-| `HSET key field value ...` | `HDEL key field ...` |
-| `SADD key member ...` | `SREM key member ...` |
 | `LPUSH key value ...` | `LPOP key count` |
 | `RPUSH key value ...` | `RPOP key count` |
 | `INCR`, `DECR`, `INCRBY`, `DECRBY` | Opposite increment command |
 
-Commands that require previous Redis state, TTLs, or overwritten values do not
-emit flashback output.
+Commands that require previous Redis state, TTLs, overwritten values, or
+knowledge of which set/hash members already existed do not emit flashback
+output. For example, `HSET` and `SADD` are decoded as commands, but they do not
+produce flashback commands.
 
 ## Command Plugins
 

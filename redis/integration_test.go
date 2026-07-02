@@ -48,6 +48,7 @@ func TestFixtureBackedAOFDecoding(t *testing.T) {
 
 	decoder = openRedisFixture(t, path)
 	var flashbacks int
+	var sawSafeReverse bool
 	for op, err := range dblog.Flashbacks(decoder.Events()) {
 		if err != nil {
 			t.Fatal(err)
@@ -56,10 +57,19 @@ func TestFixtureBackedAOFDecoding(t *testing.T) {
 		if len(command.Args) == 0 {
 			t.Fatalf("flashback command = %#v", command)
 		}
+		switch command.Name {
+		case CommandHDel, CommandSRem:
+			t.Fatalf("state-dependent flashback command = %#v", command)
+		case CommandLPop, CommandRPop, CommandIncr, CommandDecr, CommandIncrBy, CommandDecrBy:
+			sawSafeReverse = true
+		}
 		flashbacks++
 	}
 	if flashbacks == 0 {
 		t.Fatal("fixture produced no flashback commands")
+	}
+	if !sawSafeReverse {
+		t.Fatal("fixture produced no safe Redis flashback commands")
 	}
 }
 
