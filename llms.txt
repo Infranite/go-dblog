@@ -25,11 +25,16 @@ adapting them to a shared event API.
 - `doc/DEVELOPMENT.md` and `doc/DEVELOPMENT.zh-CN.md`: local checks, fixture
   debugging, pull request flow, and versioning rules.
 - `doc/SECURITY.md` and `doc/SECURITY.zh-CN.md`: vulnerability reporting policy.
-- `mysql/README.md` and `mysql/README.zh-CN.md`: MySQL-family backend docs.
+- `mysql/README.md` and `mysql/README.zh-CN.md`: MySQL-family backend entry
+  pages. Detailed features and examples live in `mysql/doc/`.
 - `postgres/README.md` and `postgres/README.zh-CN.md`: PostgreSQL-family
-  backend docs.
-- `mongo/README.md` and `mongo/README.zh-CN.md`: MongoDB-family backend docs.
-- `redis/README.md` and `redis/README.zh-CN.md`: Redis-family backend docs.
+  backend entry pages. Detailed features and examples live in `postgres/doc/`.
+- `mongo/README.md` and `mongo/README.zh-CN.md`: MongoDB-family backend entry
+  pages. Detailed features and examples live in `mongo/doc/`.
+- `redis/README.md` and `redis/README.zh-CN.md`: Redis-family backend entry
+  pages. Detailed features and examples live in `redis/doc/`.
+- `mysql/doc/`, `postgres/doc/`, `mongo/doc/`, and `redis/doc/`: bilingual
+  product feature/scope references and usage examples.
 
 There are no standalone `CONTRIBUTING.md`, `RELEASE.md`, or `CHANGELOG.md`
 files. Contribution flow is documented in `doc/DEVELOPMENT.md`; public releases

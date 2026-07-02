@@ -63,75 +63,14 @@ func main() {
 }
 ```
 
-## 包结构
+## 文档
 
-| Package | 用途 |
-|---|---|
-| `github.com/Infranite/go-dblog/redis` | 常用 import 的 compatibility facade。 |
-| `github.com/Infranite/go-dblog/redis/backend` | 显式注册到 `dblog.Registry`。 |
-| `github.com/Infranite/go-dblog/redis/decode/decoder` | 原生 streaming decoder、RESP parser 和 plugin options。 |
-| `github.com/Infranite/go-dblog/redis/decode/events/types` | 原生命令、event 和 plugin types。 |
-
-## 已支持
-
-- Redis AOF records 的 RESP array command parsing。
-- 通过 `dblog.WithDSN` 打开 live replication stream。
-- 小写归一化 command name。
-- Streaming RESP decoder。
-- 通过 `redis/backend` 集成根 registry。
-- 通过根 registry 打开时支持 `dblog.WithCheckpoint`。
-- 对无需读取 Redis state 即可安全反转的操作生成闪回命令。
-- 面向 Redis-compatible 产品和 module commands 的 command plugin。
-
-## 暂不支持
-
-- Redis Cluster 或 Sentinel discovery。
-- TLS-specific DSN 处理。
-- RDB snapshot parsing。
-- 依赖旧值、TTL、set/hash membership state 的命令闪回，例如 `SET`、`HSET`、`SADD`、
-  `DEL`。
-
-## 支持输入
-
-| 输入 | 状态 | CI 证据 |
+| 主题 | English | 中文 |
 |---|---|---|
-| Redis AOF RESP array commands | 支持 | `redis` fixture job 从 `redis:7.2` 生成；`FuzzParseCommand` smoke target。 |
-| Redis replication streams | 支持 | `redis` CI job 启动 `redis:7.2`，写入 SET/INCR/LPUSH，并通过 `dblog.WithDSN` 加 `dblog.WithContext` 读取。 |
-| LF-only line endings、empty command names、invalid lengths、oversized arrays/bulk strings | 拒绝 | Parser tests 和 fuzz smoke target。 |
-| 离线输入中的 RDB preamble 或 mixed RDB/AOF streams | 拒绝 | `TestParseCommandRejectsInvalidRESP`。 |
-| live PSYNC stream 初始 RDB snapshot payload | 读取 command 前跳过 | `TestLiveDecoderSkipsSizedRDB` 和 live Redis CI。 |
-| 最多 8,192 个 RESP array elements 和 8 MiB per bulk string 的 commands | 支持 | Parser limits 由 fuzz smoke 覆盖。 |
-
-## RDB 与混合流
-
-离线 parser 只接收 RESP array command frames。遇到 RDB preamble 或 mixed RDB/AOF
-streams 时会拒绝输入，而不是猜测 frame boundary。
-
-live PSYNC stream 不同：Redis 会先发送一个 RDB snapshot，再发送 command stream。
-live reader 会消费 snapshot payload，然后从后续 RESP command frames 开始输出事件。
-
-## 闪回范围
-
-| Command | 闪回输出 |
-|---|---|
-| `LPUSH key value ...` | `LPOP key count` |
-| `RPUSH key value ...` | `RPOP key count` |
-| `INCR`、`DECR`、`INCRBY`、`DECRBY` | 相反的 increment command |
-
-需要 Redis 先前 state、TTL、overwritten value 或成员是否已存在的信息时，不输出闪回。
-例如 `SET`、`HSET`、`SADD`、`DEL` 会被解码为 command，但不会生成闪回命令。
-
-## 插件
-
-使用 `decoder.WithCommandPlugins` 在事件输出前归一化 Redis module commands 或
-Redis-compatible dialects。示例见 [English README](./README.md#command-plugins)。
-
-## 开发
-
-```bash
-cd redis && GOWORK=off go test ./...
-make integration-redis
-```
+| 功能、范围、包结构、RDB 行为、闪回和插件 | [doc/FEATURES.md](./doc/FEATURES.md) | [doc/FEATURES.zh-CN.md](./doc/FEATURES.zh-CN.md) |
+| AOF、live reader、插件和闪回示例 | [doc/EXAMPLES.md](./doc/EXAMPLES.md) | [doc/EXAMPLES.zh-CN.md](./doc/EXAMPLES.zh-CN.md) |
+| 项目 roadmap 和 release scope | [../doc/ROADMAP.md](../doc/ROADMAP.md#redis-family) | [../doc/ROADMAP.zh-CN.md](../doc/ROADMAP.zh-CN.md#redis-族) |
+| 开发和贡献流程 | [../doc/DEVELOPMENT.md](../doc/DEVELOPMENT.md) | [../doc/DEVELOPMENT.zh-CN.md](../doc/DEVELOPMENT.zh-CN.md) |
 
 ## License
 

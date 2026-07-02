@@ -66,111 +66,14 @@ func main() {
 }
 ```
 
-## Packages
+## Documentation
 
-| Package | Purpose |
-|---|---|
-| `github.com/Infranite/go-dblog/redis` | Compatibility facade for common imports. |
-| `github.com/Infranite/go-dblog/redis/backend` | Explicit registration with `dblog.Registry`. |
-| `github.com/Infranite/go-dblog/redis/decode/decoder` | Native streaming decoder, RESP parser, and plugin options. |
-| `github.com/Infranite/go-dblog/redis/decode/events/types` | Native command, event, and plugin types. |
-
-## Features
-
-- RESP array command parsing for Redis AOF records.
-- Live replication streams opened with `dblog.WithDSN`.
-- Lowercase normalized command names.
-- Streaming RESP decoder.
-- Root registry integration through `redis/backend`.
-- Checkpoint resume through `dblog.WithCheckpoint` when opened through the root
-  registry.
-- Flashback commands for operations that can be safely reversed without reading
-  Redis state.
-- Command plugins for Redis-compatible products and module commands.
-
-## Supported Inputs
-
-| Input | Status | CI evidence |
+| Topic | English | 中文 |
 |---|---|---|
-| Redis AOF RESP array commands | Supported | `redis` fixture job generated from `redis:7.2`; `FuzzParseCommand` smoke target. |
-| Redis replication streams | Supported | `redis` CI job starts `redis:7.2`, opens a PSYNC stream, writes SET/INCR/LPUSH, and reads them through `dblog.WithDSN` plus `dblog.WithContext`. |
-| RESP frames with LF-only line endings, empty command names, invalid lengths, or oversized arrays/bulk strings | Rejected | Parser tests and fuzz smoke target. |
-| RDB preambles or mixed RDB/AOF streams in offline input | Rejected | `TestParseCommandRejectsInvalidRESP`. |
-| Initial RDB snapshot payload in live PSYNC streams | Skipped before command decoding | `TestLiveDecoderSkipsSizedRDB` and live Redis CI. |
-| Commands up to 8,192 RESP array elements and 8 MiB per bulk string | Supported | Parser limits are covered by fuzz smoke. |
-
-## RDB And Mixed Streams
-
-The offline parser accepts RESP array command frames only. It rejects RDB
-preambles and mixed RDB/AOF streams instead of guessing frame boundaries.
-
-Live PSYNC streams are different: Redis sends an initial RDB snapshot before the
-command stream. The live reader consumes that snapshot payload and starts
-emitting events from the following RESP command frames.
-
-## Flashback Scope
-
-| Command | Flashback output |
-|---|---|
-| `LPUSH key value ...` | `LPOP key count` |
-| `RPUSH key value ...` | `RPOP key count` |
-| `INCR`, `DECR`, `INCRBY`, `DECRBY` | Opposite increment command |
-
-Commands that require previous Redis state, TTLs, overwritten values, or
-knowledge of which set/hash members already existed do not emit flashback
-output. For example, `SET`, `HSET`, `SADD`, and `DEL` are decoded as commands,
-but they do not produce flashback commands.
-
-## Command Plugins
-
-Use `decoder.WithCommandPlugins` to normalize Redis module commands or
-Redis-compatible dialects before events are emitted.
-
-```go
-package main
-
-import (
-	"strings"
-
-	"github.com/Infranite/go-dblog"
-	"github.com/Infranite/go-dblog/redis/decode/decoder"
-	"github.com/Infranite/go-dblog/redis/decode/events/types"
-)
-
-type renamePlugin struct{}
-
-func (renamePlugin) Name() string { return "rename" }
-func (renamePlugin) Match(command types.Command) bool {
-	return command.Name == "json.set"
-}
-func (renamePlugin) Apply(command *types.Command) error {
-	command.Name = "jsonset"
-	return nil
-}
-
-func main() {
-	_ = decoder.NewDecoder(
-		dblog.Source{Name: "appendonly.aof"},
-		strings.NewReader("*2\r\n$8\r\nJSON.SET\r\n$5\r\nkey:1\r\n"),
-		nil,
-		decoder.WithCommandPlugins(renamePlugin{}),
-	)
-}
-```
-
-## Development
-
-From the repository root, run:
-
-```bash
-cd redis && GOWORK=off go test ./...
-```
-
-Run the Redis fixture-backed integration test locally when Docker is available:
-
-```bash
-make integration-redis
-```
+| Features, scope, package structure, RDB behavior, flashback, and plugins | [doc/FEATURES.md](./doc/FEATURES.md) | [doc/FEATURES.zh-CN.md](./doc/FEATURES.zh-CN.md) |
+| AOF, live reader, plugin, and flashback examples | [doc/EXAMPLES.md](./doc/EXAMPLES.md) | [doc/EXAMPLES.zh-CN.md](./doc/EXAMPLES.zh-CN.md) |
+| Project roadmap and release scope | [../doc/ROADMAP.md](../doc/ROADMAP.md#redis-family) | [../doc/ROADMAP.zh-CN.md](../doc/ROADMAP.zh-CN.md#redis-族) |
+| Development and contribution flow | [../doc/DEVELOPMENT.md](../doc/DEVELOPMENT.md) | [../doc/DEVELOPMENT.zh-CN.md](../doc/DEVELOPMENT.zh-CN.md) |
 
 ## License
 
