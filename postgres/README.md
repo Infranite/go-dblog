@@ -3,8 +3,9 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/Infranite/go-dblog/postgres.svg)](https://pkg.go.dev/github.com/Infranite/go-dblog/postgres)
 
 This module is the PostgreSQL-family backend for `go-dblog`. It decodes text
-logical decoding records, can poll a live SQL logical decoding slot, and exposes
-transaction and row changes as typed events.
+logical decoding records, can read live `test_decoding` output through SQL slot
+polling or PostgreSQL replication protocol, and exposes transaction and row
+changes as typed events.
 
 Use the root [`go-dblog`](../README.md) module when you need multi-source
 orchestration. Use this module directly when you only need PostgreSQL-family
@@ -12,11 +13,15 @@ logical decoding text parsing.
 
 ## Installation
 
-After the first `postgres/v0.1.0` tag is published:
+No public tags have been published yet. After the first `v0.1.0` tag set is
+published:
 
 ```bash
-go get github.com/Infranite/go-dblog/postgres
+go get github.com/Infranite/go-dblog/postgres@v0.1.0
 ```
+
+The repository tag for this module is `postgres/v0.1.0`; callers use the
+semantic version query above with `go get`.
 
 Requirements:
 
@@ -24,6 +29,7 @@ Requirements:
 - Logical decoding text records such as `BEGIN`, `COMMIT`, and
   `table schema.table: INSERT: col[type]:value`.
 - For live reading, a PostgreSQL DSN and a `test_decoding` logical slot name.
+  Add `replication=database` to the DSN to use wire-level replication protocol.
 
 ## Quick Start
 
@@ -79,6 +85,7 @@ func main() {
 - Scalar parsing for `null`, booleans, integers, floats, and quoted strings.
 - Streaming line decoder with bounded scanner buffers.
 - Live SQL logical slot reader for PostgreSQL `test_decoding` output.
+- Wire-level logical replication reader for PostgreSQL `test_decoding` output.
 - Root registry integration through `postgres/backend`.
 - Checkpoint resume through `dblog.WithCheckpoint` when opened through the root
   registry.
@@ -96,8 +103,9 @@ The backend driver name is `pg`, while the module path remains `postgres`.
 | Row changes in `table schema.table: OPERATION: col[type]:value` form | Supported | Unit tests, fixture job, and `FuzzParseLine` smoke target. |
 | `UPDATE: old-key: ... new-tuple: ...` records with complete old tuple data | Supported | Unit tests, `FuzzParseLine` seed, and PostgreSQL fixture job with `REPLICA IDENTITY FULL`. |
 | Live SQL logical slot polling with `test_decoding` | Supported | `TestLiveLogicalDecoding` runs against a real `postgres:16` container in CI. |
+| Wire-level logical replication with `test_decoding` | Supported | `TestWireLogicalReplication` runs against a real `postgres:16` container in CI. |
 | Empty table or operation names | Rejected | Parser tests and fuzz smoke target. |
-| Wire-level logical replication protocol messages | Planned | SQL slot polling is the shipped live path. |
+| `pgoutput` binary relation/tuple messages | Planned | Current live readers parse `test_decoding` text output. |
 
 ## Live SQL Slot Reader
 
@@ -118,6 +126,19 @@ decoder, err := registry.Open(postgres.Driver,
 The live reader polls `pg_logical_slot_get_changes` and parses the returned
 `test_decoding` text with the same parser as offline records. Cancel the context
 to stop polling.
+
+Use wire-level replication by adding `replication=database` to the DSN:
+
+```go
+decoder, err := registry.Open(postgres.Driver,
+	dblog.WithContext(ctx),
+	dblog.WithDSN("postgres://postgres:postgres@127.0.0.1:5432/postgres?sslmode=disable&replication=database"),
+	dblog.WithSource(dblog.Source{Name: "dblog_slot"}),
+)
+```
+
+The wire reader sends `START_REPLICATION` for the slot, reads CopyData messages,
+and parses the embedded `test_decoding` text with the same parser.
 
 ## Flashback Scope
 

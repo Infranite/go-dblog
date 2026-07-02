@@ -20,7 +20,7 @@ Install only the backend you use.
 |---|---|---|
 | [`github.com/Infranite/go-dblog`](https://pkg.go.dev/github.com/Infranite/go-dblog) | Common API for multi-source orchestration | Supported |
 | [`github.com/Infranite/go-dblog/mysql`](./mysql) | MySQL-family binlog parser and replication stream reader: MySQL, MariaDB, MySQL-compatible dialects | Supported |
-| [`github.com/Infranite/go-dblog/postgres`](./postgres) | PostgreSQL-family logical decoding parser and SQL slot reader | Supported |
+| [`github.com/Infranite/go-dblog/postgres`](./postgres) | PostgreSQL-family logical decoding parser, SQL slot reader, and replication protocol reader | Supported |
 | [`github.com/Infranite/go-dblog/mongo`](./mongo) | MongoDB-family oplog / change stream JSON parser and live change stream reader | Supported |
 | [`github.com/Infranite/go-dblog/redis`](./redis) | Redis-family AOF RESP parser and replication stream reader | Supported |
 
@@ -43,17 +43,18 @@ compatibility layers.
 
 ## Current Scope
 
-The current public target is `v0.1.0`: a first usable tag set for users who
-already have database log files, exported records, captured streams, or the
-documented live source for a backend. Until the first tags exist, use a
-checked-out branch for evaluation. The capability matrix in
+No public tags have been published yet. The current public target is the
+`v0.1.0` tag set: a first usable release for users who already have database
+log files, exported records, captured streams, or the documented live source for
+a backend. Until the first tags exist, use a checked-out branch or commit for
+evaluation. The capability matrix in
 [ROADMAP.md](./ROADMAP.md#capability-matrix) is the source of truth for shipped
 and pending backend behavior.
 
 | Backend | Supported input for `v0.1.0` | Not included yet |
 |---|---|---|
 | MySQL | Local MySQL-family binlog files; online replication streams | GTID auto-positioning and TLS DSNs |
-| PostgreSQL | Logical decoding text records; SQL logical slot polling with `test_decoding` | Wire-level logical replication protocol reader |
+| PostgreSQL | Logical decoding text records; SQL logical slot polling and wire-level replication with `test_decoding` | `pgoutput` binary relation/tuple decoding |
 | MongoDB | Newline-delimited oplog or change stream JSON records; live collection change streams from replica sets | Raw oplog tailing outside JSON records or change streams |
 | Redis | Redis AOF RESP array commands; PSYNC replication streams | Cluster/Sentinel discovery and TLS DSNs |
 
@@ -64,12 +65,12 @@ by orchestration code and leaves backend-specific parsing details inside each
 backend module.
 
 ```bash
-# These installs are intended for published tags.
-go get github.com/Infranite/go-dblog
-go get github.com/Infranite/go-dblog/mysql
-go get github.com/Infranite/go-dblog/postgres
-go get github.com/Infranite/go-dblog/mongo
-go get github.com/Infranite/go-dblog/redis
+# After the v0.1.0 tag set is published:
+go get github.com/Infranite/go-dblog@v0.1.0
+go get github.com/Infranite/go-dblog/mysql@v0.1.0
+go get github.com/Infranite/go-dblog/postgres@v0.1.0
+go get github.com/Infranite/go-dblog/mongo@v0.1.0
+go get github.com/Infranite/go-dblog/redis@v0.1.0
 ```
 
 ```go
@@ -223,9 +224,10 @@ The detailed roadmap and capability matrix live in [ROADMAP.md](./ROADMAP.md).
 Keep version scope, shipped capability, and CI evidence there so README files do
 not drift.
 
-Current public target: `v0.1.0`, the first usable developer preview tag set.
+No public tags have been published yet. Current public target: `v0.1.0`, the
+first usable developer preview tag set.
 
-## Releases and Versioning
+## Versioning
 
 GitHub Releases and git tags are the public release record. Git history is the
 detailed change log, so this repository does not maintain separate release
@@ -290,7 +292,7 @@ Fixture generation can be debugged locally when Docker is available:
 ./redis/testdata/run_redis_live.sh redis:7.2
 ```
 
-### Contributing
+### Pull Requests
 
 Pull requests are the contribution path. This section is the project-level
 contribution guide; a standalone `CONTRIBUTING.md` is not maintained.

@@ -128,6 +128,57 @@ func TestLiveLogicalDecoding(t *testing.T) {
 	}
 }
 
+func TestWireLogicalReplication(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping wire integration test in short mode")
+	}
+	dsn := os.Getenv("DBLOG_POSTGRES_WIRE_DSN")
+	slot := os.Getenv("DBLOG_POSTGRES_WIRE_SLOT")
+	if dsn == "" || slot == "" {
+		t.Skip("set DBLOG_POSTGRES_WIRE_DSN and DBLOG_POSTGRES_WIRE_SLOT to run wire test")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), postgresLiveTimeout)
+	defer cancel()
+
+	var registry dblog.Registry
+	if err := Register(&registry); err != nil {
+		t.Fatal(err)
+	}
+	decoder, err := registry.Open(Driver,
+		dblog.WithContext(ctx),
+		dblog.WithDSN(dsn),
+		dblog.WithSource(dblog.Source{Name: slot}),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := decoder.Close(); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	counts := map[string]int{}
+	for event, err := range decoder.Events() {
+		if err != nil {
+			t.Fatal(err)
+		}
+		counts[event.Kind()]++
+		if counts[KindBegin] > 0 && counts[OperationInsert] > 0 &&
+			counts[OperationUpdate] > 0 && counts[OperationDelete] > 0 &&
+			counts[KindCommit] > 0 {
+			cancel()
+		}
+	}
+
+	for _, kind := range []string{KindBegin, OperationInsert, OperationUpdate, OperationDelete, KindCommit} {
+		if counts[kind] == 0 {
+			t.Fatalf("wire reader has no %s events: %v", kind, counts)
+		}
+	}
+}
+
 func requirePostgresFixture(t *testing.T) string {
 	t.Helper()
 	if _, err := os.Stat(postgresFixturePath); err != nil {
