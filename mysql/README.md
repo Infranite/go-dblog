@@ -93,7 +93,7 @@ Got QUERY_EVENT:
 | Unknown events declared by `FORMAT_DESCRIPTION_EVENT` metadata | Supported as metadata events in auto/loose compatibility modes | Compatibility mode tests and fixture tests. |
 | Malformed or undersized event headers | Rejected | `FuzzDecodeEventHeader` smoke target. |
 | Flashback for complete `WRITE_ROWS_EVENT`, `UPDATE_ROWS_EVENT`, and `DELETE_ROWS_EVENT` row images | Supported as typed reverse row events | Decoder tests and MySQL fixture CI assert emitted operations. |
-| Online replication connections | Planned | Not part of the offline parser release line. |
+| Online replication connections | Planned | Not part of the offline parser scope. |
 
 ### Typed Event Filtering
 
@@ -192,7 +192,7 @@ needs one.
 
 The event tables describe the currently implemented MySQL-family backend. The
 "First seen" column is a practical compatibility guide, not a promise that every
-patch release in that series emits the event in all configurations.
+patch version in that series emits the event in all configurations.
 
 ### MySQL
 

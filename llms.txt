@@ -9,18 +9,19 @@ adapting them to a shared event API.
   and flashback contracts.
 - `github.com/Infranite/go-dblog/mysql`: MySQL-family binlog parser.
 - `github.com/Infranite/go-dblog/postgres`: PostgreSQL logical decoding text
-  parser.
-- `github.com/Infranite/go-dblog/mongo`: MongoDB oplog and change stream JSON
-  parser.
-- `github.com/Infranite/go-dblog/redis`: Redis AOF RESP parser.
+  parser and SQL slot reader.
+- `github.com/Infranite/go-dblog/mongo`: MongoDB oplog/change stream JSON
+  parser and live change stream reader.
+- `github.com/Infranite/go-dblog/redis`: Redis AOF RESP parser and replication
+  stream reader.
 
 ## Key Files
 
 - `README.md`: feature overview, examples, backend package layout, inline
   contribution notes, and roadmap pointer.
-- `ROADMAP.md`: release line, capability matrix, workstreams, and versioning
+- `ROADMAP.md`: version targets, capability matrix, workstreams, and versioning
   rules.
-- `doc/doc_zh.md`: Chinese documentation.
+- `doc/doc_zh.md`: Chinese project documentation.
 - GitHub Releases and Git tags: public release record; git history is the
   detailed change log.
 - `SECURITY.md`: vulnerability reporting policy.

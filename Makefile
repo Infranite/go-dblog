@@ -34,6 +34,7 @@ integration-postgres:
 
 integration-redis:
 	./redis/testdata/generate_redis_aof.sh redis:7.2
+	./redis/testdata/run_redis_live.sh redis:7.2
 	cd redis && GOWORK=off $(GO) test ./...
 
 lint:
@@ -43,10 +44,10 @@ vet:
 	$(GO) vet ./... ./mysql/... ./mongo/... ./postgres/... ./redis/...
 
 fuzz-smoke:
-	cd mysql && GOWORK=off $(GO) test -run '^$$' -fuzz=FuzzDecodeEventHeader -fuzztime=5s -parallel=2 ./decode/events
-	cd mongo && GOWORK=off $(GO) test -run '^$$' -fuzz=FuzzParseLine -fuzztime=5s -parallel=2 .
-	cd postgres && GOWORK=off $(GO) test -run '^$$' -fuzz=FuzzParseLine -fuzztime=5s -parallel=2 .
-	cd redis && GOWORK=off $(GO) test -run '^$$' -fuzz=FuzzParseCommand -fuzztime=5s -parallel=2 .
+	cd mysql && GOWORK=off $(GO) test -run '^$$' -fuzz=FuzzDecodeEventHeader -fuzztime=100000x -parallel=2 ./decode/events
+	cd mongo && GOWORK=off $(GO) test -run '^$$' -fuzz=FuzzParseLine -fuzztime=100000x -parallel=2 .
+	cd postgres && GOWORK=off $(GO) test -run '^$$' -fuzz=FuzzParseLine -fuzztime=100000x -parallel=2 .
+	cd redis && GOWORK=off $(GO) test -run '^$$' -fuzz=FuzzParseCommand -fuzztime=100000x -parallel=2 .
 
 bench:
 	cd mongo && GOWORK=off $(GO) test -bench=. -benchmem ./...
