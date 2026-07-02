@@ -21,7 +21,7 @@
 |---|---|---|---|
 | `v0.1.0` | Ready, 已被取代 | MySQL、PostgreSQL、MongoDB、Redis 的首个可用 parser 和 CDC developer preview。 | 已实现并由 CI 覆盖，但在公开 tag 发布前被取代。 |
 | `v0.2.0` | Released | 兼容性加固后的 parser 和 CDC developer preview。 | 受保护 `ci` 与 `merge-policy` 检查通过；已发布 `v0.2.0`、`mysql/v0.2.0`、`postgres/v0.2.0`、`mongo/v0.2.0`、`redis/v0.2.0` tag。 |
-| `v0.3.0` | Ready | 恢复工作流。 | 只在 source log 包含足够旧状态时扩展闪回；不安全反向操作保持省略；打 tag 前全 backend CI 必须通过。 |
+| `v0.3.0` | Released | 恢复工作流。 | 受保护 `ci` 与 `merge-policy` 检查通过；已发布 `v0.3.0`、`mysql/v0.3.0`、`postgres/v0.3.0`、`mongo/v0.3.0`、`redis/v0.3.0` tag。 |
 | `v0.4.0` | Planned | 运维成熟度。 | CI 发布已测试 backend/version 矩阵，并保留 parser benchmark 历史。 |
 | `v1.0.0` | Candidate | 稳定公共 API。 | 根 API 和 backend package 契约冻结，并有兼容性策略。 |
 
@@ -74,7 +74,7 @@ checkpoint 测试。
 | 通过根 registry 打开时支持 checkpoint resume | Done | backend registry tests 覆盖。 |
 | 对完整 write、delete、update row image 生成安全闪回 | Done | 不完整 row image 会被省略。 |
 | live reader 的 GTID auto-positioning | Unsupported | 等 live reader 兼容性策略稳定后再规划。 |
-| TLS-specific DSN 处理 | Unsupported | 不属于 `v0.2.x` 契约。 |
+| TLS-specific DSN 处理 | Unsupported | 不属于 `v0.3.x` 契约。 |
 | skipped columns 或 `PARTIAL_UPDATE_ROWS_EVENT` 的闪回 | Unsupported | source log 不包含完整可逆 row image。 |
 
 `v0.3.0` 恢复工作：
@@ -124,7 +124,7 @@ checkpoint 测试。
 | 面向 MongoDB-compatible event shape 的 event plugins | Done | plugin 可归一化 operation 和 metadata。 |
 | 通过根 registry 打开时支持 checkpoint resume | Done | backend registry tests 覆盖。 |
 | 输入包含足够 document data 时，为 insert、delete、update、replace 生成安全闪回 | Done | update 和 replace 需要 `fullDocumentBeforeChange`；delete 需要完整 deleted document data。 |
-| JSON records 或 change streams 之外的 raw oplog tailing | Unsupported | 超出 `v0.2.x` 输入契约。 |
+| JSON records 或 change streams 之外的 raw oplog tailing | Unsupported | 超出 `v0.3.x` 输入契约。 |
 | 自动 replica set 或 sharded cluster discovery | Unsupported | 调用方提供 DSN 和 source。 |
 | 缺少 `fullDocumentBeforeChange` 的 update 或 replace 闪回 | Unsupported | source log 不包含 prior document state。 |
 | 缺少完整 deleted document data 的 delete 闪回 | Unsupported | source log 不包含可重新 insert 的 document。 |
@@ -151,7 +151,7 @@ checkpoint 测试。
 | 通过根 registry 打开时支持 checkpoint resume | Done | backend registry tests 覆盖。 |
 | 对 `LPUSH`、`RPUSH`、`INCR`、`DECR`、`INCRBY`、`DECRBY`、`HINCRBY`、`HINCRBYFLOAT`、`ZINCRBY` 生成安全闪回 | Done | 反向命令无需读取 Redis state。 |
 | Redis Cluster 或 Sentinel discovery | Unsupported | 调用方提供 direct endpoint。 |
-| TLS-specific DSN handling | Unsupported | 不属于 `v0.2.x` 契约。 |
+| TLS-specific DSN handling | Unsupported | 不属于 `v0.3.x` 契约。 |
 | 离线 RDB snapshot parsing | Unsupported | 离线 parser 只接收 RESP array command frames。 |
 | `SET`、`HSET`、`SADD`、`DEL` 等 state-dependent command 闪回 | Unsupported | command log 不包含 previous values、TTL 或 membership state。 |
 
