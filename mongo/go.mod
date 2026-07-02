@@ -2,7 +2,7 @@ module github.com/Infranite/go-dblog/mongo
 
 go 1.25.0
 
-require github.com/Infranite/go-dblog v0.2.0
+require github.com/Infranite/go-dblog v0.3.0
 
 require (
 	github.com/klauspost/compress v1.17.6 // indirect

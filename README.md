@@ -39,14 +39,14 @@ Install only the backend you use.
 
 ## Install
 
-The current public tag set is `v0.2.0`.
+The current public tag set is `v0.3.0`.
 
 ```bash
-go get github.com/Infranite/go-dblog@v0.2.0
-go get github.com/Infranite/go-dblog/mysql@v0.2.0
-go get github.com/Infranite/go-dblog/postgres@v0.2.0
-go get github.com/Infranite/go-dblog/mongo@v0.2.0
-go get github.com/Infranite/go-dblog/redis@v0.2.0
+go get github.com/Infranite/go-dblog@v0.3.0
+go get github.com/Infranite/go-dblog/mysql@v0.3.0
+go get github.com/Infranite/go-dblog/postgres@v0.3.0
+go get github.com/Infranite/go-dblog/mongo@v0.3.0
+go get github.com/Infranite/go-dblog/redis@v0.3.0
 ```
 
 ## Minimal Example
