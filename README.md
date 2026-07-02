@@ -6,63 +6,43 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/Infranite/go-dblog)](https://goreportcard.com/report/github.com/Infranite/go-dblog)
 [![License](https://img.shields.io/github/license/Infranite/go-dblog)](https://github.com/Infranite/go-dblog/blob/master/LICENSE)
 
-`go-dblog` is a multi-module Go toolkit for parsing database change logs. It
-provides a small common API for orchestration while each database-family backend
-keeps its own native event model and dependency graph.
+`go-dblog` is a multi-module Go toolkit for parsing database change logs. The
+root module defines the shared event, registry, checkpoint, filtering, and
+flashback contracts; each product backend keeps its native event model and
+dependencies in its own module.
 
-[中文说明](https://github.com/Infranite/go-dblog/blob/master/doc/doc_zh.md)
+[中文](./doc/README.zh-CN.md)
 
-## Modules
+## Product Index
 
 Install only the backend you use.
 
-| Module | Scope | Status |
+| Product | Module | Details |
 |---|---|---|
-| [`github.com/Infranite/go-dblog`](https://pkg.go.dev/github.com/Infranite/go-dblog) | Common API for multi-source orchestration | Supported |
-| [`github.com/Infranite/go-dblog/mysql`](./mysql) | MySQL-family binlog parser and replication stream reader: MySQL, MariaDB, MySQL-compatible dialects | Supported |
-| [`github.com/Infranite/go-dblog/postgres`](./postgres) | PostgreSQL-family logical decoding parser, SQL slot reader, and replication protocol reader | Supported |
-| [`github.com/Infranite/go-dblog/mongo`](./mongo) | MongoDB-family oplog / change stream JSON parser and live change stream reader | Supported |
-| [`github.com/Infranite/go-dblog/redis`](./redis) | Redis-family AOF RESP parser and replication stream reader | Supported |
+| Common API | `github.com/Infranite/go-dblog` | This README |
+| MySQL family | `github.com/Infranite/go-dblog/mysql` | [English](./mysql/README.md) / [中文](./mysql/README.zh-CN.md) |
+| PostgreSQL family | `github.com/Infranite/go-dblog/postgres` | [English](./postgres/README.md) / [中文](./postgres/README.zh-CN.md) |
+| MongoDB family | `github.com/Infranite/go-dblog/mongo` | [English](./mongo/README.md) / [中文](./mongo/README.zh-CN.md) |
+| Redis family | `github.com/Infranite/go-dblog/redis` | [English](./redis/README.md) / [中文](./redis/README.zh-CN.md) |
 
-Backend modules are split by database family instead of log format names. That
-keeps imports predictable as each ecosystem grows its own dialects and
-compatibility layers.
+Current supported and unsupported source details live in
+[doc/ROADMAP.md](./doc/ROADMAP.md).
 
 ## Features
 
-- One common event shape for MySQL, PostgreSQL, MongoDB, and Redis log streams.
-- Explicit backend registration through `dblog.Registry`; no hidden imports or
-  automatic global registration.
+- Backend-neutral `dblog.Event` shape for routing mixed database log streams.
+- Explicit backend registration through `dblog.Registry`.
 - Streaming decoders built on Go iterator APIs.
-- Shared event helpers for source, position, checkpoint resume, filtering, and
-  flashback output.
-- Backend-native typed events for database-specific details.
-- Plugin hooks inside native decoder packages for dialect-specific events and
-  commands.
-- Per-backend modules so callers install only the dependencies they need.
+- Shared helpers for source metadata, positions, checkpoint resume, filtering,
+  and safe flashback output.
+- Backend-native typed events for database-specific fields.
+- Plugin hooks inside backend decoder packages for dialect-specific records.
+- Separate Go modules so callers do not install unused database dependencies.
 
-## Current Scope
+## Install
 
-No public tags have been published yet. The current public target is the
-`v0.1.0` tag set: a first usable release for users who already have database
-log files, exported records, captured streams, or the documented live source for
-a backend. Until the first tags exist, use a checked-out branch or commit for
-evaluation. The capability matrix in
-[ROADMAP.md](./ROADMAP.md#capability-matrix) is the source of truth for shipped
-and pending backend behavior.
-
-| Backend | Supported input for `v0.1.0` | Not included yet |
-|---|---|---|
-| MySQL | Local MySQL-family binlog files; online replication streams | GTID auto-positioning and TLS DSNs |
-| PostgreSQL | Logical decoding text records; SQL logical slot polling and wire-level replication with `test_decoding` | `pgoutput` binary relation/tuple decoding |
-| MongoDB | Newline-delimited oplog or change stream JSON records; live collection change streams from replica sets | Raw oplog tailing outside JSON records or change streams |
-| Redis | Redis AOF RESP array commands; PSYNC replication streams | Cluster/Sentinel discovery and TLS DSNs |
-
-## Common API
-
-The root module is intentionally small. It defines the shared event shape used
-by orchestration code and leaves backend-specific parsing details inside each
-backend module.
+No public tags have been published yet. Until the first `v0.1.0` tag set
+exists, evaluate the project from a checked-out branch or commit.
 
 ```bash
 # After the v0.1.0 tag set is published:
@@ -73,84 +53,7 @@ go get github.com/Infranite/go-dblog/mongo@v0.1.0
 go get github.com/Infranite/go-dblog/redis@v0.1.0
 ```
 
-```go
-package main
-
-import (
-	"fmt"
-
-	"github.com/Infranite/go-dblog"
-	"github.com/Infranite/go-dblog/mysql/decode/decoder"
-)
-
-func main() {
-	mysqlDecoder, err := decoder.NewDblogDecoder("./testdata/mysql-bin.000004")
-	if err != nil {
-		panic(err)
-	}
-	defer mysqlDecoder.Close()
-
-	for event, err := range dblog.Events(mysqlDecoder) {
-		if err != nil {
-			panic(err)
-		}
-		source := dblog.SourceOf(event)
-		position := dblog.PositionOf(event)
-		fmt.Println(source.Driver, position.Value, event.Kind())
-	}
-}
-```
-
-Use the common API for multi-source routing, shared filtering, CDC pipelines,
-backend registration, and recovery tasks. Use backend-native APIs when you need
-full database-specific event details. The current backend capability matrix and
-CI evidence are tracked in [ROADMAP.md](./ROADMAP.md#capability-matrix).
-
-## Examples
-
-### Open a backend through the registry
-
-```go
-package main
-
-import (
-	"fmt"
-	"strings"
-
-	"github.com/Infranite/go-dblog"
-	"github.com/Infranite/go-dblog/redis"
-)
-
-func main() {
-	var registry dblog.Registry
-	if err := redis.Register(&registry); err != nil {
-		panic(err)
-	}
-
-	decoder, err := registry.Open(redis.Driver,
-		dblog.WithSource(dblog.Source{Name: "appendonly.aof"}),
-		dblog.WithReader(strings.NewReader("*3\r\n$4\r\nSADD\r\n$4\r\ntags\r\n$2\r\ngo\r\n")),
-	)
-	if err != nil {
-		panic(err)
-	}
-	defer decoder.Close()
-
-	for event, err := range dblog.Filter(
-		decoder.Events(),
-		dblog.ByDriver(redis.Driver),
-		dblog.ByKind(redis.CommandSAdd),
-	) {
-		if err != nil {
-			panic(err)
-		}
-		command := event.Body().(redis.Command)
-		fmt.Println(event.Kind(), command.Args)
-	}
-}
-```
-
-### Generate flashback operations
+## Minimal Example
 
 ```go
 package main
@@ -177,132 +80,31 @@ func main() {
 	}
 	defer decoder.Close()
 
-	for op, err := range dblog.Flashbacks(decoder.Events()) {
+	for event, err := range decoder.Events() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(op)
+		fmt.Println(event.Kind(), dblog.PositionOf(event).Value)
 	}
 }
 ```
 
-### Resume after a checkpoint
+Use the common API for multi-source routing, shared filtering, CDC pipelines,
+backend registration, and recovery tasks. Use backend-native APIs when you need
+database-specific event fields.
 
-```go
-checkpoint := dblog.CheckpointOf(lastProcessedEvent)
+## Documentation
 
-decoder, err := registry.Open(redis.Driver,
-	dblog.WithReader(strings.NewReader(aof)),
-	dblog.WithCheckpoint(checkpoint),
-)
-```
-
-## Backend Packages
-
-Backend modules expose the same package shape:
-
-| Package | Purpose |
-|---|---|
-| `<module>/backend` | Explicit registration with `dblog.Registry` |
-| `<module>/decode/decoder` | Native streaming decoder and parser options |
-| `<module>/decode/events/types` | Native event, change, command, and plugin contracts |
-
-MySQL, PostgreSQL, MongoDB, and Redis keep backend-specific plugin hooks in
-their native decoder packages. Use these hooks for dialect-specific commands,
-event types, or compatibility behavior without changing the common API.
-
-| Module | Documentation |
-|---|---|
-| `mysql` | [mysql/README.md](./mysql/README.md) |
-| `postgres` | [postgres/README.md](./postgres/README.md) |
-| `mongo` | [mongo/README.md](./mongo/README.md) |
-| `redis` | [redis/README.md](./redis/README.md) |
-
-## Roadmap
-
-The detailed roadmap and capability matrix live in [ROADMAP.md](./ROADMAP.md).
-Keep version scope, shipped capability, and CI evidence there so README files do
-not drift.
-
-No public tags have been published yet. Current public target: `v0.1.0`, the
-first usable developer preview tag set.
-
-## Versioning
+| Topic | English | 中文 |
+|---|---|---|
+| Project overview | This README | [doc/README.zh-CN.md](./doc/README.zh-CN.md) |
+| Roadmap and product scope | [doc/ROADMAP.md](./doc/ROADMAP.md) | [doc/ROADMAP.zh-CN.md](./doc/ROADMAP.zh-CN.md) |
+| Development and contribution flow | [doc/DEVELOPMENT.md](./doc/DEVELOPMENT.md) | [doc/DEVELOPMENT.zh-CN.md](./doc/DEVELOPMENT.zh-CN.md) |
+| Security policy | [doc/SECURITY.md](./doc/SECURITY.md) | [doc/SECURITY.zh-CN.md](./doc/SECURITY.zh-CN.md) |
 
 GitHub Releases and git tags are the public release record. Git history is the
-detailed change log, so this repository does not maintain separate release
-notes or changelog files.
-
-- Root module tags use `vX.Y.Z`.
-- Backend module tags use `mysql/vX.Y.Z`, `mongo/vX.Y.Z`,
-  `postgres/vX.Y.Z`, and `redis/vX.Y.Z`.
-- Backend modules track the root module version for `v0.x` tags.
-
-## Development
-
-Requirements:
-
-- Go 1.25 or later.
-- `golangci-lint` for local lint checks.
-- Docker only when debugging fixture generation locally.
-
-Run local unit tests:
-
-```bash
-make test
-```
-
-Run lint:
-
-```bash
-make lint
-```
-
-Run parser fuzz and benchmark smoke gates:
-
-```bash
-make fuzz-smoke
-make bench-smoke
-```
-
-Full fixture-backed MySQL, MongoDB, PostgreSQL, and Redis integration tests run
-in pull request CI. Pull requests merge through the protected `ci` and
-`merge-policy` checks.
-
-Run all fixture-backed integration tests locally when Docker is available:
-
-```bash
-make integration
-```
-
-When touching parser behavior, update tests in the affected backend module and
-document user-visible behavior in the relevant README. Keep backend-specific
-behavior inside that backend unless the common API genuinely needs it.
-
-Fixture generation can be debugged locally when Docker is available:
-
-```bash
-./mysql/test/testdata/generate_mysql_binlog.sh mysql:8.4
-./mysql/test/testdata/run_mysql_live.sh mysql:8.4
-./mongo/testdata/generate_mongo_oplog.sh mongo:7.0
-./mongo/testdata/run_mongo_live.sh mongo:7.0
-./postgres/testdata/generate_postgres_logical.sh postgres:16
-./postgres/testdata/run_postgres_live.sh postgres:16
-./redis/testdata/generate_redis_aof.sh redis:7.2
-./redis/testdata/run_redis_live.sh redis:7.2
-```
-
-### Pull Requests
-
-Pull requests are the contribution path. This section is the project-level
-contribution guide; a standalone `CONTRIBUTING.md` is not maintained.
-
-- Run `make test` and the affected module tests locally before opening a pull
-  request.
-- Keep parser behavior changes covered by tests in the affected backend.
-- Update the relevant README when user-visible behavior changes.
-- Full fixture-backed integration, fuzz smoke, benchmark smoke, lint, vet, and
-  vulnerability checks run in CI.
+detailed change log; this repository does not maintain separate release notes
+or changelog files.
 
 ## License
 
