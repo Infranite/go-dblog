@@ -1,6 +1,7 @@
 package dblog
 
 import (
+	"context"
 	"errors"
 	"iter"
 	"testing"
@@ -227,6 +228,25 @@ func TestCheckpointOfAndOpenOptions(t *testing.T) {
 	}
 	if got := StartPositionOf(options); got != checkpoint.Position {
 		t.Fatalf("start position = %#v", got)
+	}
+}
+
+func TestOpenOptionsContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	options := newOpenOptions(WithContext(ctx))
+	if got := ContextOf(options); got != ctx {
+		t.Fatalf("context = %v, want %v", got, ctx)
+	}
+
+	if got := ContextOf(nil); got == nil {
+		t.Fatal("context is nil")
+	}
+
+	options = newOpenOptions()
+	if got := ContextOf(options); got == nil {
+		t.Fatal("empty options returned nil context")
 	}
 }
 
