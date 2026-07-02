@@ -61,7 +61,7 @@ The wire reader is selected by adding `replication=database` to the DSN. It send
 `START_REPLICATION` for the configured slot, reads CopyData messages, and parses
 the embedded `test_decoding` text with the same parser.
 
-Both live readers are intentionally text-oriented in `v0.3.0`. Use
+Both live readers are intentionally text-oriented in `v0.4.0`. Use
 `test_decoding` or a custom text output plugin that can be normalized through
 `decoder.WithEventPlugins`; binary `pgoutput` relation and tuple messages are
 not decoded by this backend.

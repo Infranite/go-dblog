@@ -23,7 +23,7 @@ checklist, not a date commitment.
 | `v0.1.0` | Ready, superseded | First usable parser and CDC developer preview for MySQL, PostgreSQL, MongoDB, and Redis. | Implemented and CI-covered, but superseded before public tags. |
 | `v0.2.0` | Released | Compatibility-hardened parser and CDC developer preview. | Protected `ci` and `merge-policy` checks passed; release tags published as `v0.2.0`, `mysql/v0.2.0`, `postgres/v0.2.0`, `mongo/v0.2.0`, and `redis/v0.2.0`. |
 | `v0.3.0` | Released | Recovery workflows. | Protected `ci` and `merge-policy` checks passed; release tags published as `v0.3.0`, `mysql/v0.3.0`, `postgres/v0.3.0`, `mongo/v0.3.0`, and `redis/v0.3.0`. |
-| `v0.4.0` | Ready | Operational maturity. | CI publishes a tested backend/version matrix, parser benchmark history, and structured report artifacts. |
+| `v0.4.0` | Released | Operational maturity. | Protected `ci` and `merge-policy` checks passed; CI evidence artifacts published; release tags published as `v0.4.0`, `mysql/v0.4.0`, `postgres/v0.4.0`, `mongo/v0.4.0`, and `redis/v0.4.0`. |
 | `v1.0.0` | Candidate | Stable public API. | Root API and backend package contracts are frozen with a documented compatibility policy. |
 
 ## Current Capability Matrix
@@ -89,7 +89,7 @@ Detailed user docs: [features](../mysql/doc/FEATURES.md) and
 | Checkpoint resume through the root registry | Done | Covered by backend registry tests. |
 | Safe flashback for complete write, delete, and update row images | Done | Incomplete row images are omitted. |
 | GTID auto-positioning for live readers | Unsupported | Planned only after live reader compatibility policy is stable. |
-| TLS-specific DSN handling | Unsupported | Not part of the `v0.3.x` contract. |
+| TLS-specific DSN handling | Unsupported | Not part of the `v0.4.x` contract. |
 | Flashback for skipped columns or `PARTIAL_UPDATE_ROWS_EVENT` | Unsupported | Source log does not contain a complete reversible row image. |
 
 `v0.3.0` recovery work:
@@ -139,7 +139,7 @@ Detailed user docs: [features](../mongo/doc/FEATURES.md) and
 | Event plugins for MongoDB-compatible event shapes | Done | Plugins can normalize operations and metadata. |
 | Checkpoint resume through the root registry | Done | Covered by backend registry tests. |
 | Safe flashback for inserts, deletes, updates, and replacements with enough document data | Done | Updates and replacements require `fullDocumentBeforeChange`; deletes require full deleted document data. |
-| Raw oplog tailing outside JSON records or change streams | Unsupported | Outside the `v0.3.x` input contract. |
+| Raw oplog tailing outside JSON records or change streams | Unsupported | Outside the `v0.4.x` input contract. |
 | Automatic replica set or sharded cluster discovery | Unsupported | Caller supplies the DSN and source. |
 | Update or replace flashback without `fullDocumentBeforeChange` | Unsupported | Source log does not contain the prior document state. |
 | Delete flashback without full deleted document data | Unsupported | Source log does not contain the document to reinsert. |
@@ -166,7 +166,7 @@ Detailed user docs: [features](../redis/doc/FEATURES.md) and
 | Checkpoint resume through the root registry | Done | Covered by backend registry tests. |
 | Safe flashback for `LPUSH`, `RPUSH`, `INCR`, `DECR`, `INCRBY`, `DECRBY`, `HINCRBY`, `HINCRBYFLOAT`, and `ZINCRBY` | Done | Reverse commands do not require reading Redis state. |
 | Redis Cluster or Sentinel discovery | Unsupported | Caller supplies a direct endpoint. |
-| TLS-specific DSN handling | Unsupported | Not part of the `v0.3.x` contract. |
+| TLS-specific DSN handling | Unsupported | Not part of the `v0.4.x` contract. |
 | Offline RDB snapshot parsing | Unsupported | Offline parser accepts RESP array command frames only. |
 | Flashback for `SET`, `HSET`, `SADD`, `DEL`, and other state-dependent commands | Unsupported | Previous values, TTLs, or membership state are not available in the command log. |
 

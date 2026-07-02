@@ -36,14 +36,14 @@ backend 注册、checkpoint、过滤和安全闪回/恢复契约；每个 backen
 
 ## 安装
 
-当前公开 tag 集合是 `v0.3.0`。
+当前公开 tag 集合是 `v0.4.0`。
 
 ```bash
-go get github.com/Infranite/go-dblog@v0.3.0
-go get github.com/Infranite/go-dblog/mysql@v0.3.0
-go get github.com/Infranite/go-dblog/postgres@v0.3.0
-go get github.com/Infranite/go-dblog/mongo@v0.3.0
-go get github.com/Infranite/go-dblog/redis@v0.3.0
+go get github.com/Infranite/go-dblog@v0.4.0
+go get github.com/Infranite/go-dblog/mysql@v0.4.0
+go get github.com/Infranite/go-dblog/postgres@v0.4.0
+go get github.com/Infranite/go-dblog/mongo@v0.4.0
+go get github.com/Infranite/go-dblog/redis@v0.4.0
 ```
 
 ## 最小示例

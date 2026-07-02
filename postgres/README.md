@@ -18,10 +18,10 @@ logical decoding text parsing.
 Current release:
 
 ```bash
-go get github.com/Infranite/go-dblog/postgres@v0.3.0
+go get github.com/Infranite/go-dblog/postgres@v0.4.0
 ```
 
-The repository tag for this module is `postgres/v0.3.0`; callers use the
+The repository tag for this module is `postgres/v0.4.0`; callers use the
 semantic version query above with `go get`.
 
 Requirements:
