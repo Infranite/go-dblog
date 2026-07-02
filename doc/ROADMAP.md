@@ -23,7 +23,7 @@ checklist, not a date commitment.
 | `v0.1.0` | Ready, superseded | First usable parser and CDC developer preview for MySQL, PostgreSQL, MongoDB, and Redis. | Implemented and CI-covered, but superseded before public tags. |
 | `v0.2.0` | Released | Compatibility-hardened parser and CDC developer preview. | Protected `ci` and `merge-policy` checks passed; release tags published as `v0.2.0`, `mysql/v0.2.0`, `postgres/v0.2.0`, `mongo/v0.2.0`, and `redis/v0.2.0`. |
 | `v0.3.0` | Released | Recovery workflows. | Protected `ci` and `merge-policy` checks passed; release tags published as `v0.3.0`, `mysql/v0.3.0`, `postgres/v0.3.0`, `mongo/v0.3.0`, and `redis/v0.3.0`. |
-| `v0.4.0` | Planned | Operational maturity. | CI publishes the tested backend/version matrix and keeps parser benchmark history. |
+| `v0.4.0` | Ready | Operational maturity. | CI publishes a tested backend/version matrix, parser benchmark history, and structured report artifacts. |
 | `v1.0.0` | Candidate | Stable public API. | Root API and backend package contracts are frozen with a documented compatibility policy. |
 
 ## Current Capability Matrix
@@ -44,6 +44,7 @@ checklist, not a date commitment.
 | Fuzz smoke gate | N/A | Done | Done | Done | Done |
 | Benchmark smoke gate | N/A | Done | Done | Done | Done |
 | Static gates: lint, vet, vulnerability scan | Done | Done | Done | Done | Done |
+| CI evidence artifact with tested matrix and benchmark history | Done | Done | Done | Done | Done |
 
 ## Common API
 
@@ -59,6 +60,19 @@ checklist, not a date commitment.
 
 CI evidence: `root_test` runs the root package tests, backend registration
 tests, and checkpoint tests in every backend module.
+
+## Operational Maturity
+
+Detailed CI docs: [CI evidence](./CI.md).
+
+`v0.4.0` operational work:
+
+| Item | Status | Notes |
+|---|---|---|
+| Publish tested backend/version matrix in CI | Done | The `ci-report` job reads the workflow job list and publishes `tested-matrix.md` and `tested-matrix.json`. |
+| Keep parser benchmark history | Done | Each parser benchmark job uploads raw benchmark output; `ci-report` consolidates it into `benchmarks.md` and `benchmarks.jsonl`. |
+| Surface CI evidence in the workflow summary | Done | `ci-report` appends a Markdown summary through the GitHub Actions step summary file. |
+| Treat CI evidence generation as a protected gate | Done | The aggregate `ci` job requires `ci-report` together with lint, vet, vuln, tests, fuzz, and benchmark jobs. |
 
 ## MySQL Family
 

@@ -24,6 +24,8 @@ adapting them to a shared event API.
   supported and unsupported scope, CI evidence, and next work.
 - `doc/RECOVERY.md` and `doc/RECOVERY.zh-CN.md`: recovery plan and replay
   cookbook.
+- `doc/CI.md` and `doc/CI.zh-CN.md`: tested backend/version matrix,
+  benchmark history artifacts, and CI evidence scope.
 - `doc/DEVELOPMENT.md` and `doc/DEVELOPMENT.zh-CN.md`: local checks, fixture
   debugging, pull request flow, and versioning rules.
 - `doc/SECURITY.md` and `doc/SECURITY.zh-CN.md`: vulnerability reporting policy.

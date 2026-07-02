@@ -39,6 +39,10 @@ in pull request CI. Run them locally only when Docker is available:
 make integration
 ```
 
+CI also publishes a tested backend/version matrix and parser benchmark history
+as workflow artifacts. See [CI.md](./CI.md) for the current matrix and artifact
+names.
+
 ## Fixture Debugging
 
 Use these commands when you need to debug CI-style fixture generation locally:
@@ -65,6 +69,8 @@ maintained.
 - Update the relevant README or `doc/` page when user-visible behavior changes.
 - Full fixture-backed integration, fuzz smoke, benchmark smoke, lint, vet, and
   vulnerability checks run in CI.
+- CI publishes tested matrix and benchmark history artifacts for release
+  evidence.
 - Pull requests merge through the protected `ci` and `merge-policy` checks.
 
 ## Versioning
