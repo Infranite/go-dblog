@@ -86,6 +86,8 @@ type BinRowsEvent struct {
 	ColumnsBitmap2 []byte
 
 	// rows
+	Schema     string
+	Table      string
 	Rows       [][]ColumnValue
 	BeforeRows [][]ColumnValue
 	AfterRows  [][]ColumnValue
@@ -206,6 +208,8 @@ func decodeRowsEvent(data []byte, h *FmtDescEvent, tables map[uint64]*TableMapEv
 	if table.ColumnCount < event.ColumnCount {
 		return nil, fmt.Errorf("table map column count %d is smaller than rows event column count %d", table.ColumnCount, event.ColumnCount)
 	}
+	event.Schema = table.Schema
+	event.Table = table.Table
 
 	for pos < len(data) {
 		row, read, err := DecodeRowValues(data[pos:], table, event.ColumnCount, event.ColumnsBitmap1)
@@ -234,6 +238,79 @@ func decodeRowsEvent(data []byte, h *FmtDescEvent, tables map[uint64]*TableMapEv
 	}
 
 	return event, nil
+}
+
+// Reverse returns a typed rows event that compensates the original rows event.
+func (e *BinRowsEvent) Reverse(eventType uint8) (*BinRowsEvent, uint8, bool) {
+	if e == nil || e.DecodeError != "" {
+		return nil, 0, false
+	}
+	switch eventType {
+	case common.WriteRowsEventV0:
+		return e.reverseRows(common.DeleteRowsEventV0, e.Rows, nil, nil)
+	case common.WriteRowsEventV1:
+		return e.reverseRows(common.DeleteRowsEventV1, e.Rows, nil, nil)
+	case common.WriteRowsEventV2:
+		return e.reverseRows(common.DeleteRowsEventV2, e.Rows, nil, nil)
+	case common.DeleteRowsEventV0:
+		return e.reverseRows(common.WriteRowsEventV0, e.Rows, nil, nil)
+	case common.DeleteRowsEventV1:
+		return e.reverseRows(common.WriteRowsEventV1, e.Rows, nil, nil)
+	case common.DeleteRowsEventV2:
+		return e.reverseRows(common.WriteRowsEventV2, e.Rows, nil, nil)
+	case common.UpdateRowsEventV0, common.UpdateRowsEventV1, common.UpdateRowsEventV2:
+		if len(e.BeforeRows) == 0 || len(e.BeforeRows) != len(e.AfterRows) {
+			return nil, 0, false
+		}
+		return e.reverseRows(eventType, nil, e.AfterRows, e.BeforeRows)
+	default:
+		return nil, 0, false
+	}
+}
+
+func (e *BinRowsEvent) reverseRows(eventType uint8, rows, beforeRows, afterRows [][]ColumnValue) (*BinRowsEvent, uint8, bool) {
+	if beforeRows == nil && afterRows == nil && len(rows) == 0 {
+		return nil, 0, false
+	}
+	if !completeRows(rows) || !completeRows(beforeRows) || !completeRows(afterRows) {
+		return nil, 0, false
+	}
+	return &BinRowsEvent{
+		Version:        e.Version,
+		TableID:        e.TableID,
+		Flags:          e.Flags,
+		ExtraData:      append([]byte(nil), e.ExtraData...),
+		ColumnCount:    e.ColumnCount,
+		ColumnsBitmap1: append([]byte(nil), e.ColumnsBitmap1...),
+		ColumnsBitmap2: append([]byte(nil), e.ColumnsBitmap2...),
+		Schema:         e.Schema,
+		Table:          e.Table,
+		Rows:           cloneRows(rows),
+		BeforeRows:     cloneRows(beforeRows),
+		AfterRows:      cloneRows(afterRows),
+	}, eventType, true
+}
+
+func completeRows(rows [][]ColumnValue) bool {
+	for _, row := range rows {
+		for _, column := range row {
+			if column.Skipped {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func cloneRows(rows [][]ColumnValue) [][]ColumnValue {
+	if rows == nil {
+		return nil
+	}
+	cloned := make([][]ColumnValue, len(rows))
+	for i, row := range rows {
+		cloned[i] = append([]ColumnValue(nil), row...)
+	}
+	return cloned
 }
 
 func isUpdateRowsEvent(typ uint8) bool {

@@ -82,6 +82,7 @@ Got QUERY_EVENT:
 - Copy-aware row value decoding for variable-width payloads.
 - Checkpoint resume through `dblog.WithCheckpoint` when opened through the root
   registry.
+- Typed flashback row events for complete write, update, and delete row images.
 
 ## Supported Inputs
 
@@ -91,6 +92,7 @@ Got QUERY_EVENT:
 | MySQL, MariaDB, and MySQL-compatible binlog event bodies listed below | Supported | Unit tests cover event decoders and the MariaDB plugin. |
 | Unknown events declared by `FORMAT_DESCRIPTION_EVENT` metadata | Supported as metadata events in auto/loose compatibility modes | Compatibility mode tests and fixture tests. |
 | Malformed or undersized event headers | Rejected | `FuzzDecodeEventHeader` smoke target. |
+| Flashback for complete `WRITE_ROWS_EVENT`, `UPDATE_ROWS_EVENT`, and `DELETE_ROWS_EVENT` row images | Supported as typed reverse row events | Decoder tests and MySQL fixture CI assert emitted operations. |
 | Online replication connections | Planned | Not part of the offline parser release line. |
 
 ### Typed Event Filtering
@@ -148,9 +150,25 @@ id. If decoding starts after the required table map, the row event is still
 returned with header and bitmap fields populated, and `BinRowsEvent.DecodeError`
 describes the missing metadata.
 
-Decoded row columns are exposed as `types.ColumnValue`. Variable-width payloads
-reuse the original event buffer through `ColumnValue.Raw` to avoid unnecessary
-copies.
+Decoded row columns are exposed as `types.ColumnValue`. The rows event also
+carries the schema and table name from the matching table map. Variable-width
+payloads reuse the original event buffer through `ColumnValue.Raw` to avoid
+unnecessary copies.
+
+### Flashback Scope
+
+`dblog.Flashbacks` emits synthetic `*events.Event` values with typed
+`*types.BinRowsEvent` bodies when the original rows event carries a complete row
+image.
+
+| Original event | Flashback event |
+|---|---|
+| `WRITE_ROWS_EVENTv0/v1/v2` | Matching-version `DELETE_ROWS_EVENT` |
+| `DELETE_ROWS_EVENTv0/v1/v2` | Matching-version `WRITE_ROWS_EVENT` |
+| `UPDATE_ROWS_EVENTv0/v1/v2` | Matching-version `UPDATE_ROWS_EVENT` with before/after rows swapped |
+
+Rows events with missing table-map metadata, skipped columns, or
+`PARTIAL_UPDATE_ROWS_EVENT` do not emit flashback output.
 
 ### Dialect Plugins
 
