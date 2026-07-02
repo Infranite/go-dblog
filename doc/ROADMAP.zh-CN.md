@@ -21,7 +21,7 @@
 |---|---|---|---|
 | `v0.1.0` | Ready, 已被取代 | MySQL、PostgreSQL、MongoDB、Redis 的首个可用 parser 和 CDC developer preview。 | 已实现并由 CI 覆盖，但在公开 tag 发布前被取代。 |
 | `v0.2.0` | Released | 兼容性加固后的 parser 和 CDC developer preview。 | 受保护 `ci` 与 `merge-policy` 检查通过；已发布 `v0.2.0`、`mysql/v0.2.0`、`postgres/v0.2.0`、`mongo/v0.2.0`、`redis/v0.2.0` tag。 |
-| `v0.3.0` | Planned | 恢复工作流。 | 只在 source log 包含足够旧状态时扩展闪回；不安全反向操作保持省略或显式 opt-in；合入和打 tag 前全 backend CI 通过。 |
+| `v0.3.0` | Ready | 恢复工作流。 | 只在 source log 包含足够旧状态时扩展闪回；不安全反向操作保持省略；打 tag 前全 backend CI 必须通过。 |
 | `v0.4.0` | Planned | 运维成熟度。 | CI 发布已测试 backend/version 矩阵，并保留 parser benchmark 历史。 |
 | `v1.0.0` | Candidate | 稳定公共 API。 | 根 API 和 backend package 契约冻结，并有兼容性策略。 |
 
@@ -37,6 +37,7 @@
 | 基础过滤 | Done | Done | Done | Done | Done |
 | Checkpoint/resume | Done | Done | Done | Done | Done |
 | source log 包含足够数据时的安全闪回 | Done | Done | Done | Done | Done |
+| 带 checkpoint handoff 的恢复计划 | Done | Done | Done | Done | Done |
 | Fixture provenance | N/A | Done | Done | Done | Done |
 | Malformed 和 unsupported input tests | Done | Done | Done | Done | Done |
 | Fuzz smoke gate | N/A | Done | Done | Done | Done |
@@ -53,7 +54,7 @@
 | 超出公共事件形态的跨数据库语义归一 | Unsupported | backend-native event body 会保留产品语义。 |
 | 托管服务 connector | Unsupported | 不属于 `v0.x` 契约。 |
 | 通过 blank import 自动注册 backend | Unsupported | backend 需要显式注册。 |
-| Recovery plan API 和 replay cookbook | Planned for `v0.3.0` | 基于现有 safe flashback 和 checkpoint primitives。 |
+| `RecoveryPlan` API 和 replay cookbook | Done | 流式输出 backend-native reverse operation 与 source checkpoint；见 [RECOVERY.zh-CN.md](./RECOVERY.zh-CN.md)。 |
 
 CI 证据：`root_test` 运行根 package 测试；每个 backend module 都运行 backend 注册和
 checkpoint 测试。
@@ -81,8 +82,8 @@ checkpoint 测试。
 | 事项 | 状态 | 说明 |
 |---|---|---|
 | 保留现有完整 row-image 闪回 | Done | `v0.2.0` 已具备的基线能力。 |
-| 增加 fixture binlog 端到端恢复示例 | Planned | 需要展示 reverse event iteration 和 checkpoint handoff。 |
-| lossy row format 保持省略，除非新增显式 opt-in API | Planned | 退出门禁要求。 |
+| 增加 fixture binlog 端到端恢复示例 | Done | `RecoveryPlan` 示例展示 reverse event iteration 和 checkpoint handoff。 |
+| lossy row format 保持省略 | Done | incomplete row image、skipped columns 和 partial updates 仍不支持。 |
 
 ## PostgreSQL 族
 
@@ -107,8 +108,8 @@ checkpoint 测试。
 | 事项 | 状态 | 说明 |
 |---|---|---|
 | 保留完整 tuple records 的 SQL 闪回 | Done | `v0.2.0` 已具备的基线能力。 |
-| 增加带 checkpoint state 的反向 SQL 输出恢复示例 | Planned | 需要覆盖 `REPLICA IDENTITY FULL` 预期。 |
-| partial old-key update 保持省略，除非新增显式 opt-in API | Planned | 退出门禁要求。 |
+| 增加带 checkpoint state 的反向 SQL 输出恢复示例 | Done | `Example_recoveryPlan` 和文档覆盖 checkpoint handoff 与 `REPLICA IDENTITY FULL` 预期。 |
+| partial old-key update 保持省略 | Done | partial old-key updates 仍不支持，并有测试覆盖。 |
 
 ## MongoDB 族
 
@@ -134,7 +135,7 @@ checkpoint 测试。
 |---|---|---|
 | 保留具备足够 document data 的 insert/delete/update 闪回 | Done | `v0.2.0` 已具备的基线能力。 |
 | 当 before-image 存在时，为 replace change-stream 增加原生恢复支持 | Done | 已由单元测试覆盖；无需 plugin。 |
-| 增加 live pre-image 恢复示例 | Planned | 需要说明 collection pre-image 要求。 |
+| 增加 live pre-image 恢复示例 | Done | examples 说明 collection pre-image 要求和 `RecoveryPlan` checkpoint handoff。 |
 
 ## Redis 族
 
@@ -160,4 +161,4 @@ checkpoint 测试。
 |---|---|---|
 | 保留确定性的 list 和 counter 闪回 | Done | `v0.2.0` 已具备的基线能力。 |
 | 增加 `HINCRBY`、`HINCRBYFLOAT`、`ZINCRBY` 等确定性 numeric 闪回 | Done | 使用相反 delta 构造安全反向命令；Redis 7.2 fixture/live CI 覆盖 `HINCRBY` 和 `ZINCRBY`，`HINCRBYFLOAT` 因 Redis 会传播为 `HSET`，由单元测试覆盖。 |
-| state-dependent commands 保持省略，除非新增显式 opt-in API | Planned | 退出门禁要求。 |
+| state-dependent commands 保持省略 | Done | state-dependent Redis commands 仍不支持，并有测试覆盖。 |

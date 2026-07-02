@@ -75,19 +75,20 @@ if err != nil {
 defer decoder.Close()
 ```
 
-## 遍历闪回 SQL
+## 构建带 Checkpoint 的恢复计划
 
 ```go
-for event, err := range dblog.Flashbacks(decoder.Events()) {
+for step, err := range dblog.RecoveryPlan(decoder.Events()) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(event.Body())
+	sql := step.Operation.(string)
+	fmt.Println(step.Checkpoint.Position.Value, sql)
 }
 ```
 
 Update 闪回需要完整 old tuple 和 new tuple 数据。需要 PostgreSQL 为 update 输出完整
-old tuple 时，使用 `REPLICA IDENTITY FULL`。
+old tuple 时，使用 `REPLICA IDENTITY FULL`。反向 SQL 持久执行成功后再保存 checkpoint。
 
 ## 注册文本事件插件
 

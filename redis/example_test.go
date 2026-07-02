@@ -60,6 +60,33 @@ func Example_flashback() {
 	// decr [counter]
 }
 
+func Example_recoveryPlan() {
+	var registry dblog.Registry
+	if err := redis.Register(&registry); err != nil {
+		panic(err)
+	}
+
+	decoder, err := registry.Open(redis.Driver,
+		dblog.WithSource(dblog.Source{Name: "appendonly.aof"}),
+		dblog.WithReader(strings.NewReader("*2\r\n$4\r\nINCR\r\n$7\r\ncounter\r\n")),
+	)
+	if err != nil {
+		panic(err)
+	}
+	defer closeDecoder(decoder)
+
+	for step, err := range dblog.RecoveryPlan(decoder.Events()) {
+		if err != nil {
+			panic(err)
+		}
+		command := step.Operation.(redis.Command)
+		fmt.Println(step.Checkpoint.Position.Value, command.Name, command.Args)
+	}
+
+	// Output:
+	// 1 decr [counter]
+}
+
 func closeDecoder(decoder dblog.Decoder[dblog.Event]) {
 	if err := decoder.Close(); err != nil {
 		panic(err)

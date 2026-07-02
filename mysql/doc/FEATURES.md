@@ -29,6 +29,8 @@ MySQL-family backend.
 - Checkpoint resume through `dblog.WithCheckpoint` when opened through the root
   registry.
 - Typed flashback row events for complete write, update, and delete row images.
+- `dblog.RecoveryPlan` steps that pair reverse row events with source
+  checkpoints.
 
 ## Unsupported
 
@@ -49,6 +51,7 @@ MySQL-family backend.
 | Malformed or undersized event headers | Rejected | `FuzzDecodeEventHeader` smoke target. |
 | Row events decoded without the required prior `TABLE_MAP_EVENT` | Returned with `DecodeError` and without reconstructed row values | `TestRowsEventWithoutPriorTableMapKeepsDecodeError`. |
 | Flashback for complete `WRITE_ROWS_EVENT`, `UPDATE_ROWS_EVENT`, and `DELETE_ROWS_EVENT` row images | Supported as typed reverse row events | Decoder tests and MySQL fixture CI assert emitted operations. |
+| Recovery plan steps for complete row-image flashbacks | Supported | `TestDblogRecoveryPlanIncludesCheckpoint`. |
 | Online replication connections | Supported | `TestLiveReplicationStream` runs against a real `mysql:8.4` container in CI. |
 
 ## Live Replication Reader
@@ -90,6 +93,9 @@ unnecessary copies.
 `dblog.Flashbacks` emits synthetic `*events.Event` values with typed
 `*types.BinRowsEvent` bodies when the original rows event carries a complete row
 image.
+
+`dblog.RecoveryPlan` emits the same reverse row event plus the checkpoint of the
+original event.
 
 | Original event | Flashback event |
 |---|---|

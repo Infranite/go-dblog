@@ -76,19 +76,21 @@ if err != nil {
 defer decoder.Close()
 ```
 
-## Iterate Flashback SQL
+## Build A Recovery Plan With Checkpoints
 
 ```go
-for event, err := range dblog.Flashbacks(decoder.Events()) {
+for step, err := range dblog.RecoveryPlan(decoder.Events()) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(event.Body())
+	sql := step.Operation.(string)
+	fmt.Println(step.Checkpoint.Position.Value, sql)
 }
 ```
 
 Update flashback needs complete old and new tuple data. Use `REPLICA IDENTITY
-FULL` when PostgreSQL must emit a complete old tuple for updates.
+FULL` when PostgreSQL must emit a complete old tuple for updates. Persist the
+checkpoint after the reverse SQL is durably applied.
 
 ## Register A Text Event Plugin
 

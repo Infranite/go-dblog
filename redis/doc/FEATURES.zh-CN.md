@@ -22,6 +22,7 @@
 - 通过 `redis/backend` 集成根 registry。
 - 通过根 registry 打开时支持 `dblog.WithCheckpoint`。
 - 对 list push 和确定性 numeric increment 生成无需读取 Redis state 即可安全反转的闪回命令。
+- `dblog.RecoveryPlan` 会把 flashback command 和 source checkpoint 组成恢复 step。
 - 面向 Redis-compatible 产品和 module commands 的 command plugin。
 
 ## 暂不支持
@@ -37,6 +38,7 @@
 |---|---|---|
 | Redis AOF RESP array commands | 支持 | `redis` fixture job 从 `redis:7.2` 生成；`FuzzParseCommand` smoke target。 |
 | Redis replication streams | 支持 | `redis` CI job 启动 `redis:7.2`，写入 SET/INCR/LPUSH/HINCRBY/HINCRBYFLOAT/ZINCRBY，并通过 `dblog.WithDSN` 加 `dblog.WithContext` 读取传播后的 command stream。 |
+| 确定性 command 的 recovery plan step | 支持 | `Example_recoveryPlan` 和 Redis fixture CI。 |
 | LF-only line endings、empty command names、invalid lengths、oversized arrays/bulk strings | 拒绝 | Parser tests 和 fuzz smoke target。 |
 | 离线输入中的 RDB preamble 或 mixed RDB/AOF streams | 拒绝 | `TestParseCommandRejectsInvalidRESP`。 |
 | live PSYNC stream 初始 RDB snapshot payload | 读取 command 前跳过 | `TestLiveDecoderSkipsSizedRDB` 和 live Redis CI。 |
@@ -66,6 +68,7 @@ plugin 归一化后保留原始操作的 stream。
 
 需要 Redis 先前 state、TTL、overwritten value 或成员是否已存在的信息时，不输出闪回。
 例如 `SET`、`HSET`、`SADD`、`DEL` 会被解码为 command，但不会生成闪回命令。
+`dblog.RecoveryPlan` 输出相同 command，并附带原始事件 checkpoint。
 
 ## 插件支持
 

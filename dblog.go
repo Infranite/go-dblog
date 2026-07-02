@@ -361,6 +361,12 @@ type Reversible interface {
 	Reverse() (any, bool)
 }
 
+// RecoveryStep is one safe compensating operation with its source checkpoint.
+type RecoveryStep struct {
+	Checkpoint Checkpoint
+	Operation  any
+}
+
 // Flashbacks yields compensating operations from reversible events.
 func Flashbacks(seq iter.Seq2[Event, error]) iter.Seq2[any, error] {
 	return func(yield func(any, error) bool) {
@@ -369,11 +375,7 @@ func Flashbacks(seq iter.Seq2[Event, error]) iter.Seq2[any, error] {
 				yield(nil, err)
 				return
 			}
-			reversible, ok := event.(Reversible)
-			if !ok {
-				continue
-			}
-			op, ok := reversible.Reverse()
+			op, ok := reverseOperation(event)
 			if !ok {
 				continue
 			}
@@ -382,6 +384,37 @@ func Flashbacks(seq iter.Seq2[Event, error]) iter.Seq2[any, error] {
 			}
 		}
 	}
+}
+
+// RecoveryPlan yields safe compensating operations with checkpoints.
+func RecoveryPlan(seq iter.Seq2[Event, error]) iter.Seq2[RecoveryStep, error] {
+	return func(yield func(RecoveryStep, error) bool) {
+		for event, err := range seq {
+			if err != nil {
+				yield(RecoveryStep{}, err)
+				return
+			}
+			op, ok := reverseOperation(event)
+			if !ok {
+				continue
+			}
+			step := RecoveryStep{
+				Checkpoint: CheckpointOf(event),
+				Operation:  op,
+			}
+			if !yield(step, nil) {
+				return
+			}
+		}
+	}
+}
+
+func reverseOperation(event Event) (any, bool) {
+	reversible, ok := event.(Reversible)
+	if !ok {
+		return nil, false
+	}
+	return reversible.Reverse()
 }
 
 func match(event Event, predicates []Predicate) bool {

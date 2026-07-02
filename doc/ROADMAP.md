@@ -22,7 +22,7 @@ checklist, not a date commitment.
 |---|---|---|---|
 | `v0.1.0` | Ready, superseded | First usable parser and CDC developer preview for MySQL, PostgreSQL, MongoDB, and Redis. | Implemented and CI-covered, but superseded before public tags. |
 | `v0.2.0` | Released | Compatibility-hardened parser and CDC developer preview. | Protected `ci` and `merge-policy` checks passed; release tags published as `v0.2.0`, `mysql/v0.2.0`, `postgres/v0.2.0`, `mongo/v0.2.0`, and `redis/v0.2.0`. |
-| `v0.3.0` | Planned | Recovery workflows. | Flashback expands only where the source log contains enough prior state; unsafe reverse operations stay omitted or explicit opt-in; full backend CI passes before merge and tags. |
+| `v0.3.0` | Ready | Recovery workflows. | Flashback expands only where the source log contains enough prior state; unsafe reverse operations stay omitted; full backend CI must pass before tags. |
 | `v0.4.0` | Planned | Operational maturity. | CI publishes the tested backend/version matrix and keeps parser benchmark history. |
 | `v1.0.0` | Candidate | Stable public API. | Root API and backend package contracts are frozen with a documented compatibility policy. |
 
@@ -38,6 +38,7 @@ checklist, not a date commitment.
 | Basic filtering | Done | Done | Done | Done | Done |
 | Checkpoint/resume | Done | Done | Done | Done | Done |
 | Safe flashback where the log has enough data | Done | Done | Done | Done | Done |
+| Recovery plan with checkpoint handoff | Done | Done | Done | Done | Done |
 | Fixture provenance | N/A | Done | Done | Done | Done |
 | Malformed and unsupported input tests | Done | Done | Done | Done | Done |
 | Fuzz smoke gate | N/A | Done | Done | Done | Done |
@@ -54,7 +55,7 @@ checklist, not a date commitment.
 | Cross-database semantic normalization beyond the common event shape | Unsupported | Backend-native event bodies intentionally preserve product semantics. |
 | Managed service connectors | Unsupported | Not part of the `v0.x` contract. |
 | Automatic backend registration through blank imports | Unsupported | Backends register explicitly. |
-| Recovery plan API and replay cookbook | Planned for `v0.3.0` | Build on existing safe flashback and checkpoint primitives. |
+| `RecoveryPlan` API and replay cookbook | Done | Streams backend-native reverse operations with source checkpoints; documented in [RECOVERY.md](./RECOVERY.md). |
 
 CI evidence: `root_test` runs the root package tests, backend registration
 tests, and checkpoint tests in every backend module.
@@ -82,8 +83,8 @@ Detailed user docs: [features](../mysql/doc/FEATURES.md) and
 | Item | Status | Notes |
 |---|---|---|
 | Keep existing complete row-image flashbacks | Done | Baseline from `v0.2.0`. |
-| Add end-to-end recovery examples for fixture binlogs | Planned | Should show reverse event iteration and checkpoint handoff. |
-| Keep lossy row formats omitted unless an explicit opt-in API exists | Planned | Required exit-gate guardrail. |
+| Add end-to-end recovery examples for fixture binlogs | Done | `RecoveryPlan` example shows reverse event iteration and checkpoint handoff. |
+| Keep lossy row formats omitted | Done | Incomplete row images, skipped columns, and partial updates remain unsupported. |
 
 ## PostgreSQL Family
 
@@ -108,8 +109,8 @@ Detailed user docs: [features](../postgres/doc/FEATURES.md) and
 | Item | Status | Notes |
 |---|---|---|
 | Keep SQL flashback for complete tuple records | Done | Baseline from `v0.2.0`. |
-| Add recovery examples that emit reverse SQL with checkpoint state | Planned | Should cover `REPLICA IDENTITY FULL` expectations. |
-| Keep partial old-key updates omitted unless explicit opt-in exists | Planned | Required exit-gate guardrail. |
+| Add recovery examples that emit reverse SQL with checkpoint state | Done | `Example_recoveryPlan` and docs cover checkpoint handoff and `REPLICA IDENTITY FULL` expectations. |
+| Keep partial old-key updates omitted | Done | Partial old-key updates remain unsupported and covered by tests. |
 
 ## MongoDB Family
 
@@ -135,7 +136,7 @@ Detailed user docs: [features](../mongo/doc/FEATURES.md) and
 |---|---|---|
 | Keep insert/delete/update flashbacks with enough document data | Done | Baseline from `v0.2.0`. |
 | Add native replace change-stream recovery when a before-image is present | Done | Covered by unit tests; no plugin is required. |
-| Add live pre-image recovery examples | Planned | Should document collection pre-image requirements. |
+| Add live pre-image recovery examples | Done | Examples document collection pre-image requirements and `RecoveryPlan` checkpoint handoff. |
 
 ## Redis Family
 
@@ -161,4 +162,4 @@ Detailed user docs: [features](../redis/doc/FEATURES.md) and
 |---|---|---|
 | Keep deterministic list and counter flashbacks | Done | Baseline from `v0.2.0`. |
 | Add deterministic numeric flashbacks such as `HINCRBY`, `HINCRBYFLOAT`, and `ZINCRBY` | Done | Safe because the reverse command uses the negated delta; Redis 7.2 fixture/live CI covers `HINCRBY` and `ZINCRBY`, while `HINCRBYFLOAT` is unit-tested because Redis propagates it as `HSET`. |
-| Keep state-dependent commands omitted unless explicit opt-in exists | Planned | Required exit-gate guardrail. |
+| Keep state-dependent commands omitted | Done | State-dependent Redis commands remain unsupported and covered by tests. |

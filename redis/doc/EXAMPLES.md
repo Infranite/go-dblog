@@ -60,21 +60,22 @@ defer decoder.Close()
 The live reader consumes the initial PSYNC RDB snapshot payload and starts
 emitting following RESP command frames.
 
-## Iterate Flashback Commands
+## Build A Recovery Plan With Checkpoints
 
 ```go
-for event, err := range dblog.Flashbacks(decoder.Events()) {
+for step, err := range dblog.RecoveryPlan(decoder.Events()) {
 	if err != nil {
 		panic(err)
 	}
-	command := event.Body().(redis.Command)
-	fmt.Println(command.Name, command.Args)
+	command := step.Operation.(redis.Command)
+	fmt.Println(step.Checkpoint.Position.Value, command.Name, command.Args)
 }
 ```
 
 Only commands with deterministic reverse commands are emitted. This includes
 list pushes, counter increments, `HINCRBY`, `HINCRBYFLOAT`, and `ZINCRBY`.
 State-dependent commands such as `SET`, `HSET`, `SADD`, and `DEL` are omitted.
+Persist the checkpoint after the compensating command is durably applied.
 
 ## Register A Command Plugin
 

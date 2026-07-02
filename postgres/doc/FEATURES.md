@@ -28,6 +28,7 @@ path remains `postgres`.
   registry.
 - SQL flashbacks for inserts, deletes, and updates with complete old/new tuple
   data.
+- `dblog.RecoveryPlan` steps that pair reverse SQL with source checkpoints.
 - Event plugins for PostgreSQL-compatible sources with extra line types.
 
 ## Unsupported
@@ -45,6 +46,7 @@ path remains `postgres`.
 | `BEGIN` and `COMMIT` records from logical decoding text output | Supported | Unit tests and PostgreSQL fixture job generated from `postgres:16`. |
 | Row changes in `table schema.table: OPERATION: col[type]:value` form | Supported | Unit tests, fixture job, and `FuzzParseLine` smoke target. |
 | `UPDATE: old-key: ... new-tuple: ...` records with complete old tuple data | Supported | Unit tests, fuzz seed, and PostgreSQL fixture job with `REPLICA IDENTITY FULL`. |
+| Recovery plan steps for reverse SQL and checkpoint handoff | Supported | `Example_recoveryPlan`. |
 | Live SQL logical slot polling with `test_decoding` | Supported | `TestLiveLogicalDecoding` runs against a real `postgres:16` container in CI. |
 | Wire-level logical replication with `test_decoding` | Supported | `TestWireLogicalReplication` runs against a real `postgres:16` container in CI. |
 | Empty table or operation names | Rejected | Parser tests and fuzz smoke target. |
@@ -75,6 +77,8 @@ not decoded by this backend.
 
 Update flashback needs enough old values to restore every new tuple column. If
 the old tuple only contains key columns, the backend leaves the event out.
+`dblog.RecoveryPlan` emits the same reverse SQL plus the checkpoint of the
+original event.
 
 ## Plugin Support
 
