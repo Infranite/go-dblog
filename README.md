@@ -43,11 +43,11 @@ compatibility layers.
 
 ## Current Scope
 
-The first public tag target is `v0.1.0`: a parser release for users who already
+The current public target is `v0.1.0`: a parser release for users who already
 have database log files, exported records, captured streams, or PostgreSQL
-`test_decoding` logical slots. The roadmap may mark this target as ready before
-tags are published; until the first tags exist, use a checked-out branch for
-evaluation. Most live replication readers are planned for later release lines.
+`test_decoding` logical slots. Until the first tags exist, use a checked-out
+branch for evaluation. Most live replication readers are planned for later
+release lines.
 
 | Backend | Supported input for `v0.1.0` | Not included yet |
 |---|---|---|
@@ -63,7 +63,7 @@ by orchestration code and leaves backend-specific parsing details inside each
 backend module.
 
 ```bash
-# These installs are intended for published v0.1.0 tags.
+# These installs are intended for published tags.
 go get github.com/Infranite/go-dblog
 go get github.com/Infranite/go-dblog/mysql
 go get github.com/Infranite/go-dblog/postgres
@@ -222,8 +222,7 @@ The detailed roadmap and capability matrix live in [ROADMAP.md](./ROADMAP.md).
 Keep release planning there so version status, shipped capability, and CI
 evidence have one source of truth.
 
-Current public target: `v0.1.0`, the first GitHub Release and tag set for the
-parser developer preview.
+Current public target: `v0.1.0`, the first parser developer preview tag set.
 
 ## Development
 
@@ -284,14 +283,6 @@ Pull requests are the contribution path:
 - Update the relevant README when user-visible behavior changes.
 - Full fixture-backed integration, fuzz smoke, benchmark smoke, lint, vet, and
   vulnerability checks run in CI.
-
-## Releases
-
-GitHub Releases and Git tags are the release record. The root module uses
-`vX.Y.Z`; backend modules use module-prefixed tags such as `mysql/vX.Y.Z`,
-`mongo/vX.Y.Z`, `postgres/vX.Y.Z`, and `redis/vX.Y.Z`. The repository does not
-maintain standalone release or changelog documents; GitHub Releases are the
-public release notes, and git history is the detailed change log.
 
 ## License
 

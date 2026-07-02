@@ -17,12 +17,12 @@ adapting them to a shared event API.
 ## Key Files
 
 - `README.md`: feature overview, examples, backend package layout, inline
-  contribution notes, roadmap pointer, and versioning.
+  contribution notes, and roadmap pointer.
 - `ROADMAP.md`: release line, capability matrix, workstreams, and versioning
   rules.
 - `doc/doc_zh.md`: Chinese documentation.
-- GitHub Releases: public release notes. The repository does not maintain a
-  standalone release document or changelog.
+- GitHub Releases and Git tags: public release record; git history is the
+  detailed change log.
 - `SECURITY.md`: vulnerability reporting policy.
 
 ## Checks
