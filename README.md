@@ -43,10 +43,11 @@ compatibility layers.
 
 ## Current Scope
 
-The current public target is `v0.1.0` (unreleased): an offline parser release
-for users who already have database log files, exported records, or captured
-streams. Live replication readers are planned, but not part of this release
-line.
+The first public tag target is `v0.1.0`: an offline parser release for users
+who already have database log files, exported records, or captured streams. The
+roadmap may mark this target as ready before tags are published; until the first
+tags exist, use a checked-out branch for evaluation. Live replication readers
+are planned, but not part of this release line.
 
 | Backend | Supported input for `v0.1.0` | Not included yet |
 |---|---|---|
@@ -167,7 +168,7 @@ func main() {
 	}
 
 	decoder, err := registry.Open(redis.Driver,
-		dblog.WithReader(strings.NewReader("*4\r\n$4\r\nHSET\r\n$6\r\nuser:1\r\n$4\r\nname\r\n$3\r\nAda\r\n")),
+		dblog.WithReader(strings.NewReader("*2\r\n$4\r\nINCR\r\n$7\r\ncounter\r\n")),
 	)
 	if err != nil {
 		panic(err)
@@ -221,10 +222,10 @@ The detailed roadmap and capability matrix live in [ROADMAP.md](./ROADMAP.md).
 Keep release planning there so version status, shipped capability, and CI
 evidence have one source of truth.
 
-Current public target: `v0.1.0` (unreleased), an offline parser developer
-preview.
+Current public target: `v0.1.0`, the first GitHub Release and tag set for the
+offline parser developer preview.
 
-## Development and Contributing
+## Development
 
 Requirements:
 
@@ -274,7 +275,7 @@ Fixture generation can be debugged locally when Docker is available:
 ./redis/testdata/generate_redis_aof.sh redis:7.2
 ```
 
-Contributions are handled through pull requests:
+Pull requests are the contribution path:
 
 - Run `make test` and the affected module tests locally before opening a pull
   request.
@@ -283,13 +284,13 @@ Contributions are handled through pull requests:
 - Full fixture-backed integration, fuzz smoke, benchmark smoke, lint, vet, and
   vulnerability checks run in CI.
 
-## Versioning
+## Releases
 
-Releases are managed with GitHub Releases and Git tags. The root module uses
+GitHub Releases and Git tags are the release record. The root module uses
 `vX.Y.Z`; backend modules use module-prefixed tags such as `mysql/vX.Y.Z`,
-`mongo/vX.Y.Z`, `postgres/vX.Y.Z`, and `redis/vX.Y.Z`. There is no standalone
-release or changelog document in the repository: GitHub Releases are the public
-release notes, and git history remains the detailed change log.
+`mongo/vX.Y.Z`, `postgres/vX.Y.Z`, and `redis/vX.Y.Z`. The repository does not
+maintain standalone release or changelog documents; GitHub Releases are the
+public release notes, and git history is the detailed change log.
 
 ## License
 

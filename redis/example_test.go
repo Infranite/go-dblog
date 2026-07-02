@@ -41,7 +41,7 @@ func Example_flashback() {
 	}
 
 	decoder, err := registry.Open(redis.Driver,
-		dblog.WithReader(strings.NewReader("*4\r\n$4\r\nHSET\r\n$6\r\nuser:1\r\n$4\r\nname\r\n$3\r\nAda\r\n")),
+		dblog.WithReader(strings.NewReader("*2\r\n$4\r\nINCR\r\n$7\r\ncounter\r\n")),
 	)
 	if err != nil {
 		panic(err)
@@ -57,7 +57,7 @@ func Example_flashback() {
 	}
 
 	// Output:
-	// hdel [user:1 name]
+	// decr [counter]
 }
 
 func closeDecoder(decoder dblog.Decoder[dblog.Event]) {

@@ -73,7 +73,7 @@ func TestBackendStreamsEventsAndFlashbacks(t *testing.T) {
 		t.Fatalf("kinds = %v", kinds)
 	}
 
-	decoder, err = registry.Open(Driver, dblog.WithReader(strings.NewReader("*4\r\n$4\r\nHSET\r\n$6\r\nuser:1\r\n$4\r\nname\r\n$3\r\nAda\r\n")))
+	decoder, err = registry.Open(Driver, dblog.WithReader(strings.NewReader("*2\r\n$4\r\nINCR\r\n$7\r\ncounter\r\n")))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,9 +91,34 @@ func TestBackendStreamsEventsAndFlashbacks(t *testing.T) {
 		}
 		got = append(got, op)
 	}
-	want := Command{Name: CommandHDel, Args: []string{"user:1", "name"}}
+	want := Command{Name: CommandDecr, Args: []string{"counter"}}
 	if len(got) != 1 || !reflect.DeepEqual(got[0], want) {
 		t.Fatalf("flashbacks = %#v", got)
+	}
+}
+
+func TestCommandReverseOmitsStateDependentCommands(t *testing.T) {
+	tests := []struct {
+		name    string
+		command Command
+	}{
+		{
+			name:    "hash set may overwrite an existing field",
+			command: Command{Name: CommandHSet, Args: []string{"user:1", "name", "Ada"}},
+		},
+		{
+			name:    "set add may include existing members",
+			command: Command{Name: CommandSAdd, Args: []string{"tags", "go"}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reverse, ok := tt.command.Reverse()
+			if ok {
+				t.Fatalf("reverse = %#v, want no flashback", reverse)
+			}
+		})
 	}
 }
 

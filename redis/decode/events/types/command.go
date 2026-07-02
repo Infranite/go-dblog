@@ -19,21 +19,6 @@ type CommandPlugin interface {
 // enough information to undo the write without reading Redis state.
 func (c Command) Reverse() (Command, bool) {
 	switch c.Name {
-	case CommandHSet:
-		if len(c.Args) < 3 || (len(c.Args)-1)%2 != 0 {
-			return Command{}, false
-		}
-		args := make([]string, 0, 1+(len(c.Args)-1)/2)
-		args = append(args, c.Args[0])
-		for i := 1; i < len(c.Args); i += 2 {
-			args = append(args, c.Args[i])
-		}
-		return Command{Name: CommandHDel, Args: args}, true
-	case CommandSAdd:
-		if len(c.Args) < 2 {
-			return Command{}, false
-		}
-		return Command{Name: CommandSRem, Args: append([]string(nil), c.Args...)}, true
 	case CommandLPush:
 		if len(c.Args) < 2 {
 			return Command{}, false

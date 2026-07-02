@@ -8,7 +8,7 @@ gates for `go-dblog`. It is not a commitment to dates.
 | Status | Meaning |
 |---|---|
 | Done | Implemented, documented, and covered by CI. |
-| Ready | Implemented and covered by CI; waiting for tag and GitHub Release. |
+| Ready | Implemented and covered by CI; ready for tag and GitHub Release. |
 | Partial | A safe documented subset is implemented and covered by CI. |
 | In progress | Actively being built on the main development branch. |
 | Planned | Accepted scope, not yet started. |
@@ -16,7 +16,7 @@ gates for `go-dblog`. It is not a commitment to dates.
 | Unsupported | Explicitly not emitted or accepted in this release line. |
 | Deferred | Explicitly out of the current release line. |
 
-## Release Line
+## Release Targets
 
 | Release | Status | Theme | Deliverables | Exit gates |
 |---|---|---|---|---|
@@ -40,7 +40,7 @@ merge queue runs, and `master` pushes.
 | Common `dblog.Event` adapter | Done | Done | Done | Done | `root_test`, backend registration tests, and MySQL `TestDblogDecoderEvents`. |
 | Plugin hooks | Done: event plugins plus built-in MariaDB plugin | Done: event plugins | Done: event plugins | Done: command plugins | `mysql/plugin/mariadb`, `postgres/decode/decoder`, `mongo/decode/decoder`, and `redis/decode/decoder` plugin tests. |
 | Basic filtering | Done | Done | Done | Done | `dblog.TestFilterAppliesPredicates`; fixture-backed backend tests filter real decoded events. |
-| Safe flashback | Unsupported in `v0.1.0`: no MySQL reverse operation is emitted | Partial: insert/delete SQL plus update SQL with complete old/new tuple data | Partial: insert/delete/update-with-before-image commands | Partial: HSET, SADD, PUSH, and INCR-family commands | `dblog.TestFlashbacksYieldsReverseOperations`; fixture-backed backend tests assert emitted operations; `postgres.TestParseLineFlashbackRestoresUpdateOldKey` asserts complete old tuple update restore and PostgreSQL fixture CI uses `REPLICA IDENTITY FULL`; `mongo.TestParseLineFlashbackRestoresUpdateBeforeImage` asserts update restore uses `fullDocumentBeforeChange`; MySQL fixture test asserts no unsafe operation is emitted. |
+| Safe flashback | Unsupported in `v0.1.0`: no MySQL reverse operation is emitted | Partial: insert/delete SQL plus update SQL with complete old/new tuple data | Partial: insert/delete/update-with-before-image commands | Partial: LPUSH/RPUSH and INCR-family commands | `dblog.TestFlashbacksYieldsReverseOperations`; fixture-backed backend tests assert emitted operations; `postgres.TestParseLineFlashbackRestoresUpdateOldKey` asserts complete old tuple update restore and PostgreSQL fixture CI uses `REPLICA IDENTITY FULL`; `mongo.TestParseLineFlashbackRestoresUpdateBeforeImage` asserts update restore uses `fullDocumentBeforeChange`; Redis fixture CI rejects state-dependent HDEL/SREM flashback output; MySQL fixture test asserts no unsafe operation is emitted. |
 | Fixture provenance | Done: generated from MySQL 5.6, 5.7, 8.0, and 8.4 containers | Done: generated from PostgreSQL 16 | Done: generated from MongoDB 7.0 | Done: generated from Redis 7.2 | Workflow fixture generation steps run before integration tests. |
 | Static quality gates | Done | Done | Done | Done | `lint`, `vet`, and `vuln` matrix jobs run with `GOWORK=off` for every module. |
 | Compatibility matrix | Done | Done | Done | Done | Backend README files publish supported inputs, limits, and tested fixture versions; CI fixture jobs and fuzz seeds prove those claims. |
@@ -115,7 +115,7 @@ Required work:
 
 Done when:
 
-- release notes include tested database/log versions;
+- GitHub Release notes include tested database/log versions;
 - benchmark smoke checks run in CI;
 - `govulncheck` and race tests are required checks.
 
@@ -126,7 +126,7 @@ Done when:
   `mongo/vX.Y.Z`, `postgres/vX.Y.Z`, and `redis/vX.Y.Z`.
 - Backend modules track the root module version for `v0.x` releases.
 - Breaking API changes are allowed before `v1.0.0`, but must be documented in
-  GitHub Release notes.
+  GitHub Release notes when a tag is published.
 
 ## Maintenance Rules
 
@@ -135,7 +135,8 @@ Done when:
 - Add new work to an existing workstream before creating a new release line.
 - Keep release scope user-visible; internal refactors belong in issues or PRs,
   not the roadmap.
-- Update GitHub Release notes when a roadmap item changes shipped behavior.
+- For published tags, update GitHub Release notes when a roadmap item changes
+  shipped behavior.
 
 ## Non-Goals Before `v1.0.0`
 
