@@ -5,6 +5,7 @@ import (
 	"iter"
 
 	"github.com/Infranite/go-dblog/mysql/decode/events"
+	"github.com/Infranite/go-dblog/mysql/decode/events/types"
 )
 
 const driverMySQL = "mysql"
@@ -97,6 +98,24 @@ func (e DblogEvent) Body() any {
 // Native returns the original MySQL-family binlog event.
 func (e DblogEvent) Native() *events.Event {
 	return e.event
+}
+
+func (e DblogEvent) Reverse() (any, bool) {
+	if e.event == nil || e.event.Header == nil {
+		return nil, false
+	}
+	rows, ok := e.event.Body.(*types.BinRowsEvent)
+	if !ok {
+		return nil, false
+	}
+	reverseRows, eventType, ok := rows.Reverse(e.event.Header.EventType)
+	if !ok {
+		return nil, false
+	}
+	header := *e.event.Header
+	header.EventType = eventType
+	header.Data = nil
+	return &events.Event{Header: &header, Body: reverseRows}, true
 }
 
 // DblogDecoder adapts BinFileDecoder to the shared dblog.Decoder API.
