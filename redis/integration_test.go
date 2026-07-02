@@ -37,7 +37,6 @@ func TestFixtureBackedAOFDecoding(t *testing.T) {
 		CommandLPush,
 		CommandIncr,
 		CommandHIncrBy,
-		CommandHIncrByFloat,
 		CommandZIncrBy,
 	} {
 		if counts[kind] == 0 {
@@ -151,11 +150,12 @@ func TestLiveReplicationStream(t *testing.T) {
 			t.Fatal(err)
 		}
 		counts[event.Kind()]++
+		sawFloatMutation := counts[CommandHIncrByFloat] > 0 || counts[CommandHSet] > 0
 		if counts["set"] > 0 &&
 			counts[CommandIncr] > 0 &&
 			counts[CommandLPush] > 0 &&
 			counts[CommandHIncrBy] > 0 &&
-			counts[CommandHIncrByFloat] > 0 &&
+			sawFloatMutation &&
 			counts[CommandZIncrBy] > 0 {
 			cancel()
 		}
@@ -168,12 +168,14 @@ func TestLiveReplicationStream(t *testing.T) {
 		CommandIncr,
 		CommandLPush,
 		CommandHIncrBy,
-		CommandHIncrByFloat,
 		CommandZIncrBy,
 	} {
 		if counts[kind] == 0 {
 			t.Fatalf("live reader has no %s commands: %v", kind, counts)
 		}
+	}
+	if counts[CommandHIncrByFloat] == 0 && counts[CommandHSet] == 0 {
+		t.Fatalf("live reader has no hash float mutation commands: %v", counts)
 	}
 }
 

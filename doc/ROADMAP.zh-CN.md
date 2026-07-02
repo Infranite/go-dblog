@@ -159,5 +159,5 @@ checkpoint 测试。
 | 事项 | 状态 | 说明 |
 |---|---|---|
 | 保留确定性的 list 和 counter 闪回 | Done | `v0.2.0` 已具备的基线能力。 |
-| 增加 `HINCRBY`、`HINCRBYFLOAT`、`ZINCRBY` 等确定性 numeric 闪回 | Done | 使用相反 delta 构造安全反向命令；fixture 和 live CI 覆盖这些命令。 |
+| 增加 `HINCRBY`、`HINCRBYFLOAT`、`ZINCRBY` 等确定性 numeric 闪回 | Done | 使用相反 delta 构造安全反向命令；Redis 7.2 fixture/live CI 覆盖 `HINCRBY` 和 `ZINCRBY`，`HINCRBYFLOAT` 因 Redis 会传播为 `HSET`，由单元测试覆盖。 |
 | state-dependent commands 保持省略，除非新增显式 opt-in API | Planned | 退出门禁要求。 |

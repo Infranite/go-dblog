@@ -6,9 +6,23 @@ out="${2:-$(dirname "$0")/appendonly.aof}"
 name="go-dblog-redis-${image//[^a-zA-Z0-9]/-}-$$"
 
 cleanup() {
+	status=$?
+	if [[ "$status" -ne 0 ]]; then
+		docker logs --tail 160 "$name" >&2 || true
+	fi
 	docker rm -f "$name" >/dev/null 2>&1 || true
+	exit "$status"
 }
 trap cleanup EXIT
+
+require_aof_contains() {
+	local pattern="$1"
+	local description="${2:-$pattern}"
+	if ! grep -aq -- "$pattern" "$out"; then
+		echo "generated Redis AOF missing ${description}" >&2
+		exit 1
+	fi
+}
 
 docker pull "$image"
 docker run -d --name "$name" "$image" \
@@ -48,11 +62,12 @@ fi
 
 mkdir -p "$(dirname "$out")"
 docker cp "$name:$aof_path" "$out"
-grep -aq 'HSET' "$out"
-grep -aq 'SADD' "$out"
-grep -aq 'LPUSH' "$out"
-grep -aq 'INCR' "$out"
-grep -aq 'HINCRBY' "$out"
-grep -aq 'HINCRBYFLOAT' "$out"
-grep -aq 'ZINCRBY' "$out"
+require_aof_contains 'HSET'
+require_aof_contains 'SADD'
+require_aof_contains 'LPUSH'
+require_aof_contains 'INCR'
+require_aof_contains 'HINCRBY'
+require_aof_contains 'score' 'HINCRBYFLOAT propagated field'
+require_aof_contains '1.25' 'HINCRBYFLOAT propagated value'
+require_aof_contains 'ZINCRBY'
 ls -lh "$out"

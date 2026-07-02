@@ -160,5 +160,5 @@ Detailed user docs: [features](../redis/doc/FEATURES.md) and
 | Item | Status | Notes |
 |---|---|---|
 | Keep deterministic list and counter flashbacks | Done | Baseline from `v0.2.0`. |
-| Add deterministic numeric flashbacks such as `HINCRBY`, `HINCRBYFLOAT`, and `ZINCRBY` | Done | Safe because the reverse command uses the negated delta; fixture and live CI cover the commands. |
+| Add deterministic numeric flashbacks such as `HINCRBY`, `HINCRBYFLOAT`, and `ZINCRBY` | Done | Safe because the reverse command uses the negated delta; Redis 7.2 fixture/live CI covers `HINCRBY` and `ZINCRBY`, while `HINCRBYFLOAT` is unit-tested because Redis propagates it as `HSET`. |
 | Keep state-dependent commands omitted unless explicit opt-in exists | Planned | Required exit-gate guardrail. |
