@@ -8,8 +8,8 @@
 
 `go-dblog` is a multi-module Go toolkit for parsing database change logs. The
 root module defines shared event, registry, checkpoint, filtering, and safe
-flashback contracts; each backend keeps product-specific parsing, live reading,
-typed events, and extension hooks in its own module.
+flashback/recovery contracts; each backend keeps product-specific parsing, live
+reading, typed events, and extension hooks in its own module.
 
 [中文](./doc/README.zh-CN.md)
 
@@ -31,7 +31,7 @@ Install only the backend you use.
 - Explicit backend registration through `dblog.Registry`.
 - Streaming decoders built on Go iterator APIs.
 - Shared source metadata, position, checkpoint resume, filtering, and safe
-  flashback helpers.
+  flashback/recovery helpers.
 - Backend-native typed events for database-specific fields.
 - Plugin hooks inside backend decoder packages for compatible dialects and
   product-specific records.
@@ -94,6 +94,7 @@ database-specific event fields.
 | Topic | English | 中文 |
 |---|---|---|
 | Project overview | This README | [doc/README.zh-CN.md](./doc/README.zh-CN.md) |
+| Recovery cookbook | [doc/RECOVERY.md](./doc/RECOVERY.md) | [doc/RECOVERY.zh-CN.md](./doc/RECOVERY.zh-CN.md) |
 | Roadmap and product scope | [doc/ROADMAP.md](./doc/ROADMAP.md) | [doc/ROADMAP.zh-CN.md](./doc/ROADMAP.zh-CN.md) |
 | Development and contribution flow | [doc/DEVELOPMENT.md](./doc/DEVELOPMENT.md) | [doc/DEVELOPMENT.zh-CN.md](./doc/DEVELOPMENT.zh-CN.md) |
 | Security policy | [doc/SECURITY.md](./doc/SECURITY.md) | [doc/SECURITY.zh-CN.md](./doc/SECURITY.zh-CN.md) |

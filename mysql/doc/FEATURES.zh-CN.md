@@ -28,6 +28,7 @@
 - variable-width payload 的 copy-aware row value decoding。
 - 通过根 registry 打开时支持 `dblog.WithCheckpoint`。
 - 对完整 write、update、delete row image 输出 typed flashback row events。
+- `dblog.RecoveryPlan` 会把 reverse row event 和 source checkpoint 组成恢复 step。
 
 ## 暂不支持
 
@@ -46,6 +47,7 @@
 | malformed 或 undersized event headers | 拒绝 | `FuzzDecodeEventHeader` smoke target。 |
 | 缺少前置 `TABLE_MAP_EVENT` 时解码 row events | 返回 event，并在 `DecodeError` 中记录原因，不重建 row value | `TestRowsEventWithoutPriorTableMapKeepsDecodeError`。 |
 | 完整 `WRITE_ROWS_EVENT`、`UPDATE_ROWS_EVENT`、`DELETE_ROWS_EVENT` row image 的闪回 | 支持 typed reverse row events | Decoder tests 和 MySQL fixture CI。 |
+| 完整 row-image 闪回的 recovery plan step | 支持 | `TestDblogRecoveryPlanIncludesCheckpoint`。 |
 | 在线 replication connection | 支持 | `TestLiveReplicationStream` 在 CI 中运行真实 `mysql:8.4` 容器。 |
 
 ## Live Replication Reader
@@ -82,6 +84,8 @@ buffer，避免不必要的 copy。
 
 `dblog.Flashbacks` 在原始 rows event 携带完整 row image 时输出 synthetic
 `*events.Event`，body 为 typed `*types.BinRowsEvent`。
+
+`dblog.RecoveryPlan` 输出相同 reverse row event，并附带原始事件 checkpoint。
 
 | 原始 event | 闪回 event |
 |---|---|

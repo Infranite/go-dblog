@@ -60,21 +60,21 @@ defer decoder.Close()
 live reader 会消费初始 PSYNC RDB snapshot payload，然后从后续 RESP command frames
 开始输出事件。
 
-## 遍历闪回命令
+## 构建带 Checkpoint 的恢复计划
 
 ```go
-for event, err := range dblog.Flashbacks(decoder.Events()) {
+for step, err := range dblog.RecoveryPlan(decoder.Events()) {
 	if err != nil {
 		panic(err)
 	}
-	command := event.Body().(redis.Command)
-	fmt.Println(command.Name, command.Args)
+	command := step.Operation.(redis.Command)
+	fmt.Println(step.Checkpoint.Position.Value, command.Name, command.Args)
 }
 ```
 
 只有具备确定性反向命令的操作会输出闪回，包括 list push、counter increment、
 `HINCRBY`、`HINCRBYFLOAT` 和 `ZINCRBY`。`SET`、`HSET`、`SADD`、`DEL` 等依赖状态的
-命令会被省略。
+命令会被省略。补偿命令持久执行成功后再保存 checkpoint。
 
 ## 注册命令插件
 

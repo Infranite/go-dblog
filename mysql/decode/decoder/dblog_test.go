@@ -129,6 +129,36 @@ func TestDblogFilterAndFlashbacks(t *testing.T) {
 	}
 }
 
+func TestDblogRecoveryPlanIncludesCheckpoint(t *testing.T) {
+	decoder, err := NewDblogDecoder(requireTestBinlog(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := decoder.Close(); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	for step, err := range dblog.RecoveryPlan(dblog.Events(decoder)) {
+		if err != nil {
+			t.Fatal(err)
+		}
+		if step.Checkpoint.Source.Driver != "mysql" || step.Checkpoint.Position.Value == "" {
+			t.Fatalf("checkpoint = %#v", step.Checkpoint)
+		}
+		event, ok := step.Operation.(*events.Event)
+		if !ok {
+			t.Fatalf("operation = %T, want *events.Event", step.Operation)
+		}
+		if _, ok := event.Body.(*types.BinRowsEvent); !ok {
+			t.Fatalf("operation body = %T, want *types.BinRowsEvent", event.Body)
+		}
+		return
+	}
+	t.Fatal("fixture produced no mysql recovery steps")
+}
+
 func TestDblogEventReverseRowsEvents(t *testing.T) {
 	row := []types.ColumnValue{{Type: common.MySQLTypeLong, Value: int64(1)}}
 	before := []types.ColumnValue{{Type: common.MySQLTypeLong, Value: int64(1)}}

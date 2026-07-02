@@ -111,19 +111,30 @@ if err != nil {
 defer fileDecoder.Close()
 ```
 
-## Iterate Flashback Events
+## Build A Recovery Plan
 
-`dblog.Flashbacks` emits reverse row events only for complete row images.
+`dblog.RecoveryPlan` emits reverse row events only for complete row images. Each
+step carries the checkpoint of the original event; persist it after the reverse
+event is durably replayed.
 
 ```go
-events := dblog.Flashbacks(stream.Events())
-for event, err := range events {
+stream, err := decoder.NewDblogDecoder("./testdata/mysql-bin.000004")
+if err != nil {
+	panic(err)
+}
+defer stream.Close()
+
+for step, err := range dblog.RecoveryPlan(dblog.Events(stream)) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(event.Kind(), dblog.PositionOf(event).Value)
+	reverse := step.Operation.(*events.Event)
+	fmt.Println(step.Checkpoint.Position.Value, reverse.Header.Type())
 }
 ```
+
+For bounded point-in-time rollback, persist the emitted steps and replay them in
+reverse checkpoint order.
 
 ## Local Checks
 

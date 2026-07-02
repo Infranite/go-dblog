@@ -25,6 +25,7 @@
 - 通过 `postgres/backend` 集成根 registry。
 - 通过根 registry 打开时支持 `dblog.WithCheckpoint`。
 - 对 insert、delete 和具备完整 old/new tuple 数据的 update 生成 SQL 闪回。
+- `dblog.RecoveryPlan` 会把 reverse SQL 和 source checkpoint 组成恢复 step。
 - 面向 PostgreSQL-compatible source 额外 line types 的 event plugin。
 
 ## 暂不支持
@@ -41,6 +42,7 @@
 | logical decoding text output 中的 `BEGIN` 和 `COMMIT` records | 支持 | Unit tests 和 `postgres:16` fixture job。 |
 | `table schema.table: OPERATION: col[type]:value` 形式的 row changes | 支持 | Unit tests、fixture job 和 `FuzzParseLine` smoke target。 |
 | `UPDATE: old-key: ... new-tuple: ...` 且具备完整 old tuple data | 支持 | Unit tests、fuzz seed 和启用 `REPLICA IDENTITY FULL` 的 fixture job。 |
+| reverse SQL 与 checkpoint handoff 的 recovery plan step | 支持 | `Example_recoveryPlan`。 |
 | `test_decoding` live SQL logical slot polling | 支持 | `TestLiveLogicalDecoding` 在真实 `postgres:16` 容器中运行。 |
 | `test_decoding` wire-level logical replication | 支持 | `TestWireLogicalReplication` 在真实 `postgres:16` 容器中运行。 |
 | empty table 或 operation names | 拒绝 | Parser tests 和 fuzz smoke target。 |
@@ -69,6 +71,7 @@ DSN 增加 `replication=database` 时使用 wire reader。它会对配置的 slo
 
 Update 闪回需要足够 old values 来恢复每一个 new tuple column。如果 old tuple 只包含 key
 columns，backend 会省略该闪回事件。
+`dblog.RecoveryPlan` 输出相同 reverse SQL，并附带原始事件 checkpoint。
 
 ## 插件支持
 

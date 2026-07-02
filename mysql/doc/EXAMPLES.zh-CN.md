@@ -109,19 +109,29 @@ if err != nil {
 defer fileDecoder.Close()
 ```
 
-## 遍历闪回事件
+## 构建恢复计划
 
-`dblog.Flashbacks` 只为完整 row image 输出反向 row event。
+`dblog.RecoveryPlan` 只为完整 row image 输出反向 row event。每个 step 都带有
+原始事件的 checkpoint；反向事件持久 replay 成功后再保存 checkpoint。
 
 ```go
-events := dblog.Flashbacks(stream.Events())
-for event, err := range events {
+stream, err := decoder.NewDblogDecoder("./testdata/mysql-bin.000004")
+if err != nil {
+	panic(err)
+}
+defer stream.Close()
+
+for step, err := range dblog.RecoveryPlan(dblog.Events(stream)) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(event.Kind(), dblog.PositionOf(event).Value)
+	reverse := step.Operation.(*events.Event)
+	fmt.Println(step.Checkpoint.Position.Value, reverse.Header.Type())
 }
 ```
+
+如果要对一个有界窗口做 point-in-time rollback，先持久化这些 step，再按 checkpoint
+倒序 replay。
 
 ## 本地检查
 

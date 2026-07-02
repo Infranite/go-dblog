@@ -25,6 +25,8 @@ Redis-family backend.
   registry.
 - Flashback commands for list pushes and deterministic numeric increments that
   can be safely reversed without reading Redis state.
+- `dblog.RecoveryPlan` steps that pair flashback commands with source
+  checkpoints.
 - Command plugins for Redis-compatible products and module commands.
 
 ## Unsupported
@@ -41,6 +43,7 @@ Redis-family backend.
 |---|---|---|
 | Redis AOF RESP array commands | Supported | `redis` fixture job generated from `redis:7.2`; `FuzzParseCommand` smoke target. |
 | Redis replication streams | Supported | `redis` CI job starts `redis:7.2`, opens a PSYNC stream, writes SET/INCR/LPUSH/HINCRBY/HINCRBYFLOAT/ZINCRBY, and reads the propagated command stream through `dblog.WithDSN` plus `dblog.WithContext`. |
+| Recovery plan steps for deterministic commands | Supported | `Example_recoveryPlan` and Redis fixture CI. |
 | RESP frames with LF-only line endings, empty command names, invalid lengths, or oversized arrays/bulk strings | Rejected | Parser tests and fuzz smoke target. |
 | RDB preambles or mixed RDB/AOF streams in offline input | Rejected | `TestParseCommandRejectsInvalidRESP`. |
 | Initial RDB snapshot payload in live PSYNC streams | Skipped before command decoding | `TestLiveDecoderSkipsSizedRDB` and live Redis CI. |
@@ -74,6 +77,8 @@ Commands that require previous Redis state, TTLs, overwritten values, or
 knowledge of which set/hash members already existed do not emit flashback
 output. For example, `SET`, `HSET`, `SADD`, and `DEL` are decoded as commands,
 but they do not produce flashback commands.
+`dblog.RecoveryPlan` emits the same command plus the checkpoint of the original
+event.
 
 ## Plugin Support
 

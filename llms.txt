@@ -6,7 +6,7 @@ adapting them to a shared event API.
 ## Modules
 
 - `github.com/Infranite/go-dblog`: common registry, event, checkpoint, filter,
-  and flashback contracts.
+  flashback, and recovery plan contracts.
 - `github.com/Infranite/go-dblog/mysql`: MySQL-family binlog parser and
   replication stream reader.
 - `github.com/Infranite/go-dblog/postgres`: PostgreSQL logical decoding text
@@ -22,6 +22,8 @@ adapting them to a shared event API.
 - `doc/README.zh-CN.md`: Chinese project overview and product index.
 - `doc/ROADMAP.md` and `doc/ROADMAP.zh-CN.md`: release targets, per-product
   supported and unsupported scope, CI evidence, and next work.
+- `doc/RECOVERY.md` and `doc/RECOVERY.zh-CN.md`: recovery plan and replay
+  cookbook.
 - `doc/DEVELOPMENT.md` and `doc/DEVELOPMENT.zh-CN.md`: local checks, fixture
   debugging, pull request flow, and versioning rules.
 - `doc/SECURITY.md` and `doc/SECURITY.zh-CN.md`: vulnerability reporting policy.

@@ -27,6 +27,13 @@ type reverseEvent struct {
 
 func (e reverseEvent) Reverse() (any, bool) { return e.reverse, e.ok }
 
+type positionedReverseEvent struct {
+	reverseEvent
+	position string
+}
+
+func (e positionedReverseEvent) PositionString() string { return e.position }
+
 type kindEvent struct {
 	testEvent
 	kind string
@@ -381,5 +388,70 @@ func TestFlashbacksYieldsReverseOperations(t *testing.T) {
 	}
 	if len(got) != 1 || got[0] != "insert back" {
 		t.Fatalf("Flashbacks returned %#v", got)
+	}
+}
+
+func TestRecoveryPlanYieldsOperationsWithCheckpoints(t *testing.T) {
+	seq := func(yield func(Event, error) bool) {
+		yield(testEvent{body: "ignored"}, nil)
+		yield(positionedReverseEvent{
+			reverseEvent: reverseEvent{
+				testEvent: testEvent{body: "delete"},
+				reverse:   "insert back",
+				ok:        true,
+			},
+			position: "42",
+		}, nil)
+		yield(reverseEvent{testEvent: testEvent{body: "unsafe"}, ok: false}, nil)
+	}
+
+	var got []RecoveryStep
+	for step, err := range RecoveryPlan(seq) {
+		if err != nil {
+			t.Fatal(err)
+		}
+		got = append(got, step)
+	}
+	if len(got) != 1 {
+		t.Fatalf("RecoveryPlan returned %#v", got)
+	}
+	if got[0].Operation != "insert back" {
+		t.Fatalf("operation = %#v", got[0].Operation)
+	}
+	wantCheckpoint := Checkpoint{
+		Source:   Source{Driver: "test", Name: "fixture"},
+		Position: Position{Driver: "test", Value: "42"},
+	}
+	if got[0].Checkpoint != wantCheckpoint {
+		t.Fatalf("checkpoint = %#v, want %#v", got[0].Checkpoint, wantCheckpoint)
+	}
+}
+
+func TestRecoveryPlanStopsOnError(t *testing.T) {
+	wantErr := errors.New("decode")
+	seq := func(yield func(Event, error) bool) {
+		if !yield(reverseEvent{testEvent: testEvent{body: "delete"}, reverse: "insert back", ok: true}, nil) {
+			return
+		}
+		if !yield(nil, wantErr) {
+			return
+		}
+		yield(reverseEvent{testEvent: testEvent{body: "ignored"}, reverse: "ignored", ok: true}, nil)
+	}
+
+	var got []RecoveryStep
+	var gotErr error
+	for step, err := range RecoveryPlan(seq) {
+		if err != nil {
+			gotErr = err
+			break
+		}
+		got = append(got, step)
+	}
+	if !errors.Is(gotErr, wantErr) {
+		t.Fatalf("err = %v, want %v", gotErr, wantErr)
+	}
+	if len(got) != 1 || got[0].Operation != "insert back" {
+		t.Fatalf("RecoveryPlan returned %#v", got)
 	}
 }

@@ -75,17 +75,29 @@ defer decoder.Close()
 如果需要从 live change stream 生成 update 或 replace 闪回，需要在 collection 上启用
 pre-images。
 
-## 遍历闪回命令
+## 基于 Pre-Images 构建恢复计划
 
 ```go
-for event, err := range dblog.Flashbacks(decoder.Events()) {
+for step, err := range dblog.RecoveryPlan(decoder.Events()) {
 	if err != nil {
 		panic(err)
 	}
-	command := event.Body().(mongo.Command)
-	fmt.Println(command.Operation, command.Filter, command.Document)
+	command := step.Operation.(mongo.Command)
+	fmt.Println(step.Checkpoint.Position.Value, command.Operation, command.Filter, command.Document)
 }
 ```
+
+如果要对 live update 或 replace 做恢复，需要先在 collection 上启用 pre-images：
+
+```javascript
+db.runCommand({
+  collMod: "users",
+  changeStreamPreAndPostImages: { enabled: true }
+})
+```
+
+没有 `fullDocumentBeforeChange` 时，update 和 replace 事件仍会被解码，但不会输出
+recovery step。
 
 ## 注册事件插件
 

@@ -75,17 +75,30 @@ defer decoder.Close()
 Enable collection pre-images when update or replace flashbacks must be emitted
 from live change streams.
 
-## Iterate Flashback Commands
+## Build A Recovery Plan With Pre-Images
 
 ```go
-for event, err := range dblog.Flashbacks(decoder.Events()) {
+for step, err := range dblog.RecoveryPlan(decoder.Events()) {
 	if err != nil {
 		panic(err)
 	}
-	command := event.Body().(mongo.Command)
-	fmt.Println(command.Operation, command.Filter, command.Document)
+	command := step.Operation.(mongo.Command)
+	fmt.Println(step.Checkpoint.Position.Value, command.Operation, command.Filter, command.Document)
 }
 ```
+
+For live update or replace recovery, enable collection pre-images before opening
+the stream:
+
+```javascript
+db.runCommand({
+  collMod: "users",
+  changeStreamPreAndPostImages: { enabled: true }
+})
+```
+
+Without `fullDocumentBeforeChange`, update and replace events are decoded but no
+recovery step is emitted.
 
 ## Register An Event Plugin
 

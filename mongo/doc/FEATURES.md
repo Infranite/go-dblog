@@ -27,6 +27,8 @@ MongoDB-family backend.
   registry.
 - Flashback commands for inserts, deletes, updates, and replacements when the
   input contains enough document or key data.
+- `dblog.RecoveryPlan` steps that pair flashback commands with source
+  checkpoints.
 - Event plugins for MongoDB-compatible products that emit different operation
   names or metadata.
 
@@ -43,6 +45,7 @@ MongoDB-family backend.
 |---|---|---|
 | MongoDB oplog JSON records with `op`, `ns`, `o`, and `o2` | Supported | `mongo` fixture job generated from `mongo:7.0`; `FuzzParseLine` smoke target. |
 | MongoDB change stream JSON records with `operationType`, `ns`, `documentKey`, `fullDocument`, `fullDocumentBeforeChange`, and `updateDescription` | Supported | Unit tests and `FuzzParseLine` seeds cover valid and malformed records. |
+| Recovery plan steps for before-image updates and replacements | Supported | `Example_recoveryPlan` and replace flashback tests. |
 | Live collection change streams from MongoDB replica sets | Supported | `mongo` CI job starts `mongo:7.0`, opens a live stream, writes insert/update/delete operations, and reads them through `dblog.WithDSN` plus `dblog.WithContext`. |
 | Malformed JSON records or non-object `updateDescription` values | Rejected | `TestParseLineRejectsMalformedInput` and `FuzzParseLine`. |
 | Empty operation names | Rejected | Parser tests and fuzz smoke target. |
@@ -72,6 +75,8 @@ Update and replace flashbacks use the full before-image as a replacement
 document. Events without before-image data do not emit flashback output.
 Malformed JSON input and non-object `updateDescription` values are rejected
 before an event is emitted.
+`dblog.RecoveryPlan` emits the same command plus the checkpoint of the original
+event.
 
 ## Plugin Support
 
