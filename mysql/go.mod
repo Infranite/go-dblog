@@ -1,6 +1,6 @@
 module github.com/Infranite/go-dblog/mysql
 
-go 1.23
+go 1.25
 
 require github.com/Infranite/go-dblog v0.1.0
 

@@ -20,7 +20,7 @@ go get github.com/Infranite/go-dblog/postgres
 
 Requirements:
 
-- Go 1.23 or later.
+- Go 1.25 or later.
 - Logical decoding text records such as `BEGIN`, `COMMIT`, and
   `table schema.table: INSERT: col[type]:value`.
 - For live reading, a PostgreSQL DSN and a `test_decoding` logical slot name.

@@ -19,7 +19,7 @@ go get github.com/Infranite/go-dblog/redis
 
 Requirements:
 
-- Go 1.23 or later.
+- Go 1.25 or later.
 - Redis AOF command frames encoded as RESP arrays.
 
 ## Quick Start

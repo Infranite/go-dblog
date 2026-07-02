@@ -20,7 +20,7 @@ go get github.com/Infranite/go-dblog/mongo
 
 Requirements:
 
-- Go 1.23 or later.
+- Go 1.25 or later.
 - One JSON record per line from an oplog export or change stream capture.
 
 ## Quick Start

@@ -20,7 +20,7 @@ go get github.com/Infranite/go-dblog/mysql
 
 Requirements:
 
-- Go 1.23 or later.
+- Go 1.25 or later.
 - A MySQL-family binary log file for the current backend.
 
 ## Quick Start
@@ -78,7 +78,7 @@ Got QUERY_EVENT:
 - MySQL-compatible dialect events through the MySQL-compatible decoder set.
 - Row event decoding using `TABLE_MAP_EVENT` metadata.
 - Future metadata-declared events preserved as `*types.MetadataEvent`.
-- Go 1.23 iterator support for streaming and type filtering.
+- Go iterator support for streaming and type filtering.
 - Copy-aware row value decoding for variable-width payloads.
 - Checkpoint resume through `dblog.WithCheckpoint` when opened through the root
   registry.

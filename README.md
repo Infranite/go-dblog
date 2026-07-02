@@ -33,7 +33,7 @@ compatibility layers.
 - One common event shape for MySQL, PostgreSQL, MongoDB, and Redis log streams.
 - Explicit backend registration through `dblog.Registry`; no hidden imports or
   automatic global registration.
-- Streaming decoders based on Go 1.23 iterators.
+- Streaming decoders built on Go iterator APIs.
 - Shared event helpers for source, position, checkpoint resume, filtering, and
   flashback output.
 - Backend-native typed events for database-specific details.
@@ -228,7 +228,7 @@ Current public target: `v0.1.0`, the first parser developer preview tag set.
 
 Requirements:
 
-- Go 1.23 or later.
+- Go 1.25 or later.
 - `golangci-lint` for local lint checks.
 - Docker only when debugging fixture generation locally.
 
