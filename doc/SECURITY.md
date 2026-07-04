@@ -4,7 +4,7 @@
 
 ## Supported Versions
 
-Security fixes target the current public tag set `v0.4.0` and the default
+Security fixes target the current public tag set `v1.0.0` and the default
 branch. Supported version windows for later releases are documented in GitHub
 Releases.
 

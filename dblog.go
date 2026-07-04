@@ -153,15 +153,17 @@ func (r *Registry) Register(backend Backend) error {
 	}
 
 	r.mu.Lock()
-	defer r.mu.Unlock()
 	if r.backends == nil {
 		r.backends = make(map[string]Backend)
 	}
 	driver := backend.Driver()
 	if _, ok := r.backends[driver]; ok {
+		r.mu.Unlock()
 		return fmt.Errorf("%w: %s", ErrBackendExists, driver)
 	}
 	r.backends[driver] = backend
+	r.mu.Unlock()
+	Log.Logf(LevelDebug, "registered backend %s", driver)
 	return nil
 }
 
@@ -173,6 +175,7 @@ func (r *Registry) Open(driver string, opts ...OpenOption) (Decoder[Event], erro
 	if backend == nil {
 		return nil, fmt.Errorf("%w: %s", ErrBackendNotFound, driver)
 	}
+	Log.Logf(LevelDebug, "opening backend %s", driver)
 	return backend.Open(newOpenOptions(opts...))
 }
 

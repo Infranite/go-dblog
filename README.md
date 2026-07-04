@@ -35,18 +35,19 @@ Install only the backend you use.
 - Backend-native typed events for database-specific fields.
 - Plugin hooks inside backend decoder packages for compatible dialects and
   product-specific records.
+- Package-level loggers with standard-library defaults and per-package levels.
 - Separate Go modules so callers do not install unused database dependencies.
 
 ## Install
 
-The current public tag set is `v0.4.0`.
+The current public tag set is `v1.0.0`.
 
 ```bash
-go get github.com/Infranite/go-dblog@v0.4.0
-go get github.com/Infranite/go-dblog/mysql@v0.4.0
-go get github.com/Infranite/go-dblog/postgres@v0.4.0
-go get github.com/Infranite/go-dblog/mongo@v0.4.0
-go get github.com/Infranite/go-dblog/redis@v0.4.0
+go get github.com/Infranite/go-dblog@v1.0.0
+go get github.com/Infranite/go-dblog/mysql@v1.0.0
+go get github.com/Infranite/go-dblog/postgres@v1.0.0
+go get github.com/Infranite/go-dblog/mongo@v1.0.0
+go get github.com/Infranite/go-dblog/redis@v1.0.0
 ```
 
 ## Minimal Example
@@ -88,6 +89,38 @@ func main() {
 Use the common API for multi-source routing, shared filtering, CDC pipelines,
 backend registration, and recovery tasks. Use backend-native APIs when you need
 database-specific event fields.
+
+## Logging
+
+Every package exposes an independent `Log` slot. The default implementation is
+backed by the standard-library `log` package and writes `INFO` and above.
+Applications can tune a single package without changing the others.
+Use `Log.Enabled` before building expensive debug messages.
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/Infranite/go-dblog"
+	"github.com/Infranite/go-dblog/mysql"
+	"github.com/Infranite/go-dblog/redis"
+)
+
+func main() {
+	mysql.Log.SetLevel(dblog.LevelDebug)
+	if mysql.Log.Enabled(dblog.LevelDebug) {
+		mysql.Log.Logf(dblog.LevelDebug, "mysql decoder debug logging is enabled")
+	}
+
+	redisLogger := dblog.NewStdLogger("redis-aof", dblog.LevelWarn)
+	redisLogger.StandardLogger().SetOutput(os.Stdout)
+	redisLogger.StandardLogger().SetFlags(log.LstdFlags | log.Lmicroseconds)
+	redis.Log.SetLogger(redisLogger)
+}
+```
 
 ## Project Docs
 

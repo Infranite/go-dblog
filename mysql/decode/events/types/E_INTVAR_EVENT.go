@@ -46,5 +46,3 @@ func (e *IntvarEvent) Decode(opts ...EventOptionFunc) (EventBody, error) {
 		Value: binary.LittleEndian.Uint64(opt.Data[1:]),
 	}, nil
 }
-
-// TODO: BinIntvarEvent.Type format

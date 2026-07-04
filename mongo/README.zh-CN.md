@@ -16,10 +16,10 @@ collection change events，并把 MongoDB-specific fields 保留在 typed events
 当前 release：
 
 ```bash
-go get github.com/Infranite/go-dblog/mongo@v0.4.0
+go get github.com/Infranite/go-dblog/mongo@v1.0.0
 ```
 
-该 module 的仓库 tag 是 `mongo/v0.4.0`；调用方使用上面的 semantic version query。
+该 module 的仓库 tag 是 `mongo/v1.0.0`；调用方使用上面的 semantic version query。
 
 要求：
 

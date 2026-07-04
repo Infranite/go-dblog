@@ -18,10 +18,10 @@ parsing.
 Current release:
 
 ```bash
-go get github.com/Infranite/go-dblog/mongo@v0.4.0
+go get github.com/Infranite/go-dblog/mongo@v1.0.0
 ```
 
-The repository tag for this module is `mongo/v0.4.0`; callers use the semantic
+The repository tag for this module is `mongo/v1.0.0`; callers use the semantic
 version query above with `go get`.
 
 Requirements:

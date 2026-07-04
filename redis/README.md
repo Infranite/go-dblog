@@ -16,10 +16,10 @@ parsing.
 Current release:
 
 ```bash
-go get github.com/Infranite/go-dblog/redis@v0.4.0
+go get github.com/Infranite/go-dblog/redis@v1.0.0
 ```
 
-The repository tag for this module is `redis/v0.4.0`; callers use the semantic
+The repository tag for this module is `redis/v1.0.0`; callers use the semantic
 version query above with `go get`.
 
 Requirements:

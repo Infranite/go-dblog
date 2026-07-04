@@ -44,9 +44,9 @@ There are no standalone `CONTRIBUTING.md`, `RELEASE.md`, or `CHANGELOG.md`
 files. Contribution flow is documented in `doc/DEVELOPMENT.md`; public releases
 use GitHub Releases and git tags; git history is the detailed change log.
 
-The current public release is the `v0.4.0` tag set with root tag `v0.4.0` and
-backend tags `mysql/v0.4.0`, `postgres/v0.4.0`, `mongo/v0.4.0`, and
-`redis/v0.4.0`.
+The current public release is the `v1.0.0` tag set with root tag `v1.0.0` and
+backend tags `mysql/v1.0.0`, `postgres/v1.0.0`, `mongo/v1.0.0`, and
+`redis/v1.0.0`.
 
 ## Checks
 

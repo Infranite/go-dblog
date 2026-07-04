@@ -78,7 +78,7 @@ maintained.
 - Root module tags use `vX.Y.Z`.
 - Backend module tags use `mysql/vX.Y.Z`, `postgres/vX.Y.Z`,
   `mongo/vX.Y.Z`, and `redis/vX.Y.Z`.
-- Backend modules track the root module version for `v0.x` tags.
+- Backend modules track the root module version for every release tag.
 - GitHub Releases and git tags are the public release record.
 - Git history is the detailed change log; this repository does not maintain
   separate release notes or changelog files.
