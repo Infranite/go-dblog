@@ -86,7 +86,8 @@ func (logger *StdLogger) Enabled(level LogLevel) bool {
 		return false
 	}
 	current := LogLevel(logger.level.Load())
-	return current != LevelOff && normalizeLogLevel(level) >= current
+	recordLevel := normalizeLogLevel(level)
+	return current != LevelOff && recordLevel != LevelOff && recordLevel >= current
 }
 
 // SetLevel changes the minimum enabled log level.
@@ -136,7 +137,7 @@ func (slot *LoggerSlot) GetLogger() Logger {
 }
 
 // SetLogger replaces the current logger. Passing nil restores the default
-// standard-library logger for the slot.
+// standard-library logger for slots created with NewLoggerSlot.
 func (slot *LoggerSlot) SetLogger(logger Logger) {
 	if slot == nil {
 		return

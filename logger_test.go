@@ -35,10 +35,18 @@ func TestStdLoggerHonorsLevel(t *testing.T) {
 
 	logger.Logf(LevelInfo, "hidden")
 	logger.Logf(LevelError, "visible %s", "message")
+	logger.Logf(LevelOff, "off record")
+	logger.Logf(LogLevel(99), "out of range")
 
 	output := buf.String()
 	if strings.Contains(output, "hidden") {
 		t.Fatalf("info log was written at warn level: %q", output)
+	}
+	if strings.Contains(output, "off record") || strings.Contains(output, "out of range") {
+		t.Fatalf("disabled record level was written: %q", output)
+	}
+	if logger.Enabled(LevelOff) || logger.Enabled(LogLevel(99)) {
+		t.Fatal("disabled record level is enabled")
 	}
 	if !strings.Contains(output, "ERROR visible message") {
 		t.Fatalf("error log missing from output: %q", output)
