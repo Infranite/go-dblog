@@ -56,7 +56,7 @@
 `pos` query 参数。省略时从 server 当前 binary log position 开始。取消 context 可停止
 stream。Row details 需要 row-based binary logging。
 
-GTID auto-positioning 和 TLS-specific DSN 处理不属于 `v0.4.0` 契约。
+GTID auto-positioning 和 TLS-specific DSN 处理不属于 `v1.0.0` 契约。
 
 ## Compatibility Modes
 

@@ -72,6 +72,6 @@ artifacts。当前矩阵和 artifact 名称见 [CI.zh-CN.md](./CI.zh-CN.md)。
 - 根模块 tag 使用 `vX.Y.Z`。
 - backend module tag 使用 `mysql/vX.Y.Z`、`postgres/vX.Y.Z`、
   `mongo/vX.Y.Z`、`redis/vX.Y.Z`。
-- `v0.x` 阶段 backend module 跟随根模块版本。
+- backend module 在每个 release tag 中跟随根模块版本。
 - GitHub Releases 和 git tags 是公开发布记录。
 - Git history 是详细变更记录；项目不单独维护 release notes 或 changelog 文件。

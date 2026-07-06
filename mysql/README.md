@@ -17,10 +17,10 @@ parsing or replication stream reading.
 Current release:
 
 ```bash
-go get github.com/Infranite/go-dblog/mysql@v0.4.0
+go get github.com/Infranite/go-dblog/mysql@v1.0.0
 ```
 
-The repository tag for this module is `mysql/v0.4.0`; callers use the semantic
+The repository tag for this module is `mysql/v1.0.0`; callers use the semantic
 version query above with `go get`.
 
 Requirements:

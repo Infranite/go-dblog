@@ -61,7 +61,7 @@ optional `binlog` or `file` and `pos` query parameters. When they are omitted,
 the reader starts from the server's current binary log position. Cancel the
 context to stop the stream. Row details require row-based binary logging.
 
-GTID auto-positioning and TLS-specific DSN handling are outside the `v0.4.0`
+GTID auto-positioning and TLS-specific DSN handling are outside the `v1.0.0`
 contract.
 
 ## Compatibility Modes

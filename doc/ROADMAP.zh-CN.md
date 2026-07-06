@@ -23,7 +23,15 @@
 | `v0.2.0` | Released | 兼容性加固后的 parser 和 CDC developer preview。 | 受保护 `ci` 与 `merge-policy` 检查通过；已发布 `v0.2.0`、`mysql/v0.2.0`、`postgres/v0.2.0`、`mongo/v0.2.0`、`redis/v0.2.0` tag。 |
 | `v0.3.0` | Released | 恢复工作流。 | 受保护 `ci` 与 `merge-policy` 检查通过；已发布 `v0.3.0`、`mysql/v0.3.0`、`postgres/v0.3.0`、`mongo/v0.3.0`、`redis/v0.3.0` tag。 |
 | `v0.4.0` | Released | 运维成熟度。 | 受保护 `ci` 与 `merge-policy` 检查通过；CI evidence artifacts 已发布；已发布 `v0.4.0`、`mysql/v0.4.0`、`postgres/v0.4.0`、`mongo/v0.4.0`、`redis/v0.4.0` tag。 |
-| `v1.0.0` | Candidate | 稳定公共 API。 | 根 API 和 backend package 契约冻结，并有兼容性策略。 |
+| `v1.0.0` | Ready | 稳定公共 API。 | API 兼容性策略见下文；公开 tag 由受保护 `ci` 和 `merge-policy` 检查门禁。 |
+
+## v1 兼容性策略
+
+- 根模块公开 API 在 `v1.x` 遵循 SemVer；破坏性变更需要使用 `v2` module path。
+- backend module 的 public packages 在 `v1.x` 保持导出名称、option 契约和 event
+  body 字段含义稳定。
+- minor release 可以增加 API、新 event 字段和新数据库版本支持。
+- 标记为 `Unsupported` 的能力不在兼容性承诺内，直到状态改为 `Done` 或 `Ready`。
 
 ## 当前能力矩阵
 
@@ -34,6 +42,7 @@
 | 原生 typed events | N/A | Done | Done | Done | Done |
 | 公共 `dblog.Event` adapter | Done | Done | Done | Done | Done |
 | 插件入口 | N/A | Done | Done | Done | Done |
+| package-level logging hooks | Done | Done | Done | Done | Done |
 | 基础过滤 | Done | Done | Done | Done | Done |
 | Checkpoint/resume | Done | Done | Done | Done | Done |
 | source log 包含足够数据时的安全闪回 | Done | Done | Done | Done | Done |
@@ -52,8 +61,9 @@
 | `dblog.Event`、`dblog.Decoder`、`dblog.Registry` | Done | backend-neutral pipeline 的共享契约。 |
 | `WithReader`、`WithPath`、`WithDSN`、`WithSource`、`WithContext`、`WithCheckpoint` | Done | backend registry adapter 共用的 open options。 |
 | Source、position、checkpoint、filtering 和 flashback helpers | Done | 保持编排层 backend-neutral。 |
+| `Logger`、`StdLogger` 和 package-level `Log` slots | Done | 默认使用标准库 logger，支持每包替换、调等级和 `Enabled` 判断。 |
 | 超出公共事件形态的跨数据库语义归一 | Unsupported | backend-native event body 会保留产品语义。 |
-| 托管服务 connector | Unsupported | 不属于 `v0.x` 契约。 |
+| 托管服务 connector | Unsupported | 不属于 `v1.0.0` 契约。 |
 | 通过 blank import 自动注册 backend | Unsupported | backend 需要显式注册。 |
 | `RecoveryPlan` API 和 replay cookbook | Done | 流式输出 backend-native reverse operation 与 source checkpoint；见 [RECOVERY.zh-CN.md](./RECOVERY.zh-CN.md)。 |
 
@@ -88,7 +98,7 @@ checkpoint 测试。
 | 通过根 registry 打开时支持 checkpoint resume | Done | backend registry tests 覆盖。 |
 | 对完整 write、delete、update row image 生成安全闪回 | Done | 不完整 row image 会被省略。 |
 | live reader 的 GTID auto-positioning | Unsupported | 等 live reader 兼容性策略稳定后再规划。 |
-| TLS-specific DSN 处理 | Unsupported | 不属于 `v0.4.x` 契约。 |
+| TLS-specific DSN 处理 | Unsupported | 不属于 `v1.0.0` 契约。 |
 | skipped columns 或 `PARTIAL_UPDATE_ROWS_EVENT` 的闪回 | Unsupported | source log 不包含完整可逆 row image。 |
 
 `v0.3.0` 恢复工作：
@@ -138,7 +148,7 @@ checkpoint 测试。
 | 面向 MongoDB-compatible event shape 的 event plugins | Done | plugin 可归一化 operation 和 metadata。 |
 | 通过根 registry 打开时支持 checkpoint resume | Done | backend registry tests 覆盖。 |
 | 输入包含足够 document data 时，为 insert、delete、update、replace 生成安全闪回 | Done | update 和 replace 需要 `fullDocumentBeforeChange`；delete 需要完整 deleted document data。 |
-| JSON records 或 change streams 之外的 raw oplog tailing | Unsupported | 超出 `v0.4.x` 输入契约。 |
+| JSON records 或 change streams 之外的 raw oplog tailing | Unsupported | 超出 `v1.0.0` 输入契约。 |
 | 自动 replica set 或 sharded cluster discovery | Unsupported | 调用方提供 DSN 和 source。 |
 | 缺少 `fullDocumentBeforeChange` 的 update 或 replace 闪回 | Unsupported | source log 不包含 prior document state。 |
 | 缺少完整 deleted document data 的 delete 闪回 | Unsupported | source log 不包含可重新 insert 的 document。 |
@@ -165,7 +175,7 @@ checkpoint 测试。
 | 通过根 registry 打开时支持 checkpoint resume | Done | backend registry tests 覆盖。 |
 | 对 `LPUSH`、`RPUSH`、`INCR`、`DECR`、`INCRBY`、`DECRBY`、`HINCRBY`、`HINCRBYFLOAT`、`ZINCRBY` 生成安全闪回 | Done | 反向命令无需读取 Redis state。 |
 | Redis Cluster 或 Sentinel discovery | Unsupported | 调用方提供 direct endpoint。 |
-| TLS-specific DSN handling | Unsupported | 不属于 `v0.4.x` 契约。 |
+| TLS-specific DSN handling | Unsupported | 不属于 `v1.0.0` 契约。 |
 | 离线 RDB snapshot parsing | Unsupported | 离线 parser 只接收 RESP array command frames。 |
 | `SET`、`HSET`、`SADD`、`DEL` 等 state-dependent command 闪回 | Unsupported | command log 不包含 previous values、TTL 或 membership state。 |
 

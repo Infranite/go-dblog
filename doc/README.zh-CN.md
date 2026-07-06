@@ -32,18 +32,19 @@ backend 注册、checkpoint、过滤和安全闪回/恢复契约；每个 backen
 - 共享 source metadata、position、checkpoint resume、过滤和安全闪回/恢复辅助。
 - backend-native typed events 保留数据库特有字段。
 - backend decoder 包内提供插件入口，用于兼容方言和产品特有记录。
+- 每个 package 独立 logger，默认使用标准库 `log`，支持单独调等级或替换实现。
 - backend 独立 Go module，调用方不会安装无关数据库依赖。
 
 ## 安装
 
-当前公开 tag 集合是 `v0.4.0`。
+当前公开 tag 集合是 `v1.0.0`。
 
 ```bash
-go get github.com/Infranite/go-dblog@v0.4.0
-go get github.com/Infranite/go-dblog/mysql@v0.4.0
-go get github.com/Infranite/go-dblog/postgres@v0.4.0
-go get github.com/Infranite/go-dblog/mongo@v0.4.0
-go get github.com/Infranite/go-dblog/redis@v0.4.0
+go get github.com/Infranite/go-dblog@v1.0.0
+go get github.com/Infranite/go-dblog/mysql@v1.0.0
+go get github.com/Infranite/go-dblog/postgres@v1.0.0
+go get github.com/Infranite/go-dblog/mongo@v1.0.0
+go get github.com/Infranite/go-dblog/redis@v1.0.0
 ```
 
 ## 最小示例
@@ -84,6 +85,37 @@ func main() {
 
 需要多数据源路由、共享过滤、CDC pipeline、backend 注册和恢复任务时使用公共 API。
 需要数据库特有字段时，直接使用 backend 原生 API。
+
+## 日志
+
+每个 package 都暴露独立的 `Log` slot。默认实现基于标准库 `log`，默认输出 `INFO`
+及以上级别。应用可以只调整某一个 package，不影响其他 package。
+构造高成本 debug 日志前，可以先用 `Log.Enabled` 判断等级。
+
+```go
+package main
+
+import (
+	"log"
+	"os"
+
+	"github.com/Infranite/go-dblog"
+	"github.com/Infranite/go-dblog/mysql"
+	"github.com/Infranite/go-dblog/redis"
+)
+
+func main() {
+	mysql.Log.SetLevel(dblog.LevelDebug)
+	if mysql.Log.Enabled(dblog.LevelDebug) {
+		mysql.Log.Logf(dblog.LevelDebug, "mysql decoder debug logging is enabled")
+	}
+
+	redisLogger := dblog.NewStdLogger("redis-aof", dblog.LevelWarn)
+	redisLogger.StandardLogger().SetOutput(os.Stdout)
+	redisLogger.StandardLogger().SetFlags(log.LstdFlags | log.Lmicroseconds)
+	redis.Log.SetLogger(redisLogger)
+}
+```
 
 ## 项目文档
 
